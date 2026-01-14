@@ -85,9 +85,8 @@ if ($conn) {
         .main-content { margin-left: var(--sidebar-width); padding: 20px 30px; padding-top: calc(var(--navbar-height) + 30px); min-height: 100vh; width: calc(100% - var(--sidebar-width)); transition: 0.3s; }
 
         /* --- 5. CARDS & LINKS --- */
-        /* Link Wrapper Style - Makes the whole card clickable */
-        .card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.3s; }
-        .card-link:hover { transform: translateY(-5px); }
+        a.card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.3s; }
+        a.card-link:hover { transform: translateY(-5px); }
 
         .solid-stat-card { border-radius: 15px; padding: 30px 25px; color: #fff; display: flex; flex-direction: column; justify-content: center; height: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         
@@ -132,7 +131,17 @@ if ($conn) {
     </style>
     
     <script>
-        const savedTheme = localStorage.getItem('appTheme') || 'light';
+        // Check Cookie first (for permit generator sync), then Local Storage
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+        
+        const cookieTheme = getCookie('theme');
+        const localTheme = localStorage.getItem('appTheme');
+        const savedTheme = cookieTheme || localTheme || 'light';
+        
         document.documentElement.setAttribute('data-bs-theme', savedTheme);
     </script>
 </head>
@@ -156,7 +165,7 @@ if ($conn) {
             <div class="d-flex align-items-center">
                 <button class="btn text-white d-lg-none me-3" id="sidebarToggle"><i class="fas fa-bars fa-lg"></i></button>
                 <a class="navbar-brand d-flex align-items-center" href="#">
-                    <img src="background.png" alt="Logo" width="35" height="35" class="me-2 rounded-circle bg-white p-1" onerror="this.style.display='none'">
+                    <img src="background.png" alt="Logo" width="35" height="35" onerror="this.style.display='none'">
                     SAPD SYSTEM
                 </a>
             </div>
@@ -181,19 +190,61 @@ if ($conn) {
     <div class="sidebar" id="sidebar">
         <div class="sidebar-content">
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i class="fas fa-th-large me-3" style="width:20px;"></i> Dashboard</a></li>
-                <h6 class="sidebar-heading">Admin Controls</h6>
-                <li class="nav-item"><a class="nav-link" href="admin_approval.php"><i class="fas fa-user-check me-3" style="width:20px;"></i> Approvals <?php if($stats['pending'] > 0): ?><span class="badge bg-danger rounded-pill ms-auto"><?php echo $stats['pending']; ?></span><?php endif; ?></a></li>
+                <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i class="fas fa-th-large me-3"></i> Dashboard</a></li>
+                <h6 class="sidebar-heading">Admin</h6>
+                
+                <li class="nav-item">
+                    <a class="nav-link" href="admin_approval.php">
+                        <i class="fas fa-user-check me-3"></i> Approvals
+                        <?php if($stats['pending'] > 0): ?><span class="badge bg-danger rounded-pill ms-auto"><?php echo $stats['pending']; ?></span><?php endif; ?>
+                    </a>
+                </li>
+
                 <h6 class="sidebar-heading">Forms Management</h6>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=letter"><i class="fas fa-envelope-open-text me-3"></i> Comm. Letter</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=division"><i class="fas fa-file-alt me-3"></i> Division Form</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=incident"><i class="fas fa-exclamation-triangle me-3"></i> Incident Report</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=vaping"><i class="fas fa-smoking-ban me-3"></i> Vaping Incident</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=parking"><i class="fas fa-car-crash me-3"></i> Parking Form</a></li>
-                <h6 class="sidebar-heading">Permits</h6>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=EMPLOYEES"><i class="fas fa-id-badge me-3"></i> Employee Permit</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=STUDENT LICENSE"><i class="fas fa-user-graduate me-3"></i> Student License</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=STUDENT NON-PRO"><i class="fas fa-address-card me-3"></i> Non-Pro License</a></li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=letter">
+                        <i class="fas fa-envelope-open-text me-3"></i> Comm. Letter
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=division">
+                        <i class="fas fa-file-alt me-3"></i> Division Form
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=incident">
+                        <i class="fas fa-exclamation-triangle me-3"></i> Incident Report
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=vaping">
+                        <i class="fas fa-smoking-ban me-3"></i> Vaping Incident
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=parking">
+                        <i class="fas fa-car-crash me-3"></i> Parking Form
+                    </a>
+                </li>
+
+                <h6 class="sidebar-heading">Other Permits</h6>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="employee_permit.php">
+                        <i class="fas fa-id-badge me-3"></i> Employee Permit
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=STUDENT LICENSE">
+                        <i class="fas fa-user-graduate me-3"></i> Student License
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="view_details.php?view=STUDENT NON-PRO">
+                        <i class="fas fa-address-card me-3"></i> Non-Pro License
+                    </a>
+                </li>
             </ul>
         </div>
     </div>
@@ -204,82 +255,35 @@ if ($conn) {
         <div class="row g-4 mb-4">
             <div class="col-md-4">
                 <a href="view_details.php?view=users" class="card-link">
-                    <div class="solid-stat-card bg-primary-blue">
-                        <span class="stat-value"><?php echo $stats['users']; ?></span><span class="stat-label">Active Users</span>
-                    </div>
+                    <div class="solid-stat-card bg-primary-blue"><span class="stat-value"><?php echo $stats['users']; ?></span><span class="stat-label">Active Users</span></div>
                 </a>
             </div>
             <div class="col-md-4">
                 <a href="view_details.php?view=all_permits" class="card-link">
-                    <div class="solid-stat-card bg-success-green">
-                        <span class="stat-value"><?php echo $stats['total_permits']; ?></span><span class="stat-label">Total Permits Issued</span>
-                    </div>
+                    <div class="solid-stat-card bg-success-green"><span class="stat-value"><?php echo $stats['total_permits']; ?></span><span class="stat-label">Total Permits Issued</span></div>
                 </a>
             </div>
             <div class="col-md-4">
                 <a href="admin_approval.php" class="card-link">
-                    <div class="solid-stat-card bg-warning-orange">
-                        <span class="stat-value"><?php echo $stats['pending']; ?></span><span class="stat-label">Pending Requests</span>
-                    </div>
+                    <div class="solid-stat-card bg-warning-orange"><span class="stat-value"><?php echo $stats['pending']; ?></span><span class="stat-label">Pending Requests</span></div>
                 </a>
             </div>
         </div>
 
         <h5 class="fw-bold mb-3 text-secondary">Submitted Forms</h5>
         <div class="row row-cols-2 row-cols-lg-5 g-3 mb-4">
-            <div class="col">
-                <a href="view_details.php?view=letter" class="card-link">
-                    <div class="mini-card"><div class="mini-value"><?php echo $stats['comm_letter']; ?></div><div class="mini-label">Comm. Letter</div></div>
-                </a>
-            </div>
-            <div class="col">
-                <a href="view_details.php?view=division" class="card-link">
-                    <div class="mini-card"><div class="mini-value"><?php echo $stats['division']; ?></div><div class="mini-label">Division</div></div>
-                </a>
-            </div>
-            <div class="col">
-                <a href="view_details.php?view=incident" class="card-link">
-                    <div class="mini-card"><div class="mini-value"><?php echo $stats['incident']; ?></div><div class="mini-label">Incident</div></div>
-                </a>
-            </div>
-            <div class="col">
-                <a href="view_details.php?view=vaping" class="card-link">
-                    <div class="mini-card"><div class="mini-value"><?php echo $stats['vaping']; ?></div><div class="mini-label">Vaping</div></div>
-                </a>
-            </div>
-            <div class="col">
-                <a href="view_details.php?view=parking" class="card-link">
-                    <div class="mini-card"><div class="mini-value"><?php echo $stats['parking_form']; ?></div><div class="mini-label">Parking</div></div>
-                </a>
-            </div>
+            <div class="col"><a href="view_details.php?view=letter" class="card-link"><div class="mini-card"><div class="mini-value"><?php echo $stats['comm_letter']; ?></div><div class="mini-label">Comm. Letter</div></div></a></div>
+            <div class="col"><a href="view_details.php?view=division" class="card-link"><div class="mini-card"><div class="mini-value"><?php echo $stats['division']; ?></div><div class="mini-label">Division</div></div></a></div>
+            <div class="col"><a href="view_details.php?view=incident" class="card-link"><div class="mini-card"><div class="mini-value"><?php echo $stats['incident']; ?></div><div class="mini-label">Incident</div></div></a></div>
+            <div class="col"><a href="view_details.php?view=vaping" class="card-link"><div class="mini-card"><div class="mini-value"><?php echo $stats['vaping']; ?></div><div class="mini-label">Vaping</div></div></a></div>
+            <div class="col"><a href="view_details.php?view=parking" class="card-link"><div class="mini-card"><div class="mini-value"><?php echo $stats['parking_form']; ?></div><div class="mini-label">Parking</div></div></a></div>
         </div>
 
         <h5 class="fw-bold mb-3 text-secondary">Permit Breakdown</h5>
         <div class="row g-3 mb-4">
-            <div class="col-md-4">
-                <a href="view_details.php?view=EMPLOYEES" class="card-link">
-                    <div class="stat-card border-l-primary">
-                        <div class="stat-content"><span class="stat-label-modern">Employee Permits</span><span class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span></div>
-                        <div class="stat-icon-wrapper icon-blue"><i class="fas fa-id-badge"></i></div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="view_details.php?view=STUDENT LICENSE" class="card-link">
-                    <div class="stat-card border-l-success">
-                        <div class="stat-content"><span class="stat-label-modern">Student License</span><span class="stat-value-modern"><?php echo $stats['student_permit']; ?></span></div>
-                        <div class="stat-icon-wrapper icon-green"><i class="fas fa-user-graduate"></i></div>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a href="view_details.php?view=STUDENT NON-PRO" class="card-link">
-                    <div class="stat-card border-l-warning">
-                        <div class="stat-content"><span class="stat-label-modern">Non-Pro License</span><span class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span></div>
-                        <div class="stat-icon-wrapper icon-orange"><i class="fas fa-address-card"></i></div>
-                    </div>
-                </a>
-            </div>
+            <div class="col-md-4"><a href="employee_permit.php" class="card-link"><div class="stat-card border-l-primary"><div class="stat-content"><span class="stat-label-modern">Employee Permits</span><span class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span></div><div class="stat-icon-wrapper icon-blue"><i class="fas fa-id-badge"></i></div></div></a></div>
+            <div class="col-md-4"><a href="view_details.php?view=STUDENT LICENSE" class="card-link"><div class="stat-card border-l-success"><div class="stat-content"><span class="stat-label-modern">Student License</span><span class="stat-value-modern"><?php echo $stats['student_permit']; ?></span></div><div class="stat-icon-wrapper icon-green"><i class="fas fa-user-graduate"></i></div></div></a></div>
+            <div class="col-md-4"><a href="view_details.php?view=STUDENT NON-PRO" class="card-link"><div class="stat-card border-l-warning"><div class="stat-content"><span class="stat-label-modern">Non-Pro License</span><span class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span></div><div class="stat-icon-wrapper icon-orange"><i class="fas fa-address-card"></i></div></div></a></div>
         </div>
 
         <div class="row">
@@ -327,15 +331,25 @@ if ($conn) {
         const toggleBtn = document.getElementById('themeToggle');
         const icon = toggleBtn.querySelector('i');
         const html = document.documentElement;
+        
         function updateIcon(theme) { icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
-        updateIcon(localStorage.getItem('appTheme') || 'light');
+        
+        // Initial Theme Load (Reads Cookie or LocalStorage)
+        const currentTheme = html.getAttribute('data-bs-theme');
+        updateIcon(currentTheme);
+
         toggleBtn.addEventListener('click', () => {
             const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-bs-theme', newTheme);
             localStorage.setItem('appTheme', newTheme);
+            
+            // Sync with Permit Generator (Write Cookie)
+            document.cookie = "theme=" + newTheme + "; path=/; max-age=31536000";
+            
             updateIcon(newTheme);
         });
 
+        // Search Routing (Retained so search bar still works)
         document.getElementById('searchForm').addEventListener('submit', function(e) {
             e.preventDefault();
             let val = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -344,7 +358,7 @@ if ($conn) {
             else if(val.includes('incident')) window.location.href = 'view_details.php?view=incident';
             else if(val.includes('vaping')) window.location.href = 'view_details.php?view=vaping';
             else if(val.includes('parking')) window.location.href = 'view_details.php?view=parking';
-            else if(val.includes('employee')) window.location.href = 'view_details.php?view=EMPLOYEES';
+            else if(val.includes('employee')) window.location.href = 'employee_permit.php';
             else if(val.includes('student')) window.location.href = 'view_details.php?view=STUDENT LICENSE';
             else if(val.includes('non pro')) window.location.href = 'view_details.php?view=STUDENT NON-PRO';
             else if(val.includes('admin') || val.includes('approv')) window.location.href = 'admin_approval.php';
@@ -362,16 +376,19 @@ if ($conn) {
                 initialView: 'dayGridMonth',
                 headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,timeGridWeek,timeGridDay' },
                 height: 500, editable: true, selectable: true, events: 'event_handler.php?action=fetch',
+                
                 select: function(info) { document.getElementById('eventForm').reset(); document.getElementById('eventId').value = ''; document.getElementById('eventStart').value = info.startStr + "T09:00"; document.getElementById('eventEnd').value = info.startStr + "T10:00"; document.getElementById('deleteEventBtn').style.display = 'none'; modal.show(); },
+                
                 eventClick: function(info) { document.getElementById('eventId').value = info.event.id; document.getElementById('eventTitle').value = info.event.title; let start = info.event.start ? new Date(info.event.start.getTime() - (info.event.start.getTimezoneOffset() * 60000)).toISOString().slice(0,16) : ''; let end = info.event.end ? new Date(info.event.end.getTime() - (info.event.end.getTimezoneOffset() * 60000)).toISOString().slice(0,16) : start; document.getElementById('eventStart').value = start; document.getElementById('eventEnd').value = end; document.getElementById('eventColor').value = info.event.backgroundColor; document.getElementById('deleteEventBtn').style.display = 'block'; modal.show(); },
+                
                 eventDrop: function(info) { updateEvent(info.event); }, eventResize: function(info) { updateEvent(info.event); }
             });
             calendar.render();
 
             document.getElementById('saveEventBtn').addEventListener('click', function() { let id = document.getElementById('eventId').value; let title = document.getElementById('eventTitle').value; let start = document.getElementById('eventStart').value; let end = document.getElementById('eventEnd').value; let color = document.getElementById('eventColor').value; if(title && start && end) { let formData = new FormData(); formData.append('title', title); formData.append('start', start); formData.append('end', end); formData.append('color', color); if(id) formData.append('id', id); fetch('event_handler.php?action=' + (id ? 'update' : 'add'), { method: 'POST', body: formData }).then(r => r.json()).then(data => { if(data.success) { calendar.refetchEvents(); modal.hide(); } }); } });
-            document.getElementById('deleteEventBtn').addEventListener('click', function() { if(confirm('Delete?')) { let formData = new FormData(); formData.append('id', document.getElementById('eventId').value); fetch('event_handler.php?action=delete', { method: 'POST', body: formData }).then(r => r.json()).then(data => { if(data.success) { calendar.refetchEvents(); modal.hide(); } }); } });
+            document.getElementById('deleteEventBtn').addEventListener('click', function() { if(confirm('Delete this event?')) { let formData = new FormData(); formData.append('id', document.getElementById('eventId').value); fetch('event_handler.php?action=delete', { method: 'POST', body: formData }).then(r => r.json()).then(data => { if(data.success) { calendar.refetchEvents(); modal.hide(); } }); } });
             function updateEvent(event) { let formData = new FormData(); formData.append('id', event.id); formData.append('title', event.title); let start = new Date(event.start.getTime() - (event.start.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' '); let end = event.end ? new Date(event.end.getTime() - (event.end.getTimezoneOffset() * 60000)).toISOString().slice(0, 19).replace('T', ' ') : start; formData.append('start', start); formData.append('end', end); formData.append('color', event.backgroundColor); fetch('event_handler.php?action=update', { method: 'POST', body: formData }); }
-            setInterval(() => { fetch('event_handler.php?action=check_notification').then(r => r.json()).then(data => { if(data.length > 0) { sound.play().catch(e => console.log("Audio block")); data.forEach(ev => { document.getElementById('toastMessage').innerText = "New Event: " + ev.title; toast.show(); }); calendar.refetchEvents(); } }).catch(e => console.error(e)); }, 5000);
+            setInterval(() => { fetch('event_handler.php?action=check_notification').then(r => r.json()).then(data => { if(data.length > 0) { sound.play().catch(e => console.log("Audio requires interaction")); data.forEach(ev => { document.getElementById('toastMessage').innerText = "New Event: " + ev.title; toast.show(); }); calendar.refetchEvents(); } }).catch(e => console.error(e)); }, 5000);
         });
     </script>
 </body>
