@@ -11,7 +11,7 @@ if (!isset($_SESSION['id'])) {
 // 2. Helper Function to Prevent Crashes
 function get_cnt($conn, $sql) {
     if (!$conn) return 0;
-    $res = @$conn->query($sql); // The '@' suppresses immediate fatal errors
+    $res = @$conn->query($sql); // Suppress errors if table doesn't exist yet
     return ($res && $res->num_rows > 0) ? ($res->fetch_assoc()['c'] ?? 0) : 0;
 }
 
@@ -25,8 +25,19 @@ $stats = [
 if ($conn) {
     // Core Stats
     $stats['users'] = get_cnt($conn, "SELECT COUNT(*) as c FROM users WHERE role='user' AND status='active'");
-    $stats['total_permits'] = get_cnt($conn, "SELECT COUNT(*) as c FROM permits");
     $stats['pending'] = get_cnt($conn, "SELECT COUNT(*) as c FROM users WHERE status='pending'");
+    
+    // Permit Counts
+    $stats['emp_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM permits");
+    
+    // UPDATED: Now counting from the new 'student_permits' table
+    $stats['student_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM student_permits");
+    
+    // UPDATED: Now counting from the new 'non_pro_permits' table
+    $stats['non_pro_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM non_pro_permits");
+
+    // Total Permits Calculation
+    $stats['total_permits'] = $stats['emp_permit'] + $stats['student_permit'] + $stats['non_pro_permit'];
 
     // Form Counts
     $stats['comm_letter'] = get_cnt($conn, "SELECT COUNT(*) as c FROM form_submissions WHERE form_type='letter'");
@@ -35,10 +46,14 @@ if ($conn) {
     $stats['vaping'] = get_cnt($conn, "SELECT COUNT(*) as c FROM form_submissions WHERE form_type='vaping'");
     $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM form_submissions WHERE form_type='parking'");
 
-    // Permit Breakdown
-    $stats['emp_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM permits WHERE type='EMPLOYEES'");
-    $stats['student_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM permits WHERE type='STUDENT LICENSE'");
-    $stats['non_pro_permit'] = get_cnt($conn, "SELECT COUNT(*) as c FROM permits WHERE type='STUDENT NON-PRO'");
+    // Get recent employee permits (Limit 10 for search utility)
+    $recent_emp_permits = [];
+    $recent_query = $conn->query("SELECT * FROM permits ORDER BY created_at DESC LIMIT 10");
+    if ($recent_query) {
+        while ($row = $recent_query->fetch_assoc()) {
+            $recent_emp_permits[] = $row;
+        }
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -56,24 +71,38 @@ if ($conn) {
         @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
         @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
-        /* --- 1. THEME VARIABLES --- */
+        /* --- THEME VARIABLES --- */
         :root {
-            --bg-body: #f4f7fe; --bg-card: #ffffff; --text-main: #2b3674; --text-muted: #a3aed0;
-            --border-color: #e0e5f2; --sidebar-bg: #ffffff; --input-bg: #f8f9fa; --navbar-bg: #2c2c2c;
-            --primary-color: #4318ff; --sidebar-width: 260px; --navbar-height: 70px;
+            --bg-body: #f4f7fe; 
+            --bg-card: #ffffff; 
+            --text-main: #2b3674; 
+            --text-muted: #a3aed0;
+            --border-color: #e0e5f2; 
+            --sidebar-bg: #ffffff; 
+            --input-bg: #f8f9fa; 
+            --navbar-bg: #2c2c2c;
+            --primary-color: #4318ff; 
+            --sidebar-width: 260px; 
+            --navbar-height: 70px;
         }
+
         [data-bs-theme="dark"] {
-            --bg-body: #0b1437; --bg-card: #111c44; --text-main: #ffffff; --text-muted: #8f9bba;
-            --border-color: #1b254b; --sidebar-bg: #111c44; --input-bg: #0b1437; --navbar-bg: #0b1437;
+            --bg-body: #0a1128;       
+            --bg-card: #13203c;       
+            --text-main: #ffffff; 
+            --text-muted: #8f9bba;
+            --border-color: #2c3e50;  
+            --sidebar-bg: #13203c;    
+            --input-bg: #1f2f4e;      
+            --navbar-bg: #13203c;     
         }
 
         body { background-color: var(--bg-body); color: var(--text-main); font-family: 'Poppins', sans-serif; overflow-x: hidden; }
 
-        /* --- 2. NAVBAR --- */
+        /* --- LAYOUT --- */
         .navbar-custom { height: var(--navbar-height); background: var(--navbar-bg) !important; box-shadow: 0 4px 12px rgba(0,0,0,0.1); position: fixed; top: 0; left: 0; right: 0; z-index: 1000; padding: 0 20px; }
         .navbar-brand { font-family: "Bebas Neue", sans-serif; font-size: 1.8rem; letter-spacing: 1px; color: #fff !important; }
 
-        /* --- 3. SIDEBAR --- */
         .sidebar { width: var(--sidebar-width); height: 100vh; position: fixed; top: 0; left: 0; z-index: 900; background-color: var(--sidebar-bg); border-right: 1px solid var(--border-color); padding-top: var(--navbar-height); overflow-y: auto; transition: 0.3s; }
         .sidebar-content { padding: 20px 15px; }
         .sidebar .nav-link { color: var(--text-muted); font-weight: 500; padding: 12px 20px; border-radius: 10px; margin-bottom: 5px; display: flex; align-items: center; transition: all 0.3s; }
@@ -81,19 +110,19 @@ if ($conn) {
         .sidebar .nav-link.active { background: var(--bg-body); color: var(--primary-color); font-weight: 600; }
         .sidebar-heading { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); padding: 20px 20px 10px; }
 
-        /* --- 4. MAIN CONTENT --- */
         .main-content { margin-left: var(--sidebar-width); padding: 20px 30px; padding-top: calc(var(--navbar-height) + 30px); min-height: 100vh; width: calc(100% - var(--sidebar-width)); transition: 0.3s; }
 
-        /* --- 5. CARDS & LINKS --- */
+        /* --- CARDS & UI ELEMENTS --- */
         a.card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.3s; }
         a.card-link:hover { transform: translateY(-5px); }
+        
+        .cursor-pointer { cursor: pointer; transition: all 0.2s ease; }
+        .cursor-pointer:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
         .solid-stat-card { border-radius: 15px; padding: 30px 25px; color: #fff; display: flex; flex-direction: column; justify-content: center; height: 100%; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        
         .bg-primary-blue { background: #0d6efd; }
         .bg-success-green { background: #198754; }
         .bg-warning-orange { background: #ffc107; color: #333 !important; }
-        .bg-warning-orange .stat-value, .bg-warning-orange .stat-label { color: #333 !important; }
 
         .mini-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 15px; padding: 25px; text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
         .mini-card:hover { border-color: var(--primary-color); } 
@@ -106,7 +135,7 @@ if ($conn) {
         .stat-value-modern { font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
         .stat-icon-wrapper { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
         
-        .icon-blue { background: #e7f1ff; color: #33c1ff; } .icon-green { background: #e6fffa; color: #05cd99; } .icon-orange { background: #fff7e6; color: #ffb547; }
+        .icon-blue { background: #e7f1ff; color: #33c1ff; } .icon-green { background: #e6fffa; color: #05cd99; } .icon-orange { background: #fff7e6; color: #ffb547; } .icon-info { background: #e6f7ff; color: #0dcaf0; }
         [data-bs-theme="dark"] .icon-blue { background: rgba(51, 193, 255, 0.15); }
         [data-bs-theme="dark"] .icon-green { background: rgba(5, 205, 153, 0.15); }
         [data-bs-theme="dark"] .icon-orange { background: rgba(255, 181, 71, 0.15); }
@@ -118,7 +147,7 @@ if ($conn) {
         .calendar-card { background: var(--bg-card); border-radius: 16px; border: 1px solid var(--border-color); padding: 20px; color: var(--text-main); }
         .fc-button { background-color: var(--primary-color) !important; border: none !important; }
 
-        /* Search */
+        /* Main Search */
         .search-container { position: relative; width: 300px; }
         .search-input { border-radius: 20px; padding-left: 40px; border: 1px solid #444; background: #3a3a3a; color: #fff; height: 38px; }
         .search-input:focus { background: #444; color: #fff; border-color: var(--primary-color); outline: none; }
@@ -127,11 +156,27 @@ if ($conn) {
         /* Toast */
         .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 9999; }
 
+        /* Table styles */
+        .table-custom { background: var(--bg-card); border-radius: 10px; overflow: hidden; }
+        .table-custom thead th { background: var(--input-bg); border-bottom: 2px solid var(--border-color); color: var(--text-main); font-weight: 600; padding: 15px; }
+        .table-custom tbody td { padding: 12px 15px; border-bottom: 1px solid var(--border-color); color: var(--text-muted); }
+        .table-custom tbody tr:hover { background: rgba(67, 24, 255, 0.05); }
+        
+        /* Modal & Themed Form Elements */
+        .modal-content { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border-color); }
+        .modal-header, .modal-footer { border-color: var(--border-color); }
+        .btn-close { filter: invert(var(--bs-theme-invert, 0)); }
+        
+        /* Custom Search Styling for Modal */
+        .modal-search-container { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); }
+        .form-control-themed { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-main); }
+        .form-control-themed:focus { background-color: var(--input-bg); border-color: var(--primary-color); color: var(--text-main); box-shadow: none; }
+        .input-group-text-themed { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-muted); border-right: none; }
+
         @media (max-width: 991px) { .sidebar { left: -100%; z-index: 1100; } .sidebar.show { left: 0; box-shadow: 5px 0 15px rgba(0,0,0,0.2); } .main-content { margin-left: 0; width: 100%; } }
     </style>
     
     <script>
-        // Check Cookie first (for permit generator sync), then Local Storage
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -180,7 +225,7 @@ if ($conn) {
                         <i class="fas fa-user-circle fa-lg me-2"></i> <?php echo $_SESSION['name']; ?>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                        <li><a class="dropdown-item text-danger" href="logout.php" onclick="localStorage.removeItem('appTheme')">Log Out</a></li>
+                        <li><a class="dropdown-item text-danger" href="logout.php" onclick="localStorage.removeItem('appTheme'); document.cookie = 'theme=; Max-Age=0; path=/;';">Log Out</a></li>
                     </ul>
                 </div>
             </div>
@@ -201,50 +246,19 @@ if ($conn) {
                 </li>
 
                 <h6 class="sidebar-heading">Forms Management</h6>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=letter">
-                        <i class="fas fa-envelope-open-text me-3"></i> Comm. Letter
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=division">
-                        <i class="fas fa-file-alt me-3"></i> Division Form
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=incident">
-                        <i class="fas fa-exclamation-triangle me-3"></i> Incident Report
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=vaping">
-                        <i class="fas fa-smoking-ban me-3"></i> Vaping Incident
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=parking">
-                        <i class="fas fa-car-crash me-3"></i> Parking Form
-                    </a>
-                </li>
+                <li class="nav-item"><a class="nav-link" href="view_details.php?view=letter"><i class="fas fa-envelope-open-text me-3"></i> Comm. Letter</a></li>
+                <li class="nav-item"><a class="nav-link" href="view_details.php?view=division"><i class="fas fa-file-alt me-3"></i> Division Form</a></li>
+                <li class="nav-item"><a class="nav-link" href="view_details.php?view=incident"><i class="fas fa-exclamation-triangle me-3"></i> Incident Report</a></li>
+                <li class="nav-item"><a class="nav-link" href="view_details.php?view=vaping"><i class="fas fa-smoking-ban me-3"></i> Vaping Incident</a></li>
+                <li class="nav-item"><a class="nav-link" href="view_details.php?view=parking"><i class="fas fa-car-crash me-3"></i> Parking Form</a></li>
 
                 <h6 class="sidebar-heading">Other Permits</h6>
 
-                <li class="nav-item">
-                    <a class="nav-link" href="employee_permit.php">
-                        <i class="fas fa-id-badge me-3"></i> Employee Permit
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=STUDENT LICENSE">
-                        <i class="fas fa-user-graduate me-3"></i> Student License
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="view_details.php?view=STUDENT NON-PRO">
-                        <i class="fas fa-address-card me-3"></i> Non-Pro License
-                    </a>
-                </li>
+                <li class="nav-item"><a class="nav-link" href="employee_permit.php"><i class="fas fa-id-badge me-3"></i> Employee Permit</a></li>
+                
+                <li class="nav-item"><a class="nav-link" href="student_permit.php"><i class="fas fa-user-graduate me-3"></i> Student License</a></li>
+                
+                <li class="nav-item"><a class="nav-link" href="non_permit.php"><i class="fas fa-address-card me-3"></i> Non-Pro License</a></li>
             </ul>
         </div>
     </div>
@@ -280,13 +294,51 @@ if ($conn) {
         </div>
 
         <h5 class="fw-bold mb-3 text-secondary">Permit Breakdown</h5>
-        <div class="row g-3 mb-4">
-            <div class="col-md-4"><a href="employee_permit.php" class="card-link"><div class="stat-card border-l-primary"><div class="stat-content"><span class="stat-label-modern">Employee Permits</span><span class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span></div><div class="stat-icon-wrapper icon-blue"><i class="fas fa-id-badge"></i></div></div></a></div>
-            <div class="col-md-4"><a href="view_details.php?view=STUDENT LICENSE" class="card-link"><div class="stat-card border-l-success"><div class="stat-content"><span class="stat-label-modern">Student License</span><span class="stat-value-modern"><?php echo $stats['student_permit']; ?></span></div><div class="stat-icon-wrapper icon-green"><i class="fas fa-user-graduate"></i></div></div></a></div>
-            <div class="col-md-4"><a href="view_details.php?view=STUDENT NON-PRO" class="card-link"><div class="stat-card border-l-warning"><div class="stat-content"><span class="stat-label-modern">Non-Pro License</span><span class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span></div><div class="stat-icon-wrapper icon-orange"><i class="fas fa-address-card"></i></div></div></a></div>
+        
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="stat-card border-l-primary cursor-pointer" data-bs-toggle="modal" data-bs-target="#employeePermitsModal" title="Click to view recent permits">
+                    <div class="stat-content">
+                        <span class="stat-label-modern">Employee Permits</span>
+                        <span class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span>
+                        <small class="text-primary d-block mt-1" style="font-size: 0.75rem;"><i class="fas fa-search me-1"></i> Search & View</small>
+                    </div>
+                    <div class="stat-icon-wrapper icon-blue">
+                        <i class="fas fa-id-badge"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <a href="student_permit.php" class="card-link">
+                    <div class="stat-card border-l-success">
+                        <div class="stat-content">
+                            <span class="stat-label-modern">Student License</span>
+                            <span class="stat-value-modern"><?php echo $stats['student_permit']; ?></span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-green">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            
+            <div class="col-md-4">
+                <a href="non_permit.php" class="card-link">
+                    <div class="stat-card border-l-warning">
+                        <div class="stat-content">
+                            <span class="stat-label-modern">Non-Pro License</span>
+                            <span class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span>
+                        </div>
+                        <div class="stat-icon-wrapper icon-orange">
+                            <i class="fas fa-address-card"></i>
+                        </div>
+                    </div>
+                </a>
+            </div>
         </div>
 
-        <div class="row">
+        <div class="row mt-4">
             <div class="col-12">
                 <div class="calendar-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -294,6 +346,62 @@ if ($conn) {
                         <small class="text-muted">Click date to add • Click event to edit</small>
                     </div>
                     <div id="calendar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="employeePermitsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-id-badge me-2"></i>Recent Employee Permits</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <div class="p-3 sticky-top modal-search-container">
+                    <div class="input-group">
+                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
+                        <input type="text" id="empPermitSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name, Dept, Plate...">
+                    </div>
+                </div>
+
+                <div class="modal-body p-0">
+                    <?php if (!empty($recent_emp_permits)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-custom table-hover align-middle mb-0">
+                            <thead class="bg-light">
+                                <tr>
+                                    <th class="px-4 py-3">Permit #</th>
+                                    <th class="px-4 py-3">Name</th>
+                                    <th class="px-4 py-3">Department</th>
+                                    <th class="px-4 py-3">Plate</th>
+                                    <th class="px-4 py-3 text-center">AY</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeePermitsTableBody">
+                                <?php foreach ($recent_emp_permits as $permit): ?>
+                                <tr>
+                                    <td class="px-4"><span class="badge bg-primary"><?php echo $permit['permit_number']; ?></span></td>
+                                    <td class="px-4 fw-bold"><?php echo htmlspecialchars($permit['name']); ?></td>
+                                    <td class="px-4 text-muted text-xs"><?php echo htmlspecialchars($permit['department']); ?></td>
+                                    <td class="px-4"><span class="badge bg-light text-dark border"><?php echo htmlspecialchars($permit['plate_number']); ?></span></td>
+                                    <td class="px-4 text-center"><span class="badge bg-info"><?php echo htmlspecialchars($permit['school_year']); ?></span></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <?php else: ?>
+                    <div class="text-center py-5">
+                        <i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
+                        <p class="text-muted fw-bold">No recent records found.</p>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <a href="employee_permit.php" class="btn btn-primary rounded-pill px-4">Full System</a>
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -334,7 +442,6 @@ if ($conn) {
         
         function updateIcon(theme) { icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
         
-        // Initial Theme Load (Reads Cookie or LocalStorage)
         const currentTheme = html.getAttribute('data-bs-theme');
         updateIcon(currentTheme);
 
@@ -342,14 +449,10 @@ if ($conn) {
             const newTheme = html.getAttribute('data-bs-theme') === 'dark' ? 'light' : 'dark';
             html.setAttribute('data-bs-theme', newTheme);
             localStorage.setItem('appTheme', newTheme);
-            
-            // Sync with Permit Generator (Write Cookie)
             document.cookie = "theme=" + newTheme + "; path=/; max-age=31536000";
-            
             updateIcon(newTheme);
         });
 
-        // Search Routing (Retained so search bar still works)
         document.getElementById('searchForm').addEventListener('submit', function(e) {
             e.preventDefault();
             let val = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -359,10 +462,29 @@ if ($conn) {
             else if(val.includes('vaping')) window.location.href = 'view_details.php?view=vaping';
             else if(val.includes('parking')) window.location.href = 'view_details.php?view=parking';
             else if(val.includes('employee')) window.location.href = 'employee_permit.php';
-            else if(val.includes('student')) window.location.href = 'view_details.php?view=STUDENT LICENSE';
-            else if(val.includes('non pro')) window.location.href = 'view_details.php?view=STUDENT NON-PRO';
+            
+            // CHANGED: Redirects to new file
+            else if(val.includes('student')) window.location.href = 'student_permit.php';
+            
+            else if(val.includes('non pro')) window.location.href = 'non_permit.php';
+            
             else if(val.includes('admin') || val.includes('approv')) window.location.href = 'admin_approval.php';
             else alert("Page not found: " + val);
+        });
+
+        // --- SEARCH FUNCTIONALITY FOR MODAL ---
+        document.getElementById('empPermitSearch').addEventListener('keyup', function() {
+            let filter = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#employeePermitsTableBody tr');
+            
+            rows.forEach(row => {
+                let text = row.innerText.toLowerCase();
+                if(text.includes(filter)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
         });
 
         document.addEventListener('DOMContentLoaded', function() {

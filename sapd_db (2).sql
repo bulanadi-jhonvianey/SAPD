@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 09, 2026 at 01:32 AM
+-- Generation Time: Jan 14, 2026 at 02:41 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -47,6 +47,63 @@ CREATE TABLE `form_submissions` (
   `user_id` int(11) DEFAULT NULL,
   `form_type` varchar(50) DEFAULT NULL,
   `status` varchar(20) DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `layout_settings`
+--
+
+CREATE TABLE `layout_settings` (
+  `id` int(11) NOT NULL,
+  `setting_name` varchar(100) DEFAULT 'default',
+  `card_w` int(11) DEFAULT 350,
+  `card_h` int(11) DEFAULT 240,
+  `name_size` int(11) DEFAULT 12,
+  `name_x` int(11) DEFAULT 0,
+  `name_y` int(11) DEFAULT 120,
+  `dept_size` int(11) DEFAULT 11,
+  `dept_x` int(11) DEFAULT 0,
+  `dept_y` int(11) DEFAULT 139,
+  `plate_size` int(11) DEFAULT 11,
+  `plate_x` int(11) DEFAULT 45,
+  `plate_y` int(11) DEFAULT 35,
+  `qr_size` int(11) DEFAULT 60,
+  `qr_x` int(11) DEFAULT 5,
+  `qr_y` int(11) DEFAULT 15,
+  `count_size` int(11) DEFAULT 20,
+  `count_x` int(11) DEFAULT 0,
+  `count_y` int(11) DEFAULT -25,
+  `sy_size` int(11) DEFAULT 11,
+  `sy_x` int(11) DEFAULT 0,
+  `sy_y` int(11) DEFAULT 58,
+  `school_year` varchar(50) DEFAULT '2025-2026',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `layout_settings`
+--
+
+INSERT INTO `layout_settings` (`id`, `setting_name`, `card_w`, `card_h`, `name_size`, `name_x`, `name_y`, `dept_size`, `dept_x`, `dept_y`, `plate_size`, `plate_x`, `plate_y`, `qr_size`, `qr_x`, `qr_y`, `count_size`, `count_x`, `count_y`, `sy_size`, `sy_x`, `sy_y`, `school_year`, `created_at`) VALUES
+(3, 'Default Layout', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, '', '2026-01-09 07:06:27');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `non_pro_permits`
+--
+
+CREATE TABLE `non_pro_permits` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `course` varchar(255) NOT NULL,
+  `plate_number` varchar(50) NOT NULL,
+  `fb_link` text DEFAULT NULL,
+  `permit_number` int(11) NOT NULL,
+  `school_year` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -103,6 +160,24 @@ INSERT INTO `settings` (`id`, `card_w`, `card_h`, `name_size`, `name_x`, `name_y
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `student_permits`
+--
+
+CREATE TABLE `student_permits` (
+  `id` int(11) NOT NULL,
+  `name` varchar(255) NOT NULL,
+  `course` varchar(255) NOT NULL,
+  `plate_number` varchar(50) NOT NULL,
+  `valid_until` varchar(50) DEFAULT NULL,
+  `fb_link` text DEFAULT NULL,
+  `permit_number` int(11) NOT NULL,
+  `school_year` varchar(50) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `users`
 --
 
@@ -143,6 +218,18 @@ ALTER TABLE `form_submissions`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `layout_settings`
+--
+ALTER TABLE `layout_settings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `non_pro_permits`
+--
+ALTER TABLE `non_pro_permits`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `permits`
 --
 ALTER TABLE `permits`
@@ -152,6 +239,12 @@ ALTER TABLE `permits`
 -- Indexes for table `settings`
 --
 ALTER TABLE `settings`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `student_permits`
+--
+ALTER TABLE `student_permits`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -177,9 +270,27 @@ ALTER TABLE `form_submissions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `layout_settings`
+--
+ALTER TABLE `layout_settings`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `non_pro_permits`
+--
+ALTER TABLE `non_pro_permits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `permits`
 --
 ALTER TABLE `permits`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `student_permits`
+--
+ALTER TABLE `student_permits`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --

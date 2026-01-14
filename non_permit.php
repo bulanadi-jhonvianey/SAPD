@@ -19,10 +19,11 @@
     $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
     $conn->select_db($dbname);
 
-    $table_sql = "CREATE TABLE IF NOT EXISTS permits (
+    // CHANGED: Table name to 'non_pro_permits' and 'department' to 'course'
+    $table_sql = "CREATE TABLE IF NOT EXISTS non_pro_permits (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
-        department VARCHAR(255) NOT NULL,
+        course VARCHAR(255) NOT NULL,
         plate_number VARCHAR(50) NOT NULL,
         fb_link TEXT,
         permit_number INT NOT NULL, 
@@ -32,18 +33,18 @@
     $conn->query($table_sql);
 
     // --- AUTOMATIC DATA REPAIR ---
-    $conn->query("UPDATE permits SET permit_number = id WHERE permit_number = 0 OR permit_number IS NULL");
+    $conn->query("UPDATE non_pro_permits SET permit_number = id WHERE permit_number = 0 OR permit_number IS NULL");
 
-    // Initialize Session Queue
-    if (!isset($_SESSION['print_queue'])) { $_SESSION['print_queue'] = []; }
+    // Initialize Session Queue (CHANGED: Variable name to avoid conflict with employee queue)
+    if (!isset($_SESSION['np_print_queue'])) { $_SESSION['np_print_queue'] = []; }
 
-    // Initialize Layout Settings in Session
-    if (!isset($_SESSION['layout_settings'])) {
-        $_SESSION['layout_settings'] = [
+    // Initialize Layout Settings (CHANGED: Variable name)
+    if (!isset($_SESSION['np_layout_settings'])) {
+        $_SESSION['np_layout_settings'] = [
             'school_year' => 'Enter AY',
             'card_w' => 350, 'card_h' => 240,
             'name_size' => 12, 'name_x' => 11, 'name_y' => 110,
-            'dept_size' => 11, 'dept_x' => 0, 'dept_y' => 129,
+            'course_size' => 11, 'course_x' => 0, 'course_y' => 129, // Renamed dept to course
             'plate_size' => 11, 'plate_x' => 6, 'plate_y' => 180, 
             'qr_size' => 60, 'qr_x' => 5, 'qr_y' => 15,
             'count_size' => 20, 'count_x' => 0, 'count_y' => -25,
@@ -52,36 +53,36 @@
     }
 
     // --- FIX FOR POSITION BUG (AUTO-CORRECT) ---
-    if (isset($_SESSION['layout_settings']['plate_y']) && $_SESSION['layout_settings']['plate_y'] < 100) {
-        $_SESSION['layout_settings']['plate_y'] = 180; 
-        $_SESSION['layout_settings']['plate_x'] = 6;   
+    if (isset($_SESSION['np_layout_settings']['plate_y']) && $_SESSION['np_layout_settings']['plate_y'] < 100) {
+        $_SESSION['np_layout_settings']['plate_y'] = 180; 
+        $_SESSION['np_layout_settings']['plate_x'] = 6;   
     }
 
     // --- 2. FORM HANDLERS ---
 
     // HANDLE: UPDATE LAYOUT SETTINGS
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_layout'])) {
-        $_SESSION['layout_settings']['school_year'] = $_POST['school_year'] ?? 'Enter AY';
-        $_SESSION['layout_settings']['card_w'] = intval($_POST['card_w'] ?? 350);
-        $_SESSION['layout_settings']['card_h'] = intval($_POST['card_h'] ?? 240);
-        $_SESSION['layout_settings']['name_size'] = intval($_POST['name_size'] ?? 12);
-        $_SESSION['layout_settings']['name_x'] = intval($_POST['name_x'] ?? 11);
-        $_SESSION['layout_settings']['name_y'] = intval($_POST['name_y'] ?? 110);
-        $_SESSION['layout_settings']['dept_size'] = intval($_POST['dept_size'] ?? 11);
-        $_SESSION['layout_settings']['dept_x'] = intval($_POST['dept_x'] ?? 0);
-        $_SESSION['layout_settings']['dept_y'] = intval($_POST['dept_y'] ?? 129);
-        $_SESSION['layout_settings']['plate_size'] = intval($_POST['plate_size'] ?? 11);
-        $_SESSION['layout_settings']['plate_x'] = intval($_POST['plate_x'] ?? 45);
-        $_SESSION['layout_settings']['plate_y'] = intval($_POST['plate_y'] ?? 35);
-        $_SESSION['layout_settings']['qr_size'] = intval($_POST['qr_size'] ?? 60);
-        $_SESSION['layout_settings']['qr_x'] = intval($_POST['qr_x'] ?? 5);
-        $_SESSION['layout_settings']['qr_y'] = intval($_POST['qr_y'] ?? 15);
-        $_SESSION['layout_settings']['count_size'] = intval($_POST['count_size'] ?? 20);
-        $_SESSION['layout_settings']['count_x'] = intval($_POST['count_x'] ?? 0);
-        $_SESSION['layout_settings']['count_y'] = intval($_POST['count_y'] ?? -25);
-        $_SESSION['layout_settings']['sy_size'] = intval($_POST['sy_size'] ?? 11);
-        $_SESSION['layout_settings']['sy_x'] = intval($_POST['sy_x'] ?? 0);
-        $_SESSION['layout_settings']['sy_y'] = intval($_POST['sy_y'] ?? 58);
+        $_SESSION['np_layout_settings']['school_year'] = $_POST['school_year'] ?? 'Enter AY';
+        $_SESSION['np_layout_settings']['card_w'] = intval($_POST['card_w'] ?? 350);
+        $_SESSION['np_layout_settings']['card_h'] = intval($_POST['card_h'] ?? 240);
+        $_SESSION['np_layout_settings']['name_size'] = intval($_POST['name_size'] ?? 12);
+        $_SESSION['np_layout_settings']['name_x'] = intval($_POST['name_x'] ?? 11);
+        $_SESSION['np_layout_settings']['name_y'] = intval($_POST['name_y'] ?? 110);
+        $_SESSION['np_layout_settings']['course_size'] = intval($_POST['course_size'] ?? 11);
+        $_SESSION['np_layout_settings']['course_x'] = intval($_POST['course_x'] ?? 0);
+        $_SESSION['np_layout_settings']['course_y'] = intval($_POST['course_y'] ?? 129);
+        $_SESSION['np_layout_settings']['plate_size'] = intval($_POST['plate_size'] ?? 11);
+        $_SESSION['np_layout_settings']['plate_x'] = intval($_POST['plate_x'] ?? 45);
+        $_SESSION['np_layout_settings']['plate_y'] = intval($_POST['plate_y'] ?? 35);
+        $_SESSION['np_layout_settings']['qr_size'] = intval($_POST['qr_size'] ?? 60);
+        $_SESSION['np_layout_settings']['qr_x'] = intval($_POST['qr_x'] ?? 5);
+        $_SESSION['np_layout_settings']['qr_y'] = intval($_POST['qr_y'] ?? 15);
+        $_SESSION['np_layout_settings']['count_size'] = intval($_POST['count_size'] ?? 20);
+        $_SESSION['np_layout_settings']['count_x'] = intval($_POST['count_x'] ?? 0);
+        $_SESSION['np_layout_settings']['count_y'] = intval($_POST['count_y'] ?? -25);
+        $_SESSION['np_layout_settings']['sy_size'] = intval($_POST['sy_size'] ?? 11);
+        $_SESSION['np_layout_settings']['sy_x'] = intval($_POST['sy_x'] ?? 0);
+        $_SESSION['np_layout_settings']['sy_y'] = intval($_POST['sy_y'] ?? 58);
         
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
@@ -90,45 +91,45 @@
     // HANDLE: ADD PERMIT
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
         $name = $conn->real_escape_string($_POST['name']);
-        $dept = $conn->real_escape_string($_POST['dept']);
+        $course = $conn->real_escape_string($_POST['course']); // Changed from dept
         $plate = $conn->real_escape_string($_POST['plate']);
         $fb_link = $conn->real_escape_string($_POST['fb_link']);
-        $sy = $_SESSION['layout_settings']['school_year']; 
+        $sy = $_SESSION['np_layout_settings']['school_year']; 
 
-        $insert_sql = "INSERT INTO permits (name, department, plate_number, fb_link, permit_number, school_year) 
-                       VALUES ('$name', '$dept', '$plate', '$fb_link', 0, '$sy')";
+        $insert_sql = "INSERT INTO non_pro_permits (name, course, plate_number, fb_link, permit_number, school_year) 
+                       VALUES ('$name', '$course', '$plate', '$fb_link', 0, '$sy')";
         
         if ($conn->query($insert_sql)) {
             $new_id = $conn->insert_id;
-            $conn->query("UPDATE permits SET permit_number = $new_id WHERE id = $new_id");
+            $conn->query("UPDATE non_pro_permits SET permit_number = $new_id WHERE id = $new_id");
 
-            $_SESSION['print_queue'][] = [
+            $_SESSION['np_print_queue'][] = [
                 'name' => strtoupper($name),
-                'dept' => strtoupper($dept),
+                'course' => strtoupper($course),
                 'plate' => strtoupper($plate),
                 'permit_no' => $new_id, 
                 'qr_data' => $fb_link ? $fb_link : "NoData",
                 'sy' => $sy,
-                'cw' => $_SESSION['layout_settings']['card_w'], 
-                'ch' => $_SESSION['layout_settings']['card_h'],
-                'ns' => $_SESSION['layout_settings']['name_size'], 
-                'nx' => $_SESSION['layout_settings']['name_x'], 
-                'ny' => $_SESSION['layout_settings']['name_y'],
-                'ds' => $_SESSION['layout_settings']['dept_size'], 
-                'dx' => $_SESSION['layout_settings']['dept_x'], 
-                'dy' => $_SESSION['layout_settings']['dept_y'],
-                'ps' => $_SESSION['layout_settings']['plate_size'], 
-                'px' => $_SESSION['layout_settings']['plate_x'], 
-                'py' => $_SESSION['layout_settings']['plate_y'],
-                'qs' => $_SESSION['layout_settings']['qr_size'], 
-                'qx' => $_SESSION['layout_settings']['qr_x'], 
-                'qy' => $_SESSION['layout_settings']['qr_y'],
-                'cs' => $_SESSION['layout_settings']['count_size'], 
-                'cx' => $_SESSION['layout_settings']['count_x'], 
-                'cy' => $_SESSION['layout_settings']['count_y'],
-                'ss' => $_SESSION['layout_settings']['sy_size'], 
-                'sx' => $_SESSION['layout_settings']['sy_x'], 
-                'sy_pos' => $_SESSION['layout_settings']['sy_y']
+                'cw' => $_SESSION['np_layout_settings']['card_w'], 
+                'ch' => $_SESSION['np_layout_settings']['card_h'],
+                'ns' => $_SESSION['np_layout_settings']['name_size'], 
+                'nx' => $_SESSION['np_layout_settings']['name_x'], 
+                'ny' => $_SESSION['np_layout_settings']['name_y'],
+                'cs' => $_SESSION['np_layout_settings']['course_size'], 
+                'cx' => $_SESSION['np_layout_settings']['course_x'], 
+                'cy' => $_SESSION['np_layout_settings']['course_y'],
+                'ps' => $_SESSION['np_layout_settings']['plate_size'], 
+                'px' => $_SESSION['np_layout_settings']['plate_x'], 
+                'py' => $_SESSION['np_layout_settings']['plate_y'],
+                'qs' => $_SESSION['np_layout_settings']['qr_size'], 
+                'qx' => $_SESSION['np_layout_settings']['qr_x'], 
+                'qy' => $_SESSION['np_layout_settings']['qr_y'],
+                'cts' => $_SESSION['np_layout_settings']['count_size'], // changed key to avoid conflict with course size var
+                'ctx' => $_SESSION['np_layout_settings']['count_x'], 
+                'cty' => $_SESSION['np_layout_settings']['count_y'],
+                'ss' => $_SESSION['np_layout_settings']['sy_size'], 
+                'sx' => $_SESSION['np_layout_settings']['sy_x'], 
+                'sy_pos' => $_SESSION['np_layout_settings']['sy_y']
             ];
             header("Location: " . $_SERVER['PHP_SELF']);
             exit;
@@ -139,14 +140,14 @@
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permit'])) {
         $permit_id = intval($_POST['permit_id']);
         $name = $conn->real_escape_string($_POST['name']);
-        $dept = $conn->real_escape_string($_POST['dept']);
+        $course = $conn->real_escape_string($_POST['course']);
         $plate = $conn->real_escape_string($_POST['plate']);
         $fb_link = $conn->real_escape_string($_POST['fb_link']);
         $sy = $conn->real_escape_string($_POST['school_year']);
 
-        $update_sql = "UPDATE permits SET 
+        $update_sql = "UPDATE non_pro_permits SET 
                         name = '$name',
-                        department = '$dept',
+                        course = '$course',
                         plate_number = '$plate',
                         fb_link = '$fb_link',
                         school_year = '$sy'
@@ -164,38 +165,38 @@
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reprint_permit'])) {
         $permit_id = intval($_POST['permit_id']);
         
-        $sql = "SELECT * FROM permits WHERE id = $permit_id";
+        $sql = "SELECT * FROM non_pro_permits WHERE id = $permit_id";
         $result = $conn->query($sql);
         
         if ($result && $result->num_rows > 0) {
             $permit = $result->fetch_assoc();
-            $_SESSION['print_queue'][] = [
+            $_SESSION['np_print_queue'][] = [
                 'name' => strtoupper($permit['name']),
-                'dept' => strtoupper($permit['department']),
+                'course' => strtoupper($permit['course']),
                 'plate' => strtoupper($permit['plate_number']),
                 'permit_no' => $permit['permit_number'], 
                 'qr_data' => $permit['fb_link'] ? $permit['fb_link'] : "NoData",
                 'sy' => $permit['school_year'],
-                'cw' => $_SESSION['layout_settings']['card_w'], 
-                'ch' => $_SESSION['layout_settings']['card_h'],
-                'ns' => $_SESSION['layout_settings']['name_size'], 
-                'nx' => $_SESSION['layout_settings']['name_x'], 
-                'ny' => $_SESSION['layout_settings']['name_y'],
-                'ds' => $_SESSION['layout_settings']['dept_size'], 
-                'dx' => $_SESSION['layout_settings']['dept_x'], 
-                'dy' => $_SESSION['layout_settings']['dept_y'],
-                'ps' => $_SESSION['layout_settings']['plate_size'], 
-                'px' => $_SESSION['layout_settings']['plate_x'], 
-                'py' => $_SESSION['layout_settings']['plate_y'],
-                'qs' => $_SESSION['layout_settings']['qr_size'], 
-                'qx' => $_SESSION['layout_settings']['qr_x'], 
-                'qy' => $_SESSION['layout_settings']['qr_y'],
-                'cs' => $_SESSION['layout_settings']['count_size'], 
-                'cx' => $_SESSION['layout_settings']['count_x'], 
-                'cy' => $_SESSION['layout_settings']['count_y'],
-                'ss' => $_SESSION['layout_settings']['sy_size'], 
-                'sx' => $_SESSION['layout_settings']['sy_x'], 
-                'sy_pos' => $_SESSION['layout_settings']['sy_y']
+                'cw' => $_SESSION['np_layout_settings']['card_w'], 
+                'ch' => $_SESSION['np_layout_settings']['card_h'],
+                'ns' => $_SESSION['np_layout_settings']['name_size'], 
+                'nx' => $_SESSION['np_layout_settings']['name_x'], 
+                'ny' => $_SESSION['np_layout_settings']['name_y'],
+                'cs' => $_SESSION['np_layout_settings']['course_size'], 
+                'cx' => $_SESSION['np_layout_settings']['course_x'], 
+                'cy' => $_SESSION['np_layout_settings']['course_y'],
+                'ps' => $_SESSION['np_layout_settings']['plate_size'], 
+                'px' => $_SESSION['np_layout_settings']['plate_x'], 
+                'py' => $_SESSION['np_layout_settings']['plate_y'],
+                'qs' => $_SESSION['np_layout_settings']['qr_size'], 
+                'qx' => $_SESSION['np_layout_settings']['qr_x'], 
+                'qy' => $_SESSION['np_layout_settings']['qr_y'],
+                'cts' => $_SESSION['np_layout_settings']['count_size'], 
+                'ctx' => $_SESSION['np_layout_settings']['count_x'], 
+                'cty' => $_SESSION['np_layout_settings']['count_y'],
+                'ss' => $_SESSION['np_layout_settings']['sy_size'], 
+                'sx' => $_SESSION['np_layout_settings']['sy_x'], 
+                'sy_pos' => $_SESSION['np_layout_settings']['sy_y']
             ];
             header("Location: " . $_SERVER['PHP_SELF']);
             exit;
@@ -205,7 +206,7 @@
     // HANDLE: DELETE PERMIT
     if (isset($_GET['delete_id'])) {
         $delete_id = intval($_GET['delete_id']);
-        $delete_sql = "DELETE FROM permits WHERE id = $delete_id";
+        $delete_sql = "DELETE FROM non_pro_permits WHERE id = $delete_id";
         
         if ($conn->query($delete_sql)) {
             echo "<script>alert('Permit deleted successfully!'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
@@ -217,15 +218,15 @@
 
     // HANDLE: CLEAR QUEUE
     if (isset($_POST['clear_queue'])) {
-        $_SESSION['print_queue'] = [];
+        $_SESSION['np_print_queue'] = [];
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
     }
 
     // HANDLE: RESET DATABASE
     if (isset($_POST['reset_db'])) {
-        $conn->query("TRUNCATE TABLE permits");
-        $_SESSION['print_queue'] = [];
+        $conn->query("TRUNCATE TABLE non_pro_permits");
+        $_SESSION['np_print_queue'] = [];
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
     }
@@ -234,24 +235,23 @@
     $editing_permit = null;
     if (isset($_GET['edit_id'])) {
         $edit_id = intval($_GET['edit_id']);
-        $edit_query = $conn->query("SELECT * FROM permits WHERE id = $edit_id");
+        $edit_query = $conn->query("SELECT * FROM non_pro_permits WHERE id = $edit_id");
         if ($edit_query->num_rows > 0) {
             $editing_permit = $edit_query->fetch_assoc();
         }
     }
 
-    $res = $conn->query("SELECT MAX(id) as max_id FROM permits");
+    $res = $conn->query("SELECT MAX(id) as max_id FROM non_pro_permits");
     $row = $res->fetch_assoc();
     $next_display_id = ($row['max_id'] !== null) ? $row['max_id'] + 1 : 1;
 
-    // --- SEARCH LOGIC ADDED HERE ---
+    // --- SEARCH LOGIC ---
     $search_query = "";
     if (isset($_GET['search']) && !empty($_GET['search'])) {
         $search = $conn->real_escape_string($_GET['search']);
-        // Search Name, Department, or Plate
-        $sql = "SELECT * FROM permits WHERE name LIKE '%$search%' OR department LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
+        $sql = "SELECT * FROM non_pro_permits WHERE name LIKE '%$search%' OR course LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
     } else {
-        $sql = "SELECT * FROM permits ORDER BY id DESC LIMIT 5";
+        $sql = "SELECT * FROM non_pro_permits ORDER BY id DESC LIMIT 5";
     }
     $recent_permits = $conn->query($sql);
     ?>
@@ -261,14 +261,14 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Employee Permit System</title>
+        <title>Non-Pro Permit System</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
         
         <style>
             /* --- THEME VARIABLES --- */
-            :root {
+             :root {
                 --bg-body: #0a1128;
                 --panel-bg: #13203c;
                 --input-bg: #1f2f4e;
@@ -310,8 +310,8 @@
             .form-label { font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; opacity: 0.8; }
             
             .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-            .panel-title { color: #0d6efd; font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
-            .badge-next { background-color: #0d6efd; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+            .panel-title { color: var(--accent); font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
+            .badge-next { background-color: var(--accent); color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
             .badge-queue { background-color: #0dcaf0; color: black; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
 
             .control-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; }
@@ -340,7 +340,7 @@
             .permit-card {
                 width: var(--card-w);
                 height: var(--card-h);
-                background-image: url('background_employee.png'); 
+                background-image: url('background_non_pro.png'); /* CHANGED TO STUDENT BACKGROUND */
                 background-size: 100% 100%; 
                 background-position: center;
                 position: relative;
@@ -377,7 +377,7 @@
                 position: absolute; width: 100%; text-align: center; white-space: nowrap;
             }
             
-            /* PLATE POSITIONING: Left aligned, now using TOP */
+            /* PLATE POSITIONING */
             .plate-info {
                 position: absolute; 
                 font-weight: 800; 
@@ -403,7 +403,7 @@
                 line-height: 1; position: relative; 
             }
 
-            /* EMPLOYEES TEXT STYLING */
+            /* STUDENT TEXT STYLING */
             .emp-label {
                 position: absolute;
                 left: 6px; 
@@ -420,25 +420,10 @@
             .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
             .table-custom td { border-color: var(--border); background-color: transparent; color: var(--text-main); }
 
-            /* Reprint button in table */
-            .btn-reprint { 
-                padding: 2px 8px; 
-                font-size: 0.8rem; 
-                margin: 0;
-            }
-
-            /* Edit and Delete buttons */
-            .btn-edit { 
-                padding: 2px 8px; 
-                font-size: 0.8rem; 
-                margin: 0 2px;
-            }
-            
-            .btn-delete { 
-                padding: 2px 8px; 
-                font-size: 0.8rem; 
-                margin: 0 2px;
-            }
+            /* Buttons in table */
+            .btn-reprint { padding: 2px 8px; font-size: 0.8rem; margin: 0; }
+            .btn-edit { padding: 2px 8px; font-size: 0.8rem; margin: 0 2px; }
+            .btn-delete { padding: 2px 8px; font-size: 0.8rem; margin: 0 2px; }
 
             #print-area { display: none; }
             @media print {
@@ -457,7 +442,7 @@
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i> Back</a>
-            <h4 class="m-0 fw-bold text-white">Employee Permit</h4>
+            <h4 class="m-0 fw-bold text-white">Student Non-Pro Permit</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-warning fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#layoutSettingsPanel" id="layoutToggleBtn">
@@ -479,7 +464,7 @@
                             <label class="form-label fw-bold text-white mb-2">ACADEMIC YEAR</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-dark text-white border-secondary fw-bold">AY</span>
-                                <input type="text" name="school_year" id="in_sy" class="form-control text-center fw-bold" value="<?php echo htmlspecialchars($_SESSION['layout_settings']['school_year']); ?>" oninput="updatePreview()">
+                                <input type="text" name="school_year" id="in_sy" class="form-control text-center fw-bold" value="<?php echo htmlspecialchars($_SESSION['np_layout_settings']['school_year']); ?>" oninput="updatePreview()">
                             </div>
                         </div>
                         
@@ -501,35 +486,35 @@
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">CARD DIMENSIONS</label>
                         <div class="control-grid" style="grid-template-columns: 1fr 1fr;">
-                            <div><span class="control-label-sm">Card Width</span><input type="number" name="card_w" id="card_w" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['card_w']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Card Height</span><input type="number" name="card_h" id="card_h" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['card_h']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Card Width</span><input type="number" name="card_w" id="card_w" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['card_w']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Card Height</span><input type="number" name="card_h" id="card_h" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['card_h']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">NAME SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">Font Size</span><input type="number" name="name_size" id="name_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['name_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">X Position</span><input type="number" name="name_x" id="name_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['name_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Y Position</span><input type="number" name="name_y" id="name_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['name_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Font Size</span><input type="number" name="name_size" id="name_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['name_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">X Position</span><input type="number" name="name_x" id="name_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['name_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Y Position</span><input type="number" name="name_y" id="name_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['name_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
-                        <label class="form-label fw-bold text-white mb-2">DEPARTMENT SETTINGS</label>
+                        <label class="form-label fw-bold text-white mb-2">COURSE/YR SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">Font Size</span><input type="number" name="dept_size" id="dept_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['dept_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">X Position</span><input type="number" name="dept_x" id="dept_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['dept_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Y Position</span><input type="number" name="dept_y" id="dept_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['dept_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Font Size</span><input type="number" name="course_size" id="course_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['course_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">X Position</span><input type="number" name="course_x" id="course_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['course_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Y Position</span><input type="number" name="course_y" id="course_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['course_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">PLATE SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">Font Size</span><input type="number" name="plate_size" id="plate_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['plate_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">X Position</span><input type="number" name="plate_x" id="plate_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['plate_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="plate_y" id="plate_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['plate_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Font Size</span><input type="number" name="plate_size" id="plate_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['plate_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">X Position</span><input type="number" name="plate_x" id="plate_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['plate_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="plate_y" id="plate_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['plate_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                 </div>
@@ -538,32 +523,32 @@
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">QR SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">QR Size</span><input type="number" name="qr_size" id="qr_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['qr_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="qr_x" id="qr_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['qr_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Bottom Pos</span><input type="number" name="qr_y" id="qr_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['qr_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">QR Size</span><input type="number" name="qr_size" id="qr_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['qr_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="qr_x" id="qr_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['qr_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Bottom Pos</span><input type="number" name="qr_y" id="qr_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['qr_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">AY SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">Font Size</span><input type="number" name="sy_size" id="sy_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['sy_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="sy_x" id="sy_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['sy_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="sy_y" id="sy_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['sy_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Font Size</span><input type="number" name="sy_size" id="sy_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['sy_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="sy_x" id="sy_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['sy_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="sy_y" id="sy_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['sy_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3">
                         <label class="form-label fw-bold text-white mb-2">COUNT SETTINGS</label>
                         <div class="control-grid">
-                            <div><span class="control-label-sm">Font Size</span><input type="number" name="count_size" id="count_size" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['count_size']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="count_x" id="count_x" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['count_x']; ?>" oninput="updatePreview()"></div>
-                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="count_y" id="count_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['count_y']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Font Size</span><input type="number" name="count_size" id="count_size" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['count_size']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Right Pos</span><input type="number" name="count_x" id="count_x" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['count_x']; ?>" oninput="updatePreview()"></div>
+                            <div><span class="control-label-sm">Top Pos</span><input type="number" name="count_y" id="count_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['count_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
                     
                     <div class="col-md-3 d-flex align-items-end">
-                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL permits and reset counter to 1.');" class="w-100">
+                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL student permits and reset counter to 1.');" class="w-100">
                             <button type="submit" name="reset_db" class="btn btn-danger fw-bold w-100">
                                 <i class="fas fa-redo me-2"></i> Reset Database
                             </button>
@@ -579,7 +564,7 @@
             <div class="panel-header">
                 <div class="panel-title">
                     <i class="fa <?php echo $editing_permit ? 'fa-edit' : 'fa-user-plus'; ?>"></i> 
-                    <?php echo $editing_permit ? 'EDIT PERMIT ENTRY' : 'NEW PERMIT ENTRY'; ?>
+                    <?php echo $editing_permit ? 'EDIT STUDENT ENTRY' : 'NEW STUDENT ENTRY'; ?>
                 </div>
                 <div class="badge-next">NEXT: <?php echo $next_display_id; ?></div>
             </div>
@@ -589,35 +574,35 @@
                     <input type="hidden" name="permit_id" value="<?php echo $editing_permit['id']; ?>">
                 <?php endif; ?>
                 
-                <input type="hidden" name="school_year" id="hidden_sy" value="<?php echo htmlspecialchars($_SESSION['layout_settings']['school_year']); ?>">
-                <input type="hidden" name="card_w" id="hidden_card_w" value="<?php echo $_SESSION['layout_settings']['card_w']; ?>">
-                <input type="hidden" name="card_h" id="hidden_card_h" value="<?php echo $_SESSION['layout_settings']['card_h']; ?>">
-                <input type="hidden" name="name_size" id="hidden_name_size" value="<?php echo $_SESSION['layout_settings']['name_size']; ?>">
-                <input type="hidden" name="name_x" id="hidden_name_x" value="<?php echo $_SESSION['layout_settings']['name_x']; ?>">
-                <input type="hidden" name="name_y" id="hidden_name_y" value="<?php echo $_SESSION['layout_settings']['name_y']; ?>">
-                <input type="hidden" name="dept_size" id="hidden_dept_size" value="<?php echo $_SESSION['layout_settings']['dept_size']; ?>">
-                <input type="hidden" name="dept_x" id="hidden_dept_x" value="<?php echo $_SESSION['layout_settings']['dept_x']; ?>">
-                <input type="hidden" name="dept_y" id="hidden_dept_y" value="<?php echo $_SESSION['layout_settings']['dept_y']; ?>">
-                <input type="hidden" name="plate_size" id="hidden_plate_size" value="<?php echo $_SESSION['layout_settings']['plate_size']; ?>">
-                <input type="hidden" name="plate_x" id="hidden_plate_x" value="<?php echo $_SESSION['layout_settings']['plate_x']; ?>">
-                <input type="hidden" name="plate_y" id="hidden_plate_y" value="<?php echo $_SESSION['layout_settings']['plate_y']; ?>">
-                <input type="hidden" name="qr_size" id="hidden_qr_size" value="<?php echo $_SESSION['layout_settings']['qr_size']; ?>">
-                <input type="hidden" name="qr_x" id="hidden_qr_x" value="<?php echo $_SESSION['layout_settings']['qr_x']; ?>">
-                <input type="hidden" name="qr_y" id="hidden_qr_y" value="<?php echo $_SESSION['layout_settings']['qr_y']; ?>">
-                <input type="hidden" name="count_size" id="hidden_count_size" value="<?php echo $_SESSION['layout_settings']['count_size']; ?>">
-                <input type="hidden" name="count_x" id="hidden_count_x" value="<?php echo $_SESSION['layout_settings']['count_x']; ?>">
-                <input type="hidden" name="count_y" id="hidden_count_y" value="<?php echo $_SESSION['layout_settings']['count_y']; ?>">
-                <input type="hidden" name="sy_size" id="hidden_sy_size" value="<?php echo $_SESSION['layout_settings']['sy_size']; ?>">
-                <input type="hidden" name="sy_x" id="hidden_sy_x" value="<?php echo $_SESSION['layout_settings']['sy_x']; ?>">
-                <input type="hidden" name="sy_y" id="hidden_sy_y" value="<?php echo $_SESSION['layout_settings']['sy_y']; ?>">
+                <input type="hidden" name="school_year" id="hidden_sy" value="<?php echo htmlspecialchars($_SESSION['np_layout_settings']['school_year']); ?>">
+                <input type="hidden" name="card_w" id="hidden_card_w" value="<?php echo $_SESSION['np_layout_settings']['card_w']; ?>">
+                <input type="hidden" name="card_h" id="hidden_card_h" value="<?php echo $_SESSION['np_layout_settings']['card_h']; ?>">
+                <input type="hidden" name="name_size" id="hidden_name_size" value="<?php echo $_SESSION['np_layout_settings']['name_size']; ?>">
+                <input type="hidden" name="name_x" id="hidden_name_x" value="<?php echo $_SESSION['np_layout_settings']['name_x']; ?>">
+                <input type="hidden" name="name_y" id="hidden_name_y" value="<?php echo $_SESSION['np_layout_settings']['name_y']; ?>">
+                <input type="hidden" name="course_size" id="hidden_course_size" value="<?php echo $_SESSION['np_layout_settings']['course_size']; ?>">
+                <input type="hidden" name="course_x" id="hidden_course_x" value="<?php echo $_SESSION['np_layout_settings']['course_x']; ?>">
+                <input type="hidden" name="course_y" id="hidden_course_y" value="<?php echo $_SESSION['np_layout_settings']['course_y']; ?>">
+                <input type="hidden" name="plate_size" id="hidden_plate_size" value="<?php echo $_SESSION['np_layout_settings']['plate_size']; ?>">
+                <input type="hidden" name="plate_x" id="hidden_plate_x" value="<?php echo $_SESSION['np_layout_settings']['plate_x']; ?>">
+                <input type="hidden" name="plate_y" id="hidden_plate_y" value="<?php echo $_SESSION['np_layout_settings']['plate_y']; ?>">
+                <input type="hidden" name="qr_size" id="hidden_qr_size" value="<?php echo $_SESSION['np_layout_settings']['qr_size']; ?>">
+                <input type="hidden" name="qr_x" id="hidden_qr_x" value="<?php echo $_SESSION['np_layout_settings']['qr_x']; ?>">
+                <input type="hidden" name="qr_y" id="hidden_qr_y" value="<?php echo $_SESSION['np_layout_settings']['qr_y']; ?>">
+                <input type="hidden" name="count_size" id="hidden_count_size" value="<?php echo $_SESSION['np_layout_settings']['count_size']; ?>">
+                <input type="hidden" name="count_x" id="hidden_count_x" value="<?php echo $_SESSION['np_layout_settings']['count_x']; ?>">
+                <input type="hidden" name="count_y" id="hidden_count_y" value="<?php echo $_SESSION['np_layout_settings']['count_y']; ?>">
+                <input type="hidden" name="sy_size" id="hidden_sy_size" value="<?php echo $_SESSION['np_layout_settings']['sy_size']; ?>">
+                <input type="hidden" name="sy_x" id="hidden_sy_x" value="<?php echo $_SESSION['np_layout_settings']['sy_x']; ?>">
+                <input type="hidden" name="sy_y" id="hidden_sy_y" value="<?php echo $_SESSION['np_layout_settings']['sy_y']; ?>">
                 
                 <input type="text" name="name" id="in_name" class="form-control" 
-                       placeholder="Full Name" required oninput="updatePreview()"
+                       placeholder="Student Name" required oninput="updatePreview()"
                        value="<?php echo $editing_permit ? htmlspecialchars($editing_permit['name']) : ''; ?>">
 
-                <input type="text" name="dept" id="in_dept" class="form-control" 
-                       placeholder="Department / Position" required oninput="updatePreview()"
-                       value="<?php echo $editing_permit ? htmlspecialchars($editing_permit['department']) : ''; ?>">
+                <input type="text" name="course" id="in_course" class="form-control" 
+                       placeholder="Course / Year / Section" required oninput="updatePreview()"
+                       value="<?php echo $editing_permit ? htmlspecialchars($editing_permit['course']) : ''; ?>">
 
                 <input type="text" name="plate" id="in_plate" class="form-control" 
                        placeholder="Plate Number" required oninput="updatePreview()"
@@ -647,14 +632,14 @@
 
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="small opacity-75">Queue Management</span>
-                <span class="badge-queue">QUEUE: <?php echo count($_SESSION['print_queue']); ?> PERMITS</span>
+                <span class="badge-queue">QUEUE: <?php echo count($_SESSION['np_print_queue']); ?> PERMITS</span>
             </div>
             
             <div class="d-flex gap-2">
-                <button onclick="window.print()" class="btn btn-primary flex-grow-1 fw-bold" <?php echo count($_SESSION['print_queue']) == 0 ? 'disabled' : ''; ?>>
+                <button onclick="window.print()" class="btn btn-primary flex-grow-1 fw-bold" <?php echo count($_SESSION['np_print_queue']) == 0 ? 'disabled' : ''; ?>>
                     <i class="fa fa-print me-2"></i> Print Queue
                 </button>
-                <?php if(count($_SESSION['print_queue']) > 0): ?>
+                <?php if(count($_SESSION['np_print_queue']) > 0): ?>
                     <form method="POST"><button type="submit" name="clear_queue" class="btn btn-outline-danger fw-bold"><i class="fa fa-trash"></i></button></form>
                 <?php endif; ?>
             </div>
@@ -663,7 +648,7 @@
 
         <div class="right-panel">
             <div class="panel-header w-100 border-bottom pb-3 mb-4" style="border-color: var(--border)!important;">
-                <div class="panel-title"><i class="fa fa-eye"></i> PERMIT PREVIEW</div>
+                <div class="panel-title"><i class="fa fa-eye"></i> STUDENT PERMIT PREVIEW</div>
             </div>
             
             <div class="permit-card" id="preview-card">
@@ -672,16 +657,16 @@
                 <img src="background.png" class="logo-header logo-right" alt="Shield Logo">
 
                 <div class="emp-label">
-                    <span style="font-size: 14px; color: yellow;">E</span><span style="font-size: 10px;">MPLOYEES</span>
+                    <span style="font-size: 14px; color: yellow;">S</span><span style="font-size: 10px;">TUDENT</span>
                 </div>
 
-                <img src="https://placehold.co/100x100/e0e0e0/888888?text=PHOTO" class="photo-img" alt="Employee Photo">
+                <img src="https://placehold.co/100x100/e0e0e0/888888?text=PHOTO" class="photo-img" alt="Student Photo">
 
                 <span class="text-name" id="out_name">
                     <?php echo $editing_permit ? strtoupper(htmlspecialchars($editing_permit['name'])) : 'NAME'; ?>
                 </span>
-                <span class="text-dept" id="out_dept">
-                    <?php echo $editing_permit ? strtoupper(htmlspecialchars($editing_permit['department'])) : 'DEPARTMENT'; ?>
+                <span class="text-dept" id="out_course">
+                    <?php echo $editing_permit ? strtoupper(htmlspecialchars($editing_permit['course'])) : 'COURSE / YEAR'; ?>
                 </span>
                 
                 <div class="plate-info" id="plate_container">
@@ -696,7 +681,7 @@
                     </div>
                     <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=<?php echo $editing_permit ? urlencode($editing_permit['fb_link']) : 'Empty'; ?>" class="qr-img" id="out_qr">
                     <span class="sy-text" id="out_sy">
-                        <?php echo $editing_permit ? htmlspecialchars($editing_permit['school_year']) : htmlspecialchars($_SESSION['layout_settings']['school_year']); ?>
+                        <?php echo $editing_permit ? htmlspecialchars($editing_permit['school_year']) : htmlspecialchars($_SESSION['np_layout_settings']['school_year']); ?>
                     </span>
                 </div>
             </div>
@@ -705,12 +690,12 @@
 
     <div class="bottom-panel">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT DATABASE ENTRIES</h5>
-            <span class="badge bg-dark">Total: <?php echo $conn->query("SELECT COUNT(*) as total FROM permits")->fetch_assoc()['total']; ?></span>
+            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT STUDENT ENTRIES</h5>
+            <span class="badge bg-dark">Total: <?php echo $conn->query("SELECT COUNT(*) as total FROM non_pro_permits")->fetch_assoc()['total']; ?></span>
         </div>
         
         <form method="GET" class="mb-3 d-flex gap-2">
-            <input type="text" name="search" class="form-control mb-0" placeholder="Search by Name, Dept, or Plate..." 
+            <input type="text" name="search" class="form-control mb-0" placeholder="Search by Name, Course, or Plate..." 
                    value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
                    style="max-width: 300px;">
             <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
@@ -726,7 +711,7 @@
                         <th>ID</th>
                         <th>Permit #</th>
                         <th>Name</th>
-                        <th>Department</th>
+                        <th>Course / Year</th>
                         <th>Plate #</th>
                         <th>AY</th>
                         <th>Date</th>
@@ -740,7 +725,7 @@
                             <td><?php echo $row['id']; ?></td>
                             <td><span class="badge bg-warning text-dark"><?php echo $row['permit_number']; ?></span></td>
                             <td><?php echo strtoupper($row['name']); ?></td>
-                            <td><?php echo strtoupper($row['department']); ?></td>
+                            <td><?php echo strtoupper($row['course']); ?></td>
                             <td><?php echo strtoupper($row['plate_number']); ?></td>
                             <td><?php echo strtoupper($row['school_year']); ?></td>
                             <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
@@ -773,16 +758,16 @@
 
     <div id="print-area">
         <?php 
-        foreach($_SESSION['print_queue'] as $item): 
+        foreach($_SESSION['np_print_queue'] as $item): 
             $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=" . urlencode($item['qr_data']);
             
             // Load Settings
             $cw = $item['cw']; $ch = $item['ch'];
             $ns = $item['ns']; $nx = $item['nx']; $ny = $item['ny'];
-            $ds = $item['ds']; $dx = $item['dx']; $dy = $item['dy'];
+            $cs = $item['cs']; $cx = $item['cx']; $cy = $item['cy']; // Course size
             $ps = $item['ps']; $px = $item['px']; $py = $item['py'];
             $qs = $item['qs']; $qx = $item['qx']; $qy = $item['qy'];
-            $cs = $item['cs']; $cx = $item['cx']; $cy = $item['cy'];
+            $cts = $item['cts']; $ctx = $item['ctx']; $cty = $item['cty']; // Count size
             // Year Settings
             $ss = $item['ss']; $sx = $item['sx']; $sy_pos = $item['sy_pos'];
         ?>
@@ -791,17 +776,17 @@
             <img src="background.png" class="logo-header logo-right" alt="Shield Logo">
 
             <div class="emp-label">
-                <span style="font-size: 14px; color: yellow;">E</span><span style="font-size: 10px;">MPLOYEES</span>
+                <span style="font-size: 14px; color: yellow;">S</span><span style="font-size: 10px;">TUDENT (NON-PRO)</span>
             </div>
 
             <img src="https://placehold.co/100x100/e0e0e0/888888?text=PHOTO" class="photo-img">
             <span class="text-name" style="font-size: <?php echo $ns; ?>px; left: <?php echo $nx; ?>px; top: <?php echo $ny; ?>px; width: 100%; text-align: center;"><?php echo $item['name']; ?></span>
-            <span class="text-dept" style="font-size: <?php echo $ds; ?>px; left: <?php echo $dx; ?>px; top: <?php echo $dy; ?>px; width: 100%; text-align: center;"><?php echo $item['dept']; ?></span>
+            <span class="text-dept" style="font-size: <?php echo $cs; ?>px; left: <?php echo $cx; ?>px; top: <?php echo $cy; ?>px; width: 100%; text-align: center;"><?php echo $item['course']; ?></span>
             
             <div class="plate-info" style="font-size: <?php echo $ps; ?>px; top: <?php echo $py; ?>px; left: <?php echo $px; ?>px;">PLATE#: <span><?php echo $item['plate']; ?></span></div>
             
             <div class="qr-area" style="right: <?php echo $qx; ?>px; bottom: <?php echo $qy; ?>px;">
-                <div class="control-no" style="font-size: <?php echo $cs; ?>px; right: <?php echo $cx; ?>px; top: <?php echo $cy; ?>px;"><?php echo $item['permit_no']; ?></div>
+                <div class="control-no" style="font-size: <?php echo $cts; ?>px; right: <?php echo $ctx; ?>px; top: <?php echo $cty; ?>px;"><?php echo $item['permit_no']; ?></div>
                 <img src="<?php echo $qr_url; ?>" class="qr-img" style="width: <?php echo $qs; ?>px; height: <?php echo $qs; ?>px;">
                 <span class="sy-text" style="font-size: <?php echo $ss; ?>px; position:absolute; right: <?php echo $sx; ?>px; top: <?php echo $sy_pos; ?>px; width:100%; white-space:nowrap;"><?php echo $item['sy']; ?></span>
             </div>
@@ -835,7 +820,7 @@
         let layoutVisible = false;
         
         // Initialize layout panel state from localStorage
-        const savedLayoutState = localStorage.getItem('layoutVisible');
+        const savedLayoutState = localStorage.getItem('npLayoutVisible'); // Different key from employee
         if (savedLayoutState === 'true') {
             layoutVisible = true;
             document.getElementById('layoutSettingsPanel').classList.add('show');
@@ -857,9 +842,9 @@
             document.getElementById('hidden_name_size').value = document.getElementById('name_size').value;
             document.getElementById('hidden_name_x').value = document.getElementById('name_x').value;
             document.getElementById('hidden_name_y').value = document.getElementById('name_y').value;
-            document.getElementById('hidden_dept_size').value = document.getElementById('dept_size').value;
-            document.getElementById('hidden_dept_x').value = document.getElementById('dept_x').value;
-            document.getElementById('hidden_dept_y').value = document.getElementById('dept_y').value;
+            document.getElementById('hidden_course_size').value = document.getElementById('course_size').value;
+            document.getElementById('hidden_course_x').value = document.getElementById('course_x').value;
+            document.getElementById('hidden_course_y').value = document.getElementById('course_y').value;
             document.getElementById('hidden_plate_size').value = document.getElementById('plate_size').value;
             document.getElementById('hidden_plate_x').value = document.getElementById('plate_x').value;
             document.getElementById('hidden_plate_y').value = document.getElementById('plate_y').value;
@@ -884,7 +869,7 @@
             
             // Apply Text
             document.getElementById('out_name').innerText = displayName;
-            document.getElementById('out_dept').innerText = document.getElementById('in_dept').value.toUpperCase() || "DEPARTMENT";
+            document.getElementById('out_course').innerText = document.getElementById('in_course').value.toUpperCase() || "COURSE / YEAR";
             document.getElementById('out_plate').innerText = document.getElementById('in_plate').value.toUpperCase() || "-------";
             document.getElementById('out_sy').innerText = displayAy;
             
@@ -910,10 +895,10 @@
             elName.style.top = document.getElementById('name_y').value + 'px';
             elName.style.width = cW + 'px';
 
-            let elDept = document.getElementById('out_dept');
-            elDept.style.fontSize = document.getElementById('dept_size').value + 'px';
-            elDept.style.left = document.getElementById('dept_x').value + 'px';
-            elDept.style.top = document.getElementById('dept_y').value + 'px';
+            let elDept = document.getElementById('out_course');
+            elDept.style.fontSize = document.getElementById('course_size').value + 'px';
+            elDept.style.left = document.getElementById('course_x').value + 'px';
+            elDept.style.top = document.getElementById('course_y').value + 'px';
             elDept.style.width = cW + 'px';
 
             let elPlate = document.getElementById('plate_container');
@@ -948,9 +933,9 @@
             document.getElementById('name_size').value = 12;
             document.getElementById('name_x').value = 11;
             document.getElementById('name_y').value = 110;
-            document.getElementById('dept_size').value = 11;
-            document.getElementById('dept_x').value = 0;
-            document.getElementById('dept_y').value = 129;
+            document.getElementById('course_size').value = 11;
+            document.getElementById('course_x').value = 0;
+            document.getElementById('course_y').value = 129;
             document.getElementById('plate_size').value = 11;
             document.getElementById('plate_x').value = 6;
             document.getElementById('plate_y').value = 180;
@@ -983,7 +968,7 @@
                 this.classList.remove('btn-success');
                 this.classList.add('btn-warning');
             }
-            localStorage.setItem('layoutVisible', layoutVisible);
+            localStorage.setItem('npLayoutVisible', layoutVisible);
         });
 
         document.addEventListener('DOMContentLoaded', function() {
