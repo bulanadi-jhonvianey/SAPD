@@ -19,7 +19,14 @@
     $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
     $conn->select_db($dbname);
 
-    // CHANGED: Table name to 'non_pro_permits' and 'department' to 'course'
+    // --- SHARED PERMIT COUNTER TABLE ---
+    // This ensures Non-Pro, Student, and Employee permits share the same number sequence
+    $conn->query("CREATE TABLE IF NOT EXISTS global_permit_sequence (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
+    // Table for Non-Pro / Student Permits
     $table_sql = "CREATE TABLE IF NOT EXISTS non_pro_permits (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -32,19 +39,16 @@
     )";
     $conn->query($table_sql);
 
-    // --- AUTOMATIC DATA REPAIR ---
-    $conn->query("UPDATE non_pro_permits SET permit_number = id WHERE permit_number = 0 OR permit_number IS NULL");
-
-    // Initialize Session Queue (CHANGED: Variable name to avoid conflict with employee queue)
+    // Initialize Session Queue
     if (!isset($_SESSION['np_print_queue'])) { $_SESSION['np_print_queue'] = []; }
 
-    // Initialize Layout Settings (CHANGED: Variable name)
+    // Initialize Layout Settings
     if (!isset($_SESSION['np_layout_settings'])) {
         $_SESSION['np_layout_settings'] = [
             'school_year' => 'Enter AY',
             'card_w' => 350, 'card_h' => 240,
             'name_size' => 12, 'name_x' => 11, 'name_y' => 110,
-            'course_size' => 11, 'course_x' => 0, 'course_y' => 129, // Renamed dept to course
+            'course_size' => 11, 'course_x' => 0, 'course_y' => 129, 
             'plate_size' => 11, 'plate_x' => 6, 'plate_y' => 180, 
             'qr_size' => 60, 'qr_x' => 5, 'qr_y' => 15,
             'count_size' => 20, 'count_x' => 0, 'count_y' => -25,
@@ -91,23 +95,27 @@
     // HANDLE: ADD PERMIT
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
         $name = $conn->real_escape_string($_POST['name']);
-        $course = $conn->real_escape_string($_POST['course']); // Changed from dept
+        $course = $conn->real_escape_string($_POST['course']); 
         $plate = $conn->real_escape_string($_POST['plate']);
         $fb_link = $conn->real_escape_string($_POST['fb_link']);
         $sy = $_SESSION['np_layout_settings']['school_year']; 
 
+        // 1. GENERATE UNIQUE GLOBAL PERMIT NUMBER
+        $conn->query("INSERT INTO global_permit_sequence () VALUES ()");
+        $global_permit_no = $conn->insert_id;
+
+        // 2. INSERT INTO NON-PRO TABLE (Using the Global Number)
         $insert_sql = "INSERT INTO non_pro_permits (name, course, plate_number, fb_link, permit_number, school_year) 
-                       VALUES ('$name', '$course', '$plate', '$fb_link', 0, '$sy')";
+                        VALUES ('$name', '$course', '$plate', '$fb_link', $global_permit_no, '$sy')";
         
         if ($conn->query($insert_sql)) {
-            $new_id = $conn->insert_id;
-            $conn->query("UPDATE non_pro_permits SET permit_number = $new_id WHERE id = $new_id");
-
+            // Note: $new_id is the database Row ID, $global_permit_no is the displayed Permit #
+            
             $_SESSION['np_print_queue'][] = [
                 'name' => strtoupper($name),
                 'course' => strtoupper($course),
                 'plate' => strtoupper($plate),
-                'permit_no' => $new_id, 
+                'permit_no' => $global_permit_no, // Use Global Number
                 'qr_data' => $fb_link ? $fb_link : "NoData",
                 'sy' => $sy,
                 'cw' => $_SESSION['np_layout_settings']['card_w'], 
@@ -124,7 +132,7 @@
                 'qs' => $_SESSION['np_layout_settings']['qr_size'], 
                 'qx' => $_SESSION['np_layout_settings']['qr_x'], 
                 'qy' => $_SESSION['np_layout_settings']['qr_y'],
-                'cts' => $_SESSION['np_layout_settings']['count_size'], // changed key to avoid conflict with course size var
+                'cts' => $_SESSION['np_layout_settings']['count_size'], 
                 'ctx' => $_SESSION['np_layout_settings']['count_x'], 
                 'cty' => $_SESSION['np_layout_settings']['count_y'],
                 'ss' => $_SESSION['np_layout_settings']['sy_size'], 
@@ -226,6 +234,8 @@
     // HANDLE: RESET DATABASE
     if (isset($_POST['reset_db'])) {
         $conn->query("TRUNCATE TABLE non_pro_permits");
+        // FIX: Also reset the global counter
+        $conn->query("TRUNCATE TABLE global_permit_sequence");
         $_SESSION['np_print_queue'] = [];
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
@@ -241,7 +251,9 @@
         }
     }
 
-    $res = $conn->query("SELECT MAX(id) as max_id FROM non_pro_permits");
+    // --- DISPLAY LOGIC FOR "NEXT PERMIT #" ---
+    // We look at the Shared Global Table for the prediction
+    $res = $conn->query("SELECT MAX(id) as max_id FROM global_permit_sequence");
     $row = $res->fetch_assoc();
     $next_display_id = ($row['max_id'] !== null) ? $row['max_id'] + 1 : 1;
 
@@ -268,7 +280,7 @@
         
         <style>
             /* --- THEME VARIABLES --- */
-             :root {
+            :root {
                 --bg-body: #0a1128;
                 --panel-bg: #13203c;
                 --input-bg: #1f2f4e;
@@ -297,7 +309,92 @@
             }
 
             .navbar { background: var(--panel-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .btn-theme { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+            
+            /* --- CUSTOM BUTTON STYLES (UPDATED FROM EMPLOYEE) --- */
+            .btn {
+                border-radius: 8px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding: 10px 20px;
+                border: none;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                position: relative;
+                z-index: 1;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 7px 14px rgba(0,0,0,0.2);
+                filter: brightness(110%);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+                box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            }
+
+            /* PRIMARY BUTTON (Blue Gradient) */
+            .btn-primary {
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white;
+                border: none;
+            }
+
+            /* SUCCESS BUTTON (Green Gradient) */
+            .btn-success {
+                background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+                color: white;
+                border: none;
+            }
+
+            /* DANGER BUTTON (Red Gradient) */
+            .btn-danger, .btn-outline-danger {
+                background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+                color: white;
+                border: none;
+            }
+
+            /* INFO BUTTON (Cyan/Teal Gradient) */
+            .btn-info {
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white;
+                border: none;
+            }
+            
+            /* WARNING BUTTON (Orange/Yellow Gradient) */
+            .btn-warning {
+                background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+                color: white; 
+                border: none;
+            }
+
+            /* SECONDARY BUTTON (Gray Gradient) */
+            .btn-secondary {
+                background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+                color: white;
+                border: none;
+            }
+            
+            /* THEME TOGGLE BUTTON */
+            .btn-theme { 
+                background: var(--input-bg); 
+                border: 1px solid var(--border); 
+                color: var(--text-main); 
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn-theme:hover {
+                background: var(--accent);
+                color: white;
+                border-color: var(--accent);
+            }
             
             .main-container { display: flex; gap: 20px; padding: 0 20px; }
             .left-panel, .right-panel, .bottom-panel { background: var(--panel-bg); padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border); }
@@ -310,9 +407,25 @@
             .form-label { font-size: 0.9rem; font-weight: 600; margin-bottom: 5px; opacity: 0.8; }
             
             .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-            .panel-title { color: var(--accent); font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
-            .badge-next { background-color: var(--accent); color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-            .badge-queue { background-color: #0dcaf0; color: black; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+            .panel-title { color: #0d6efd; font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
+            
+            .badge-next { 
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white; 
+                padding: 5px 10px; 
+                border-radius: 4px; 
+                font-weight: bold; 
+                font-size: 0.8rem; 
+            }
+            
+            .badge-queue { 
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white; 
+                padding: 5px 10px; 
+                border-radius: 4px; 
+                font-weight: bold; 
+                font-size: 0.8rem; 
+            }
 
             .control-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; }
             .control-label-sm { font-size: 0.65rem; opacity: 0.7; margin-bottom: 1px; display: block; white-space: nowrap; }
@@ -420,10 +533,34 @@
             .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
             .table-custom td { border-color: var(--border); background-color: transparent; color: var(--text-main); }
 
-            /* Buttons in table */
-            .btn-reprint { padding: 2px 8px; font-size: 0.8rem; margin: 0; }
-            .btn-edit { padding: 2px 8px; font-size: 0.8rem; margin: 0 2px; }
-            .btn-delete { padding: 2px 8px; font-size: 0.8rem; margin: 0 2px; }
+            /* Reprint button in table */
+            .btn-reprint { 
+                padding: 5px 10px; 
+                font-size: 0.8rem; 
+                margin: 0;
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white;
+                border: none;
+            }
+
+            /* Edit and Delete buttons */
+            .btn-edit { 
+                padding: 5px 10px; 
+                font-size: 0.8rem; 
+                margin: 0 2px;
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white;
+                border: none;
+            }
+            
+            .btn-delete { 
+                padding: 5px 10px; 
+                font-size: 0.8rem; 
+                margin: 0 2px;
+                background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+                color: white;
+                border: none;
+            }
 
             #print-area { display: none; }
             @media print {
@@ -546,9 +683,11 @@
                             <div><span class="control-label-sm">Top Pos</span><input type="number" name="count_y" id="count_y" class="form-control form-control-sm" value="<?php echo $_SESSION['np_layout_settings']['count_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
-                    
-                    <div class="col-md-3 d-flex align-items-end">
-                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL student permits and reset counter to 1.');" class="w-100">
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-4 d-flex align-items-end">
+                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL permits and reset global counter.');" class="w-100">
                             <button type="submit" name="reset_db" class="btn btn-danger fw-bold w-100">
                                 <i class="fas fa-redo me-2"></i> Reset Database
                             </button>
@@ -640,7 +779,7 @@
                     <i class="fa fa-print me-2"></i> Print Queue
                 </button>
                 <?php if(count($_SESSION['np_print_queue']) > 0): ?>
-                    <form method="POST"><button type="submit" name="clear_queue" class="btn btn-outline-danger fw-bold"><i class="fa fa-trash"></i></button></form>
+                    <form method="POST"><button type="submit" name="clear_queue" class="btn btn-danger fw-bold"><i class="fa fa-trash"></i></button></form>
                 <?php endif; ?>
             </div>
         
@@ -657,7 +796,7 @@
                 <img src="background.png" class="logo-header logo-right" alt="Shield Logo">
 
                 <div class="emp-label">
-                    <span style="font-size: 14px; color: yellow;">S</span><span style="font-size: 10px;">TUDENT</span>
+                    <span style="font-size: 14px; color: yellow;">S</span><span style="font-size: 10px;">TUDENT (NON-PRO)</span>
                 </div>
 
                 <img src="https://placehold.co/100x100/e0e0e0/888888?text=PHOTO" class="photo-img" alt="Student Photo">

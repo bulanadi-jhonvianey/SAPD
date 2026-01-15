@@ -19,6 +19,13 @@
     $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
     $conn->select_db($dbname);
 
+    // --- SHARED PERMIT COUNTER TABLE ---
+    // Ensures distinct permit numbers across Student, Non-Pro, and Employee
+    $conn->query("CREATE TABLE IF NOT EXISTS global_permit_sequence (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+
     $table_sql = "CREATE TABLE IF NOT EXISTS permits (
         id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(255) NOT NULL,
@@ -30,9 +37,6 @@
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )";
     $conn->query($table_sql);
-
-    // --- AUTOMATIC DATA REPAIR ---
-    $conn->query("UPDATE permits SET permit_number = id WHERE permit_number = 0 OR permit_number IS NULL");
 
     // Initialize Session Queue
     if (!isset($_SESSION['print_queue'])) { $_SESSION['print_queue'] = []; }
@@ -87,7 +91,7 @@
         exit;
     }   
 
-    // HANDLE: ADD PERMIT
+    // HANDLE: ADD EMPLOYEE PERMIT
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
         $name = $conn->real_escape_string($_POST['name']);
         $dept = $conn->real_escape_string($_POST['dept']);
@@ -95,18 +99,22 @@
         $fb_link = $conn->real_escape_string($_POST['fb_link']);
         $sy = $_SESSION['layout_settings']['school_year']; 
 
+        // 1. GENERATE UNIQUE GLOBAL PERMIT NUMBER
+        // We insert into the shared table first to get the next sequence number
+        $conn->query("INSERT INTO global_permit_sequence () VALUES ()");
+        $global_permit_no = $conn->insert_id;
+
+        // 2. INSERT INTO PERMITS TABLE (Using the Global Number)
         $insert_sql = "INSERT INTO permits (name, department, plate_number, fb_link, permit_number, school_year) 
-                       VALUES ('$name', '$dept', '$plate', '$fb_link', 0, '$sy')";
+                        VALUES ('$name', '$dept', '$plate', '$fb_link', $global_permit_no, '$sy')";
         
         if ($conn->query($insert_sql)) {
-            $new_id = $conn->insert_id;
-            $conn->query("UPDATE permits SET permit_number = $new_id WHERE id = $new_id");
-
+            // Add to print queue using the GLOBAL permit number
             $_SESSION['print_queue'][] = [
                 'name' => strtoupper($name),
                 'dept' => strtoupper($dept),
                 'plate' => strtoupper($plate),
-                'permit_no' => $new_id, 
+                'permit_no' => $global_permit_no, 
                 'qr_data' => $fb_link ? $fb_link : "NoData",
                 'sy' => $sy,
                 'cw' => $_SESSION['layout_settings']['card_w'], 
@@ -225,6 +233,8 @@
     // HANDLE: RESET DATABASE
     if (isset($_POST['reset_db'])) {
         $conn->query("TRUNCATE TABLE permits");
+        // FIX: Truncate global sequence so counter resets to 1
+        $conn->query("TRUNCATE TABLE global_permit_sequence");
         $_SESSION['print_queue'] = [];
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
@@ -240,15 +250,16 @@
         }
     }
 
-    $res = $conn->query("SELECT MAX(id) as max_id FROM permits");
+    // --- DISPLAY LOGIC FOR "NEXT PERMIT #" ---
+    // Fetch the highest ID from the GLOBAL sequence to show accurate prediction
+    $res = $conn->query("SELECT MAX(id) as max_id FROM global_permit_sequence");
     $row = $res->fetch_assoc();
     $next_display_id = ($row['max_id'] !== null) ? $row['max_id'] + 1 : 1;
 
-    // --- SEARCH LOGIC ADDED HERE ---
+    // --- SEARCH LOGIC ---
     $search_query = "";
     if (isset($_GET['search']) && !empty($_GET['search'])) {
         $search = $conn->real_escape_string($_GET['search']);
-        // Search Name, Department, or Plate
         $sql = "SELECT * FROM permits WHERE name LIKE '%$search%' OR department LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
     } else {
         $sql = "SELECT * FROM permits ORDER BY id DESC LIMIT 5";
@@ -297,7 +308,92 @@
             }
 
             .navbar { background: var(--panel-bg); border-bottom: 1px solid var(--border); padding: 15px 20px; margin-bottom: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-            .btn-theme { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
+            
+            /* --- CUSTOM BUTTON STYLES (UPDATED) --- */
+            .btn {
+                border-radius: 8px;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                padding: 10px 20px;
+                border: none;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                position: relative;
+                z-index: 1;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 7px 14px rgba(0,0,0,0.2);
+                filter: brightness(110%);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+                box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            }
+
+            /* PRIMARY BUTTON (Blue Gradient) */
+            .btn-primary {
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white;
+                border: none;
+            }
+
+            /* SUCCESS BUTTON (Green Gradient) */
+            .btn-success {
+                background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+                color: white;
+                border: none;
+            }
+
+            /* DANGER BUTTON (Red Gradient) */
+            .btn-danger, .btn-outline-danger {
+                background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+                color: white;
+                border: none;
+            }
+
+            /* INFO BUTTON (Cyan/Teal Gradient) */
+            .btn-info {
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white;
+                border: none;
+            }
+            
+            /* WARNING BUTTON (Orange/Yellow Gradient) */
+            .btn-warning {
+                background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+                color: white; 
+                border: none;
+            }
+
+            /* SECONDARY BUTTON (Gray Gradient) */
+            .btn-secondary {
+                background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+                color: white;
+                border: none;
+            }
+            
+            /* THEME TOGGLE BUTTON */
+            .btn-theme { 
+                background: var(--input-bg); 
+                border: 1px solid var(--border); 
+                color: var(--text-main); 
+                width: 40px;
+                height: 40px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+            
+            .btn-theme:hover {
+                background: var(--accent);
+                color: white;
+                border-color: var(--accent);
+            }
             
             .main-container { display: flex; gap: 20px; padding: 0 20px; }
             .left-panel, .right-panel, .bottom-panel { background: var(--panel-bg); padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); border: 1px solid var(--border); }
@@ -311,8 +407,24 @@
             
             .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
             .panel-title { color: #0d6efd; font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px;}
-            .badge-next { background-color: #0d6efd; color: white; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-            .badge-queue { background-color: #0dcaf0; color: black; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+            
+            .badge-next { 
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white; 
+                padding: 5px 10px; 
+                border-radius: 4px; 
+                font-weight: bold; 
+                font-size: 0.8rem; 
+            }
+            
+            .badge-queue { 
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white; 
+                padding: 5px 10px; 
+                border-radius: 4px; 
+                font-weight: bold; 
+                font-size: 0.8rem; 
+            }
 
             .control-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-bottom: 8px; }
             .control-label-sm { font-size: 0.65rem; opacity: 0.7; margin-bottom: 1px; display: block; white-space: nowrap; }
@@ -377,7 +489,7 @@
                 position: absolute; width: 100%; text-align: center; white-space: nowrap;
             }
             
-            /* PLATE POSITIONING: Left aligned, now using TOP */
+            /* PLATE POSITIONING */
             .plate-info {
                 position: absolute; 
                 font-weight: 800; 
@@ -422,22 +534,31 @@
 
             /* Reprint button in table */
             .btn-reprint { 
-                padding: 2px 8px; 
+                padding: 5px 10px; 
                 font-size: 0.8rem; 
                 margin: 0;
+                background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+                color: white;
+                border: none;
             }
 
             /* Edit and Delete buttons */
             .btn-edit { 
-                padding: 2px 8px; 
+                padding: 5px 10px; 
                 font-size: 0.8rem; 
                 margin: 0 2px;
+                background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+                color: white;
+                border: none;
             }
             
             .btn-delete { 
-                padding: 2px 8px; 
+                padding: 5px 10px; 
                 font-size: 0.8rem; 
                 margin: 0 2px;
+                background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+                color: white;
+                border: none;
             }
 
             #print-area { display: none; }
@@ -561,9 +682,11 @@
                             <div><span class="control-label-sm">Top Pos</span><input type="number" name="count_y" id="count_y" class="form-control form-control-sm" value="<?php echo $_SESSION['layout_settings']['count_y']; ?>" oninput="updatePreview()"></div>
                         </div>
                     </div>
-                    
-                    <div class="col-md-3 d-flex align-items-end">
-                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL permits and reset counter to 1.');" class="w-100">
+                </div>
+                
+                <div class="row mt-3">
+                    <div class="col-md-4 d-flex align-items-end">
+                        <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL permits and reset global counter.');" class="w-100">
                             <button type="submit" name="reset_db" class="btn btn-danger fw-bold w-100">
                                 <i class="fas fa-redo me-2"></i> Reset Database
                             </button>
@@ -589,7 +712,7 @@
                     <input type="hidden" name="permit_id" value="<?php echo $editing_permit['id']; ?>">
                 <?php endif; ?>
                 
-                <input type="hidden" name="school_year" id="hidden_sy" value="<?php echo htmlspecialchars($_SESSION['layout_settings']['school_year']); ?>">
+                <input type="hidden" name="school_year" id="hidden_sy" value="<?php echo $editing_permit ? htmlspecialchars($editing_permit['school_year']) : htmlspecialchars($_SESSION['layout_settings']['school_year']); ?>">
                 <input type="hidden" name="card_w" id="hidden_card_w" value="<?php echo $_SESSION['layout_settings']['card_w']; ?>">
                 <input type="hidden" name="card_h" id="hidden_card_h" value="<?php echo $_SESSION['layout_settings']['card_h']; ?>">
                 <input type="hidden" name="name_size" id="hidden_name_size" value="<?php echo $_SESSION['layout_settings']['name_size']; ?>">
@@ -655,7 +778,7 @@
                     <i class="fa fa-print me-2"></i> Print Queue
                 </button>
                 <?php if(count($_SESSION['print_queue']) > 0): ?>
-                    <form method="POST"><button type="submit" name="clear_queue" class="btn btn-outline-danger fw-bold"><i class="fa fa-trash"></i></button></form>
+                    <form method="POST"><button type="submit" name="clear_queue" class="btn btn-danger fw-bold"><i class="fa fa-trash"></i></button></form>
                 <?php endif; ?>
             </div>
         
