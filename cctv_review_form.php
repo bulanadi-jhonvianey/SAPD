@@ -372,7 +372,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             width: 170px !important;
             position: fixed !important;
             left: 5px !important;
-            top: 55px !important;
+            top: 35px !important;
             /* Changed from 35px to 45px to move logo lower */
             z-index: 50 !important;
         }
