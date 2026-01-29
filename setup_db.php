@@ -33,7 +33,9 @@ $users_table = "CREATE TABLE IF NOT EXISTS users (
     verification_code INT(6) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
-if ($conn->query($users_table) === TRUE) { echo "Users table checked...<br>"; }
+if ($conn->query($users_table) === TRUE) {
+    echo "Users table checked...<br>";
+}
 
 // 5. Create Permits Table
 $permits_table = "CREATE TABLE IF NOT EXISTS permits (
@@ -42,7 +44,9 @@ $permits_table = "CREATE TABLE IF NOT EXISTS permits (
     name VARCHAR(255),
     type VARCHAR(50)
 )";
-if ($conn->query($permits_table) === TRUE) { echo "Permits table checked...<br>"; }
+if ($conn->query($permits_table) === TRUE) {
+    echo "Permits table checked...<br>";
+}
 
 // 6. Create Form Submissions Table
 $forms_table = "CREATE TABLE IF NOT EXISTS form_submissions (
@@ -51,7 +55,9 @@ $forms_table = "CREATE TABLE IF NOT EXISTS form_submissions (
     form_type VARCHAR(50),
     status VARCHAR(20) DEFAULT 'pending'
 )";
-if ($conn->query($forms_table) === TRUE) { echo "Forms table checked...<br>"; }
+if ($conn->query($forms_table) === TRUE) {
+    echo "Forms table checked...<br>";
+}
 
 // 7. Create Default Admin
 $admin_pass = password_hash("admin123", PASSWORD_DEFAULT);

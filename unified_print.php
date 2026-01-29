@@ -33,7 +33,9 @@ if (isset($_SESSION['print_queue']) && !empty($_SESSION['print_queue'])) {
 if (isset($_SESSION['np_print_queue']) && !empty($_SESSION['np_print_queue'])) {
     foreach ($_SESSION['np_print_queue'] as $item) {
         // Fix key mismatch for Non-Pro (uses 'course' instead of 'dept')
-        if (!isset($item['dept']) && isset($item['course'])) { $item['dept'] = $item['course']; }
+        if (!isset($item['dept']) && isset($item['course'])) {
+            $item['dept'] = $item['course'];
+        }
         $item['type'] = 'NON-PRO';
         $item['bg_img'] = 'background_non_pro.png';
         $all_permits[] = $item;
@@ -50,7 +52,7 @@ if (isset($_SESSION['student_print_queue']) && !empty($_SESSION['student_print_q
 }
 
 // --- SORT BY PERMIT NUMBER (NUMERICAL ORDER) ---
-usort($all_permits, function($a, $b) {
+usort($all_permits, function ($a, $b) {
     return $a['permit_no'] - $b['permit_no'];
 });
 
@@ -63,14 +65,15 @@ $grand_total = count($all_permits);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unified Print - SAPD</title>
-    
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
+
     <style>
         /* --- COPYING EXACT CSS FROM ADMIN APPROVAL / PERMIT MODULES --- */
         @import url("https://fonts.googleapis.com/css2?family=Segoe+UI:wght@400;600;700;900&display=swap");
@@ -105,12 +108,12 @@ $grand_total = count($all_permits);
         }
 
         /* --- HEADER & NAVBAR --- */
-        .navbar { 
-            background: var(--panel-bg); 
-            border-bottom: 1px solid var(--border); 
-            padding: 15px 20px; 
-            margin-bottom: 20px; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        .navbar {
+            background: var(--panel-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
         /* --- BUTTON STYLES --- */
@@ -122,31 +125,42 @@ $grand_total = count($all_permits);
             padding: 10px 20px;
             border: none;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             position: relative;
             z-index: 1;
         }
 
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 7px 14px rgba(0,0,0,0.2);
+            box-shadow: 0 7px 14px rgba(0, 0, 0, 0.2);
             filter: brightness(110%);
         }
 
         .btn:active {
             transform: translateY(0);
-            box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
         /* THEME TOGGLE BUTTON */
-        .btn-theme { 
-            background: var(--input-bg); 
-            border: 1px solid var(--border); 
-            color: var(--text-main); 
+        .btn-theme {
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-main);
             width: 40px;
             height: 40px;
             padding: 0;
@@ -154,68 +168,209 @@ $grand_total = count($all_permits);
             align-items: center;
             justify-content: center;
         }
-        .btn-theme:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .btn-theme:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
 
         /* --- PERMIT CARD DESIGN --- */
         .permit-card {
             width: var(--card-w);
             height: var(--card-h);
             position: relative;
-            background-color: white; 
+            background-color: white;
             color: black;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
             margin: 10px;
-            display: inline-block; /* Flow layout for printing */
+            display: inline-block;
+            /* Flow layout for printing */
             page-break-inside: avoid;
         }
 
         /* Card Elements */
-        .logo-header { position: absolute; object-fit: contain; z-index: 20; }
-        .logo-left { left: 20px; top: 10px; width: 55px; height: 55px; } 
-        .logo-right { right: 20px; top: 10px; width: 55px; height: 55px; }
-
-        .photo-img {
-            position: absolute; top: 51%; left: 6px; transform: translateY(-50%);
-            width: 85px; height: 85px; object-fit: cover; border: 2px solid #fff;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 5; background: #ccc;
+        .logo-header {
+            position: absolute;
+            object-fit: contain;
+            z-index: 20;
         }
 
-        .text-name, .text-dept { font-weight: 900; text-transform: uppercase; line-height: 1; display: block; position: absolute; width: 100%; text-align: center; white-space: nowrap; }
-        .text-name { color: #000; }
-        .text-dept { color: #333; font-weight: 700; }
+        .logo-left {
+            left: 20px;
+            top: 10px;
+            width: 55px;
+            height: 55px;
+        }
 
-        .plate-info { position: absolute; font-weight: 800; color: #000; text-transform: uppercase; font-size: 11px; z-index: 15; letter-spacing: 0.5px; left: 6px; text-align: left; }
-        .valid-until-info { position: absolute; font-weight: 600; color: #ff6600; text-transform: uppercase; font-size: 9px; z-index: 15; letter-spacing: 0.5px; left: 6px; text-align: left; }
-        
-        .qr-area { position: absolute; bottom: 15px; right: 5px; text-align: center; }
-        .qr-img { width: 60px; height: 60px; border: 1px solid #ddd; background: white; }
-        .control-no { position: absolute; width: 100%; text-align: center; font-weight: 900; color: #cc0000; }
-        .sy-text { display: block; margin-top: 2px; line-height: 1; position: relative; font-weight: 800; color: #007bff; white-space: nowrap; }
+        .logo-right {
+            right: 20px;
+            top: 10px;
+            width: 55px;
+            height: 55px;
+        }
+
+        .photo-img {
+            position: absolute;
+            top: 51%;
+            left: 6px;
+            transform: translateY(-50%);
+            width: 85px;
+            height: 85px;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+            background: #ccc;
+        }
+
+        .text-name,
+        .text-dept {
+            font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1;
+            display: block;
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .text-name {
+            color: #000;
+        }
+
+        .text-dept {
+            color: #333;
+            font-weight: 700;
+        }
+
+        .plate-info {
+            position: absolute;
+            font-weight: 800;
+            color: #000;
+            text-transform: uppercase;
+            font-size: 11px;
+            z-index: 15;
+            letter-spacing: 0.5px;
+            left: 6px;
+            text-align: left;
+        }
+
+        .valid-until-info {
+            position: absolute;
+            font-weight: 600;
+            color: #ff6600;
+            text-transform: uppercase;
+            font-size: 9px;
+            z-index: 15;
+            letter-spacing: 0.5px;
+            left: 6px;
+            text-align: left;
+        }
+
+        .qr-area {
+            position: absolute;
+            bottom: 15px;
+            right: 5px;
+            text-align: center;
+        }
+
+        .qr-img {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #ddd;
+            background: white;
+        }
+
+        .control-no {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            font-weight: 900;
+            color: #cc0000;
+        }
+
+        .sy-text {
+            display: block;
+            margin-top: 2px;
+            line-height: 1;
+            position: relative;
+            font-weight: 800;
+            color: #007bff;
+            white-space: nowrap;
+        }
 
         /* Specific Labels */
-        .type-label { position: absolute; left: 6px; top: 165px; text-align: left; z-index: 25; font-weight: 900; color: #000; text-transform: uppercase; line-height: 1; }
+        .type-label {
+            position: absolute;
+            left: 6px;
+            top: 165px;
+            text-align: left;
+            z-index: 25;
+            font-weight: 900;
+            color: #000;
+            text-transform: uppercase;
+            line-height: 1;
+        }
 
-        .empty-state { text-align: center; padding: 60px; background: var(--panel-bg); border-radius: 15px; border: 1px solid var(--border); margin-top: 20px; color: var(--text-main); }
+        .empty-state {
+            text-align: center;
+            padding: 60px;
+            background: var(--panel-bg);
+            border-radius: 15px;
+            border: 1px solid var(--border);
+            margin-top: 20px;
+            color: var(--text-main);
+        }
 
         /* --- PRINT STYLES --- */
         @media print {
-            .navbar, .no-print, #themeBtn { display: none !important; }
-            body { background: white; margin: 0; padding: 0; color: black; }
-            .print-container { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 10px; padding: 10px; }
-            .permit-card { border: 1px solid #ccc; box-shadow: none; margin: 0 10px 10px 0; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+            .navbar,
+            .no-print,
+            #themeBtn {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+                margin: 0;
+                padding: 0;
+                color: black;
+            }
+
+            .print-container {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .permit-card {
+                border: 1px solid #ccc;
+                box-shadow: none;
+                margin: 0 10px 10px 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
-            <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i> Dashboard</a>
+            <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i>
+                Dashboard</a>
             <h4 class="m-0 fw-bold" style="color: var(--text-main);">Unified Print System</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">
-            <a href="employee_permit.php" class="btn btn-theme px-3 w-auto" style="width: auto;" title="Employee Permits">
+            <a href="employee_permit.php" class="btn btn-theme px-3 w-auto" style="width: auto;"
+                title="Employee Permits">
                 <i class="fa fa-id-badge me-2"></i> <?php echo $total_emp; ?>
             </a>
             <a href="non_permit.php" class="btn btn-theme px-3 w-auto" style="width: auto;" title="Non-Pro Permits">
@@ -224,7 +379,7 @@ $grand_total = count($all_permits);
             <a href="student_permit.php" class="btn btn-theme px-3 w-auto" style="width: auto;" title="Student Permits">
                 <i class="fa fa-graduation-cap me-2"></i> <?php echo $total_stu; ?>
             </a>
-            
+
             <button class="btn btn-theme rounded-circle ms-2" onclick="toggleTheme()" id="themeBtn">
                 <i class="fa fa-moon"></i>
             </button>
@@ -232,10 +387,11 @@ $grand_total = count($all_permits);
     </div>
 
     <div class="container-fluid mt-4 no-print">
-        <div class="d-flex justify-content-between align-items-center p-4 rounded shadow-sm" style="background: var(--panel-bg); border: 1px solid var(--border);">
+        <div class="d-flex justify-content-between align-items-center p-4 rounded shadow-sm"
+            style="background: var(--panel-bg); border: 1px solid var(--border);">
             <div>
                 <h5 class="fw-bold m-0" style="color: var(--text-main);">
-                    <i class="fa fa-layer-group me-2 text-warning"></i> TOTAL QUEUE: 
+                    <i class="fa fa-layer-group me-2 text-warning"></i> TOTAL QUEUE:
                     <span class="badge bg-primary fs-5 mx-2"><?php echo $grand_total; ?></span>
                 </h5>
             </div>
@@ -243,7 +399,8 @@ $grand_total = count($all_permits);
                 <button onclick="window.print()" class="btn btn-primary fw-bold px-4" <?php echo $grand_total == 0 ? 'disabled' : ''; ?>>
                     <i class="fa fa-print me-2"></i> PRINT ALL
                 </button>
-                <form method="POST" onsubmit="return confirm('Are you sure you want to clear ALL queues (Employee, Non-Pro, and Student)?');">
+                <form method="POST"
+                    onsubmit="return confirm('Are you sure you want to clear ALL queues (Employee, Non-Pro, and Student)?');">
                     <button type="submit" name="clear_all" class="btn btn-danger fw-bold px-4" <?php echo $grand_total == 0 ? 'disabled' : ''; ?>>
                         <i class="fa fa-trash me-2"></i> CLEAR ALL
                     </button>
@@ -253,7 +410,7 @@ $grand_total = count($all_permits);
     </div>
 
     <div class="print-container mt-4 text-center">
-        
+
         <?php if ($grand_total == 0): ?>
             <div class="container">
                 <div class="empty-state">
@@ -264,7 +421,7 @@ $grand_total = count($all_permits);
             </div>
         <?php endif; ?>
 
-        <?php 
+        <?php
         // LOOP THROUGH SORTED PERMITS
         foreach ($all_permits as $item) {
             $qr_url = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=" . urlencode($item['qr_data']);
@@ -272,32 +429,44 @@ $grand_total = count($all_permits);
         }
 
         // --- HELPER FUNCTION TO RENDER HTML ---
-        function renderCard($item, $type, $bg_img, $qr_url) {
+        function renderCard($item, $type, $bg_img, $qr_url)
+        {
             // Extract layout variables (Fallback defaults match admin defaults)
-            $cw = $item['cw'] ?? 350; $ch = $item['ch'] ?? 240;
-            $ns = $item['ns'] ?? 12; $nx = $item['nx'] ?? 11; $ny = $item['ny'] ?? 110;
-            
+            $cw = $item['cw'] ?? 350;
+            $ch = $item['ch'] ?? 240;
+            $ns = $item['ns'] ?? 12;
+            $nx = $item['nx'] ?? 11;
+            $ny = $item['ny'] ?? 110;
+
             // Handle varying keys for department size
-            $ds = $item['ds'] ?? $item['cs'] ?? 11; 
-            
+            $ds = $item['ds'] ?? $item['cs'] ?? 11;
+
             // Handle varying keys for department Position
             $dx = $item['dx'] ?? $item['cx'] ?? 0;
             $dy = $item['dy'] ?? $item['cy'] ?? 129;
-            
-            $ps = $item['ps'] ?? 11; $px = $item['px'] ?? 6; $py = $item['py'] ?? 180;
-            $qs = $item['qs'] ?? 60; $qx = $item['qx'] ?? 5; $qy = $item['qy'] ?? 15;
-            
+
+            $ps = $item['ps'] ?? 11;
+            $px = $item['px'] ?? 6;
+            $py = $item['py'] ?? 180;
+            $qs = $item['qs'] ?? 60;
+            $qx = $item['qx'] ?? 5;
+            $qy = $item['qy'] ?? 15;
+
             // Count / Permit # Variables (Prioritize 'cts' etc, fall back to 'cs')
-            $cs = $item['cts'] ?? $item['cs'] ?? 20; 
+            $cs = $item['cts'] ?? $item['cs'] ?? 20;
             $cx = $item['ctx'] ?? $item['cx'] ?? 0;
             $cy = $item['cty'] ?? $item['cy'] ?? -25;
-            
-            $ss = $item['ss'] ?? 11; $sx = $item['sx'] ?? 0; $sy_pos = $item['sy_pos'] ?? 58;
-            
+
+            $ss = $item['ss'] ?? 11;
+            $sx = $item['sx'] ?? 0;
+            $sy_pos = $item['sy_pos'] ?? 58;
+
             // Handle Valid Until (Student specific)
             $valid_html = '';
             if (isset($item['valid_until'])) {
-                $vs = $item['vs'] ?? 9; $vx = $item['vx'] ?? 8; $vy = $item['vy'] ?? 197;
+                $vs = $item['vs'] ?? 9;
+                $vx = $item['vx'] ?? 8;
+                $vy = $item['vy'] ?? 197;
                 $valid_html = "<div class='valid-until-info' style='font-size: {$vs}px; top: {$vy}px; left: {$vx}px;'>Valid Until: <span>{$item['valid_until']}</span></div>";
             }
 
@@ -344,12 +513,12 @@ $grand_total = count($all_permits);
             document.body.classList.toggle('light-mode');
             const isLight = document.body.classList.contains('light-mode');
             document.getElementById('themeBtn').innerHTML = isLight ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
-            
+
             const themeValue = isLight ? 'light' : 'dark';
             localStorage.setItem('appTheme', themeValue);
             document.cookie = "theme=" + themeValue + "; path=/; max-age=31536000";
         }
-        
+
         // Check saved theme
         const savedTheme = localStorage.getItem('appTheme') || 'light';
         if (savedTheme === 'light') {
