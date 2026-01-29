@@ -2,6 +2,10 @@
 // --- 1. SETUP & CONFIGURATION ---
 ob_start();
 session_start();
+
+// ENABLE STRICT ERROR REPORTING FOR DB
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
@@ -12,14 +16,15 @@ $password = "";
 $dbname = "sapd_db"; 
 
 // Create Connection
-$conn = new mysqli($servername, $username, $password);
-if ($conn->connect_error) { 
-    die("Connection failed: " . $conn->connect_error); 
+try {
+    $conn = new mysqli($servername, $username, $password);
+    $conn->select_db($dbname);
+} catch (mysqli_sql_exception $e) {
+    // If DB doesn't exist, try to create it
+    $conn = new mysqli($servername, $username, $password);
+    $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
+    $conn->select_db($dbname);
 }
-
-// Create database if it doesn't exist
-$conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
-$conn->select_db($dbname);
 
 // --- SHARED PERMIT COUNTER TABLE ---
 $conn->query("CREATE TABLE IF NOT EXISTS global_permit_sequence (
@@ -41,6 +46,16 @@ $table_sql = "CREATE TABLE IF NOT EXISTS student_permits (
     UNIQUE KEY unique_permit_number (permit_number)
 )";
 $conn->query($table_sql);
+
+// --- FIX: SELF-HEALING DATABASE ---
+try {
+    $check_col = $conn->query("SHOW COLUMNS FROM student_permits LIKE 'department'");
+    if ($check_col && $check_col->num_rows == 0) {
+        $conn->query("ALTER TABLE student_permits ADD COLUMN department VARCHAR(255) NOT NULL AFTER name");
+    }
+} catch (Exception $e) {
+    // Ignore if fails, likely table doesn't exist yet
+}
 
 // Initialize Session Queue
 if (!isset($_SESSION['student_print_queue'])) { 
@@ -75,6 +90,12 @@ if (!isset($_SESSION['student_layout_settings'])) {
         'sy_x' => 0, 
         'sy_y' => 58
     ];
+}
+
+// --- FIX FOR POSITION BUG (AUTO-CORRECT) ---
+if (isset($_SESSION['student_layout_settings']['plate_y']) && $_SESSION['student_layout_settings']['plate_y'] < 100) {
+    $_SESSION['student_layout_settings']['plate_y'] = 180; 
+    $_SESSION['student_layout_settings']['plate_x'] = 6;   
 }
 
 // --- 2. FORM HANDLERS ---
@@ -112,32 +133,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_layout'])) {
 
 // HANDLE: ADD STUDENT PERMIT
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
-    $name = $conn->real_escape_string(trim($_POST['name']));
-    $dept = $conn->real_escape_string(trim($_POST['dept']));
-    $plate = $conn->real_escape_string(trim($_POST['plate']));
-    $fb_link = $conn->real_escape_string(trim($_POST['fb_link']));
-    $valid_until = $conn->real_escape_string(trim($_POST['valid_until']));
-    
-    $school_year = isset($_POST['school_year']) ? 
-                   $conn->real_escape_string($_POST['school_year']) : 
-                   $_SESSION['student_layout_settings']['school_year'];
-    
-    if (empty($name) || empty($dept) || empty($plate) || empty($valid_until)) {
-        echo "<script>alert('Please fill all required fields!'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
-        exit;
-    }
-    
-    // 1. GENERATE UNIQUE GLOBAL PERMIT NUMBER
-    $conn->query("INSERT INTO global_permit_sequence () VALUES ()");
-    $global_permit_no = $conn->insert_id;
-    
-    // 2. INSERT INTO STUDENT TABLE
-    $insert_sql = "INSERT INTO student_permits (name, department, plate_number, fb_link, permit_number, school_year, valid_until) 
-                   VALUES ('$name', '$dept', '$plate', '$fb_link', $global_permit_no, '$school_year', '$valid_until')";
-    
-    if ($conn->query($insert_sql)) {
-        $new_id = $conn->insert_id;
+    try {
+        $name = $conn->real_escape_string(trim($_POST['name']));
+        $dept = $conn->real_escape_string(trim($_POST['dept']));
+        $plate = $conn->real_escape_string(trim($_POST['plate']));
+        $fb_link = $conn->real_escape_string(trim($_POST['fb_link']));
+        $valid_until = $conn->real_escape_string(trim($_POST['valid_until']));
         
+        $school_year = isset($_POST['school_year']) ? 
+                       $conn->real_escape_string($_POST['school_year']) : 
+                       $_SESSION['student_layout_settings']['school_year'];
+        
+        if (empty($name) || empty($dept) || empty($plate) || empty($valid_until)) {
+            throw new Exception("Please fill all required fields!");
+        }
+        
+        // 1. GENERATE UNIQUE GLOBAL PERMIT NUMBER using VALUES (NULL) for compatibility
+        $conn->query("INSERT INTO global_permit_sequence (id) VALUES (NULL)");
+        $global_permit_no = $conn->insert_id;
+        
+        // 2. INSERT INTO STUDENT TABLE
+        $insert_sql = "INSERT INTO student_permits (name, department, plate_number, fb_link, permit_number, school_year, valid_until) 
+                       VALUES ('$name', '$dept', '$plate', '$fb_link', '$global_permit_no', '$school_year', '$valid_until')";
+        
+        $conn->query($insert_sql);
+        $new_id = $conn->insert_id;
+            
         // 3. ADD TO PRINT QUEUE
         $_SESSION['student_print_queue'][] = [
             'id' => $new_id,
@@ -175,6 +196,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
         
         header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
         exit;
+
+    } catch (Exception $e) {
+        $error_msg = addslashes($e->getMessage());
+        echo "<script>alert('Error: $error_msg'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
+        exit;
     }
 }
 
@@ -189,13 +215,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permit'])) {
     $valid_until = $conn->real_escape_string($_POST['valid_until']);
 
     $update_sql = "UPDATE student_permits SET 
-                    name = '$name',
-                    department = '$dept',
-                    plate_number = '$plate',
-                    fb_link = '$fb_link',
-                    school_year = '$sy',
-                    valid_until = '$valid_until'
-                  WHERE id = $permit_id";
+                     name = '$name',
+                     department = '$dept',
+                     plate_number = '$plate',
+                     fb_link = '$fb_link',
+                     school_year = '$sy',
+                     valid_until = '$valid_until'
+                   WHERE id = $permit_id";
     
     if ($conn->query($update_sql)) {
         echo "<script>alert('Student permit updated successfully!'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
@@ -256,10 +282,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reprint_permit'])) {
 if (isset($_GET['delete_id'])) {
     $delete_id = intval($_GET['delete_id']);
     
-    // Get permit number to optionally clean sequence (optional)
-    $get_sql = "SELECT permit_number FROM student_permits WHERE id = $delete_id";
-    $result = $conn->query($get_sql);
-    
+    // Delete from DB
     $delete_sql = "DELETE FROM student_permits WHERE id = $delete_id";
     
     if ($conn->query($delete_sql)) {
@@ -286,8 +309,12 @@ if (isset($_POST['clear_queue'])) {
 
 // HANDLE: RESET DATABASE
 if (isset($_POST['reset_db'])) {
-    $conn->query("TRUNCATE TABLE student_permits");
+    // Disable FK checks temporarily just in case
+    $conn->query("SET FOREIGN_KEY_CHECKS = 0");
+    // We DROP the table to ensure a clean schema rebuild on next load
+    $conn->query("DROP TABLE IF EXISTS student_permits");
     $conn->query("TRUNCATE TABLE global_permit_sequence"); 
+    $conn->query("SET FOREIGN_KEY_CHECKS = 1");
     $_SESSION['student_print_queue'] = [];
     header("Location: " . $_SERVER['PHP_SELF']);
     exit;
@@ -304,6 +331,7 @@ if (isset($_GET['edit_id'])) {
 }
 
 // --- DISPLAY LOGIC FOR "NEXT PERMIT #" ---
+// We check global sequence. If empty, start at 1.
 $res = $conn->query("SELECT MAX(id) as max_id FROM global_permit_sequence");
 $row = $res->fetch_assoc();
 $next_display_id = ($row['max_id'] !== null) ? $row['max_id'] + 1 : 1;
@@ -314,9 +342,13 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search = $conn->real_escape_string($_GET['search']);
     $sql = "SELECT * FROM student_permits WHERE name LIKE '%$search%' OR department LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
 } else {
-    $sql = "SELECT * FROM student_permits ORDER BY id DESC LIMIT 10";
+    try {
+        $sql = "SELECT * FROM student_permits ORDER BY id DESC LIMIT 10";
+        $recent_permits = $conn->query($sql);
+    } catch (Exception $e) {
+        $recent_permits = false; // Handle case where table might be missing/broken
+    }
 }
-$recent_permits = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -627,13 +659,18 @@ $recent_permits = $conn->query($sql);
         }
 
         #print-area { display: none; }
+        
         @media print {
             body { background: white; margin: 0; }
             .navbar, .main-container, .bottom-panel { display: none; } 
             #print-area { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; }
             .permit-card {
-                box-shadow: none; border: 1px solid #ccc; margin-bottom: 10px; page-break-inside: avoid;
-                -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+                box-shadow: none; 
+                border: 1px solid #ccc; 
+                margin-bottom: 10px; 
+                page-break-inside: avoid;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
             }
         }
 
@@ -770,7 +807,7 @@ $recent_permits = $conn->query($sql);
             
             <div class="row mt-3">
                 <div class="col-md-4 d-flex align-items-end">
-                    <form method="POST" onsubmit="return confirm('WARNING: This will delete ALL student permits and reset counter.');" class="w-100">
+                    <form method="POST" onsubmit="return confirm('WARNING: This will completely DELETE the table and reset all data. Are you sure?');" class="w-100">
                         <button type="submit" name="reset_db" class="btn btn-danger fw-bold w-100">
                             <i class="fas fa-redo me-2"></i> Reset Database
                         </button>
@@ -853,7 +890,7 @@ $recent_permits = $conn->query($sql);
                 </div>
             <?php else: ?>
                 <button type="submit" name="add_permit" class="btn btn-success w-100 fw-bold py-3" onclick="return validateForm()">
-                    <i class="fa fa-plus-circle me-2"></i> Add to Print Queue
+                    <i class="fa fa-plus-circle me-2"></i> Add to Print
                 </button>
             <?php endif; ?>
         </form>
@@ -867,12 +904,17 @@ $recent_permits = $conn->query($sql);
         
         <div class="d-flex gap-2">
             <button onclick="window.print()" class="btn btn-primary flex-grow-1 fw-bold" <?php echo count($_SESSION['student_print_queue']) == 0 ? 'disabled' : ''; ?>>
-                <i class="fa fa-print me-2"></i> Print Queue (<?php echo count($_SESSION['student_print_queue']); ?>)
+                <i class="fa fa-print me-2"></i> Print Queue
             </button>
+            
+            <a href="unified_print.php" class="btn btn-warning fw-bold">
+                <i class="fa fa-layer-group me-2"></i> Unified Print
+            </a>
+
             <?php if(count($_SESSION['student_print_queue']) > 0): ?>
                 <form method="POST" onsubmit="return confirm('Clear all permits from print queue?');">
                     <button type="submit" name="clear_queue" class="btn btn-danger fw-bold">
-                        <i class="fa fa-trash"></i> Clear
+                        <i class="fa fa-trash"></i>
                     </button>
                 </form>
             <?php endif; ?>
@@ -931,7 +973,11 @@ $recent_permits = $conn->query($sql);
 <div class="bottom-panel">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT STUDENT PERMIT ENTRIES</h5>
-        <span class="badge bg-dark">Total: <?php echo $conn->query("SELECT COUNT(*) as total FROM student_permits")->fetch_assoc()['total']; ?></span>
+        <?php 
+            $count_res = $conn->query("SELECT COUNT(*) as total FROM student_permits");
+            $total_records = $count_res ? $count_res->fetch_assoc()['total'] : 0;
+        ?>
+        <span class="badge bg-dark">Total: <?php echo $total_records; ?></span>
     </div>
     
     <form method="GET" class="mb-3 d-flex gap-2">
@@ -1155,7 +1201,8 @@ $recent_permits = $conn->query($sql);
 
         // Update count if not editing
         <?php if (!$editing_permit): ?>
-        document.getElementById('out_ctrl').innerText = <?php echo $next_display_id; ?>;
+        let nextId = <?php echo $next_display_id; ?>;
+        document.getElementById('out_ctrl').innerText = nextId;
         <?php endif; ?>
 
         // Update layout
