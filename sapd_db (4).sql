@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 14, 2026 at 02:41 AM
+-- Generation Time: Jan 29, 2026 at 08:02 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -20,6 +20,28 @@ SET time_zone = "+00:00";
 --
 -- Database: `sapd_db`
 --
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `cctv_requests`
+--
+
+CREATE TABLE `cctv_requests` (
+  `id` int(11) NOT NULL,
+  `requestor_name` varchar(255) NOT NULL,
+  `dept` varchar(255) DEFAULT NULL,
+  `incident_date` date NOT NULL,
+  `incident_time` time NOT NULL,
+  `location` varchar(255) NOT NULL,
+  `description` text NOT NULL,
+  `purpose` text NOT NULL,
+  `status` varchar(50) DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `evaluation` text DEFAULT NULL,
+  `level_section` varchar(255) DEFAULT NULL,
+  `reason` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -47,6 +69,36 @@ CREATE TABLE `form_submissions` (
   `user_id` int(11) DEFAULT NULL,
   `form_type` varchar(50) DEFAULT NULL,
   `status` varchar(20) DEFAULT 'pending'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `global_permit_sequence`
+--
+
+CREATE TABLE `global_permit_sequence` (
+  `id` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `incident_reports`
+--
+
+CREATE TABLE `incident_reports` (
+  `id` int(11) NOT NULL,
+  `case_title` varchar(255) NOT NULL,
+  `location` varchar(255) NOT NULL,
+  `incident_date` date NOT NULL,
+  `incident_time` time NOT NULL,
+  `description` text NOT NULL,
+  `status` varchar(50) DEFAULT 'Recorded',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `image_path` varchar(255) DEFAULT NULL,
+  `image_paths` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -166,12 +218,12 @@ INSERT INTO `settings` (`id`, `card_w`, `card_h`, `name_size`, `name_x`, `name_y
 CREATE TABLE `student_permits` (
   `id` int(11) NOT NULL,
   `name` varchar(255) NOT NULL,
-  `course` varchar(255) NOT NULL,
+  `department` varchar(255) NOT NULL,
   `plate_number` varchar(50) NOT NULL,
-  `valid_until` varchar(50) DEFAULT NULL,
   `fb_link` text DEFAULT NULL,
   `permit_number` int(11) NOT NULL,
   `school_year` varchar(50) NOT NULL,
+  `valid_until` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -206,6 +258,12 @@ INSERT INTO `users` (`id`, `name`, `email`, `username`, `password`, `role`, `sta
 --
 
 --
+-- Indexes for table `cctv_requests`
+--
+ALTER TABLE `cctv_requests`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `events`
 --
 ALTER TABLE `events`
@@ -215,6 +273,18 @@ ALTER TABLE `events`
 -- Indexes for table `form_submissions`
 --
 ALTER TABLE `form_submissions`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `global_permit_sequence`
+--
+ALTER TABLE `global_permit_sequence`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `incident_reports`
+--
+ALTER TABLE `incident_reports`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -245,7 +315,8 @@ ALTER TABLE `settings`
 -- Indexes for table `student_permits`
 --
 ALTER TABLE `student_permits`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_permit_number` (`permit_number`);
 
 --
 -- Indexes for table `users`
@@ -258,6 +329,12 @@ ALTER TABLE `users`
 --
 
 --
+-- AUTO_INCREMENT for table `cctv_requests`
+--
+ALTER TABLE `cctv_requests`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
@@ -268,6 +345,18 @@ ALTER TABLE `events`
 --
 ALTER TABLE `form_submissions`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `global_permit_sequence`
+--
+ALTER TABLE `global_permit_sequence`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `incident_reports`
+--
+ALTER TABLE `incident_reports`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `layout_settings`
