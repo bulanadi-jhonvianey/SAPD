@@ -392,10 +392,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             max-width: none !important;
         }
 
+        /* MODIFIED FORM TITLE FOR LOGO */
         .form-title {
-            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            /* Space between logo and text */
             margin: 20px 0;
             color: black;
+        }
+
+        .form-title-text {
+            text-align: center;
         }
 
         /* CHANGED FONT TO BOOKMAN OLD STYLE FOR SAFETY AND PROTECTION DIVISION */
@@ -799,8 +808,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 </div>
 
                 <div class="form-title">
-                    <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>CCTV REVIEW FORM</h3>
+                    <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
+                    <div class="form-title-text">
+                        <h2>SAFETY AND PROTECTION DIVISION</h2>
+                        <h3>CCTV REVIEW FORM</h3>
+                    </div>
                 </div>
 
                 <table class="form-table">
@@ -939,8 +951,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                         <img src="header_hcc.png" alt="Header" class="header-banner">
                     </div>
                     <div class="form-title">
-                        <h2>SAFETY AND PROTECTION DIVISION</h2>
-                        <h3>CCTV REVIEW FORM</h3>
+                        <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
+                        <div class="form-title-text">
+                            <h2>SAFETY AND PROTECTION DIVISION</h2>
+                            <h3>CCTV REVIEW FORM</h3>
+                        </div>
                     </div>
                     <table class="form-table">
                         <tr>
@@ -994,7 +1009,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                         <span>CHIEF, Safety and Protection</span>
                     </div>
                 </div>
-            <?php
+                <?php
             endforeach;
         else: ?>
             <div class="hcc-form">
@@ -1013,8 +1028,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 <img src="header_hcc.png" alt="Header" class="header-banner">
             </div>
             <div class="form-title">
-                <h2>SAFETY AND PROTECTION DIVISION</h2>
-                <h3>CCTV REVIEW FORM</h3>
+                <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
+                <div class="form-title-text">
+                    <h2>SAFETY AND PROTECTION DIVISION</h2>
+                    <h3>CCTV REVIEW FORM</h3>
+                </div>
             </div>
             <table class="form-table">
                 <tr>
@@ -1143,4 +1161,5 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
     </script>
 
 </body>
+
 </html>

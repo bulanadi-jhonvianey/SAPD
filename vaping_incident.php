@@ -25,56 +25,49 @@ if ($conn->connect_error) {
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
 
-// Table Setup - ADDED NEW COLUMNS
-$table_sql = "CREATE TABLE IF NOT EXISTS incident_reports (
+// Table Setup - CHANGED TABLE NAME TO vaping_reports
+$table_sql = "CREATE TABLE IF NOT EXISTS vaping_reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     case_title VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
     incident_date DATE NOT NULL,
     incident_time TIME NOT NULL,
     description TEXT NOT NULL,
-    student_name VARCHAR(255) DEFAULT NULL,
-    level_section VARCHAR(100) DEFAULT NULL,
-    parent_name VARCHAR(255) DEFAULT NULL,
-    adviser VARCHAR(255) DEFAULT NULL,
     image_paths TEXT DEFAULT NULL, 
     status VARCHAR(50) DEFAULT 'Recorded',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 $conn->query($table_sql);
-// Auto-Repair Columns - ADDED NEW COLUMNS TO CHECK
+
+// Auto-Repair Columns
 $required_columns = [
     'case_title' => 'VARCHAR(255) NOT NULL',
     'location' => 'VARCHAR(255) NOT NULL',
     'incident_date' => 'DATE NOT NULL',
     'incident_time' => 'TIME NOT NULL',
     'description' => 'TEXT NOT NULL',
-    'student_name' => 'VARCHAR(255) DEFAULT NULL',
-    'level_section' => 'VARCHAR(100) DEFAULT NULL',
-    'parent_name' => 'VARCHAR(255) DEFAULT NULL',
-    'adviser' => 'VARCHAR(255) DEFAULT NULL',
     'image_paths' => 'TEXT DEFAULT NULL'
 ];
 
 foreach ($required_columns as $col => $def) {
-    $check = $conn->query("SHOW COLUMNS FROM incident_reports LIKE '$col'");
+    $check = $conn->query("SHOW COLUMNS FROM vaping_reports LIKE '$col'");
     if ($check && $check->num_rows == 0) {
-        $conn->query("ALTER TABLE incident_reports ADD $col $def");
+        $conn->query("ALTER TABLE vaping_reports ADD $col $def");
     } else if ($check && $col === 'image_paths') {
         $row = $check->fetch_assoc();
         if (strpos(strtolower($row['Type']), 'varchar') !== false) {
-            $conn->query("ALTER TABLE incident_reports CHANGE $col $col $def");
+            $conn->query("ALTER TABLE vaping_reports CHANGE $col $col $def");
         }
     }
 }
 
 // Session Queue
-if (!isset($_SESSION['incident_print_queue'])) {
-    $_SESSION['incident_print_queue'] = [];
+if (!isset($_SESSION['vaping_print_queue'])) {
+    $_SESSION['vaping_print_queue'] = [];
 }
 
 // Upload Directory
-$upload_dir = "uploads/incidents/";
+$upload_dir = "uploads/vaping/";
 if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
@@ -90,11 +83,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $date = $conn->real_escape_string($_POST['incident_date']);
     $time = $conn->real_escape_string($_POST['incident_time']);
     $desc = $conn->real_escape_string($_POST['description']);
-    // Capture New Fields
-    $student = $conn->real_escape_string($_POST['student_name']);
-    $level = $conn->real_escape_string($_POST['level_section']);
-    $parent = $conn->real_escape_string($_POST['parent_name']);
-    $adviser = $conn->real_escape_string($_POST['adviser']);
 
     $image_paths_json = null;
     $uploaded_files = [];
@@ -112,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
                 $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
                 if (in_array($file_ext, $allowed_exts)) {
-                    $new_file_name = uniqid('inc_') . '_' . $i . '.' . $file_ext;
+                    $new_file_name = uniqid('vape_') . '_' . $i . '.' . $file_ext;
                     $target_path = $upload_dir . $new_file_name;
 
                     if (move_uploaded_file($file_tmp, $target_path)) {
@@ -135,25 +123,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
         if (!empty($uploaded_files)) {
             $image_paths_json = json_encode($uploaded_files);
         }
-        // Updated INSERT to include new fields
-        $stmt = $conn->prepare("INSERT INTO incident_reports (case_title, location, incident_date, incident_time, description, student_name, level_section, parent_name, adviser, image_paths) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt = $conn->prepare("INSERT INTO vaping_reports (case_title, location, incident_date, incident_time, description, image_paths) VALUES (?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
             $error_msg = "<strong>Database Error:</strong> " . $conn->error;
         } else {
-            $stmt->bind_param("ssssssssss", $case, $loc, $date, $time, $desc, $student, $level, $parent, $adviser, $image_paths_json);
+            $stmt->bind_param("ssssss", $case, $loc, $date, $time, $desc, $image_paths_json);
 
             if ($stmt->execute()) {
-                $_SESSION['incident_print_queue'][] = [
+                $_SESSION['vaping_print_queue'][] = [
                     'case' => strtoupper($case),
                     'loc' => strtoupper($loc),
                     'date' => $date,
                     'time' => $time,
                     'desc' => $desc,
-                    'student' => $student,
-                    'level' => $level,
-                    'parent' => $parent,
-                    'adviser' => $adviser,
                     'image_paths' => $uploaded_files
                 ];
                 header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
@@ -169,7 +153,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
 // HANDLE: DELETE LOG
 if (isset($_GET['delete_id'])) {
     $del_id = intval($_GET['delete_id']);
-    $res = $conn->query("SELECT image_paths FROM incident_reports WHERE id = $del_id");
+    $res = $conn->query("SELECT image_paths FROM vaping_reports WHERE id = $del_id");
     if ($row = $res->fetch_assoc()) {
         $paths = json_decode($row['image_paths'], true);
         if (is_array($paths)) {
@@ -180,20 +164,20 @@ if (isset($_GET['delete_id'])) {
             }
         }
     }
-    $conn->query("DELETE FROM incident_reports WHERE id = $del_id");
+    $conn->query("DELETE FROM vaping_reports WHERE id = $del_id");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 // HANDLE: CLEAR QUEUE
 if (isset($_POST['clear_queue'])) {
-    $_SESSION['incident_print_queue'] = [];
+    $_SESSION['vaping_print_queue'] = [];
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 if (isset($_GET['success']))
-    $success_msg = "Incident recorded successfully!";
+    $success_msg = "Vaping incident recorded successfully!";
 if (isset($_GET['error']))
     $error_msg = "An error occurred.";
 
@@ -202,11 +186,11 @@ $search_term = "";
 $where_clause = "";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search_term = $conn->real_escape_string($_GET['search']);
-    $where_clause = "WHERE case_title LIKE '%$search_term%' OR location LIKE '%$search_term%' OR student_name LIKE '%$search_term%'";
+    $where_clause = "WHERE case_title LIKE '%$search_term%' OR location LIKE '%$search_term%'";
 }
 
-$recent_reports = $conn->query("SELECT * FROM incident_reports $where_clause ORDER BY id DESC LIMIT 10");
-$total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->fetch_assoc()['total'];
+$recent_reports = $conn->query("SELECT * FROM vaping_reports $where_clause ORDER BY id DESC LIMIT 10");
+$total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fetch_assoc()['total'];
 ?>
 
 <!DOCTYPE html>
@@ -215,7 +199,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Incident Report</title>
+    <title>Vaping Incident Report</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -478,11 +462,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             margin: 0;
         }
 
-       .logo-left {
+        /* --- LOGO POSITION --- */
+        .logo-left {
             width: 185px !important;
             position: fixed !important;
             left: -3px !important;
-            top: 35px !important;
+            top: 15px !important;
             z-index: 50 !important;
         }
 
@@ -491,10 +476,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             display: block;
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: 30px !important;
+            margin-top: 0px !important;
             max-width: none !important;
         }
-     /* MODIFIED FORM TITLE FOR LOGO */
+
+        /* MODIFIED FORM TITLE FOR LOGO */
         .form-title {
             display: flex;
             align-items: center;
@@ -505,7 +491,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             color: black;
         }
 
-       .form-title-text {
+        .form-title-text {
             text-align: center;
         }
 
@@ -527,7 +513,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             text-transform: uppercase;
         }
 
-       .form-table {
+        /* --- TABLE STYLES --- */
+        .form-table {
             width: 100%;
             border-collapse: collapse;
             border: 2px solid black;
@@ -573,14 +560,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             position: relative;
         }
 
-     .desc-content {
+        .desc-content {
             font-size: 10pt;
             color: black;
             height: 100%;
             overflow: hidden;
         }
 
-      .desc-box {
+        .desc-box {
             border: none;
             margin-top: 5px;
             width: 100%;
@@ -609,12 +596,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-size: 9pt;
             font-weight: bold;
             text-align: center;
-            height: 80px;
-            /* FIXED HEIGHT TO MAINTAIN TABLE SIZE */
+            height: auto;
+            padding-top: 40px;
             padding-bottom: 8px;
             padding-left: 5px;
             padding-right: 5px;
-            position: relative;
         }
 
         .sig-line {
@@ -622,20 +608,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             width: 90%;
             margin: 0 auto 5px auto;
         }
-        /* NEW: Class for filled-in values on signatures to sit above line */
-        .sig-val {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            position: absolute;
-            bottom: 25px;
-            /* Positions text above the signature line */
-            width: 100%;
-            left: 0;
-            text-align: center;
-        }
 
+        /* UPDATED IMAGE STYLING */
         .image-section {
             display: none;
             text-align: center;
@@ -693,7 +667,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-size: 8.5pt;
         }
 
-     .officer-container {
+        .officer-container {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -801,12 +775,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 width: calc(100% + 1in) !important;
                 margin-left: -0.5in !important;
                 margin-right: -0.5in !important;
-                margin-top: 30px !important;
+                margin-top: 0px !important;
             }
 
             .image-section {
                 display: block !important;
             }
+
         }
 
         /* THEME TABLES */
@@ -824,16 +799,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         .table-custom th {
             background-color: var(--input-bg);
             color: var(--accent);
+            /* Reverted to Theme Blue */
             border-color: var(--border);
         }
 
         .table-custom td {
             color: #ffffff !important;
+            /* Kept White */
             border-color: var(--border);
-        }
-
-        body.light-mode .table-custom td {
-            color: #212529 !important;
         }
 
         .table-custom tbody tr:hover {
@@ -866,7 +839,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i> Back</a>
-            <h4 class="m-0 fw-bold text-white">Incident Report</h4>
+            <h4 class="m-0 fw-bold text-white">Vaping Incident</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-theme rounded-circle" onclick="toggleTheme()" id="themeBtn">
@@ -882,7 +855,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <div class="panel-title">
                     <i class="fa fa-pen-to-square"></i> REPORT DETAILS
                 </div>
-                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['incident_print_queue']); ?></div>
+                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['vaping_print_queue']); ?></div>
             </div>
 
             <?php if (!empty($success_msg)): ?>
@@ -901,27 +874,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
                 <input type="text" name="case_title" id="in_case" class="form-control"
-                    placeholder="Case (e.g., Bullying, Theft)" required oninput="updatePreview()">
+                    placeholder="Case (e.g., Possession of Vape)" required oninput="updatePreview()">
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
                     oninput="updatePreview()">
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <input type="text" name="student_name" id="in_student" class="form-control"
-                            placeholder="Student's Name" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="level_section" id="in_level" class="form-control"
-                            placeholder="Level/Section" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="parent_name" id="in_parent" class="form-control"
-                            placeholder="Parent's Name" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="adviser" id="in_adviser" class="form-control" placeholder="Adviser"
-                            oninput="updatePreview()">
-                    </div>
-                </div>
+
                 <div class="row">
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Incident Date</label>
@@ -975,9 +931,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
             <div class="row g-2">
                 <div class="col-6">
-                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['incident_print_queue']) == 0 ? 'disabled' : ''; ?>>
+                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['vaping_print_queue']) == 0 ? 'disabled' : ''; ?>>
                         <i class="fa fa-print me-2"></i> Print Queue
-                        (<?php echo count($_SESSION['incident_print_queue']); ?>)
+                        (<?php echo count($_SESSION['vaping_print_queue']); ?>)
                     </button>
                 </div>
                 <div class="col-6">
@@ -985,7 +941,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <i class="fa fa-file me-2"></i> Blank Form
                     </button>
                 </div>
-                <?php if (count($_SESSION['incident_print_queue']) > 0): ?>
+                <?php if (count($_SESSION['vaping_print_queue']) > 0): ?>
                     <div class="col-12">
                         <form method="POST" class="m-0">
                             <button type="submit" name="clear_queue" class="btn btn-danger w-100 fw-bold"
@@ -1013,7 +969,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                     <div class="form-title-text">
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
-                        <h3>INCIDENT REPORT</h3>
+                        <h3>VAPING INCIDENT REPORT</h3>
                     </div>
                 </div>
 
@@ -1053,24 +1009,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <table class="signatures-table">
                     <tr>
                         <td>
-                            <div class="sig-val" id="out_student"></div>
                             <div class="sig-line"></div>
                             Student's Name/ Signature
                         </td>
                         <td>
-                            <div class="sig-val" id="out_parent"></div>
                             <div class="sig-line"></div>
                             Parent's Name/Signature/ Contact Number
                         </td>
                     </tr>
                     <tr>
                         <td>
-                            <div class="sig-val" id="out_level"></div>
                             <div class="sig-line"></div>
                             Level/ Section
                         </td>
                         <td>
-                            <div class="sig-val" id="out_adviser"></div>
                             <div class="sig-line"></div>
                             Adviser
                         </td>
@@ -1078,7 +1030,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </table>
 
                 <div class="form-footer">
-                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                        to the office of:</div>
                     <table class="copy-furnished-table">
                         <tr>
                             <td>Principal/Dean</td>
@@ -1123,18 +1076,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     </div>
 
     <div id="print-area">
-        <?php if (count($_SESSION['incident_print_queue']) > 0):
-            foreach ($_SESSION['incident_print_queue'] as $p):
+        <?php
+        if (count($_SESSION['vaping_print_queue']) > 0):
+            foreach ($_SESSION['vaping_print_queue'] as $p):
                 $t = strtotime($p['time']);
-                $print_time = date("h:i A", $t); ?>
+                $print_time = date("h:i A", $t);
+                ?>
                 <div class="hcc-form">
-                    <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                            src="header_hcc.png" alt="Header" class="header-banner"></div>
+                    <div class="header-layout">
+                        <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
+                        <img src="header_hcc.png" alt="Header" class="header-banner">
+                    </div>
                     <div class="form-title">
                         <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                         <div class="form-title-text">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
-                            <h3>INCIDENT REPORT</h3>
+                            <h3>VAPING INCIDENT REPORT</h3>
                         </div>
                     </div>
                     <table class="form-table">
@@ -1158,7 +1115,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <table class="desc-table">
                         <tr>
                             <td>
-                                <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong>
+                                <div class="desc-content">
+                                    <strong>DESCRIPTION OF INCIDENT:</strong>
                                     <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
                                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                         <div class="image-section" style="display:block;">
@@ -1174,34 +1132,32 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <table class="signatures-table">
                         <tr>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['student']); ?></div>
                                 <div class="sig-line"></div>Student's Name/ Signature
                             </td>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['parent']); ?></div>
                                 <div class="sig-line"></div>Parent's Name/Signature/ Contact Number
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['level']); ?></div>
                                 <div class="sig-line"></div>Level/ Section
                             </td>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['adviser']); ?></div>
                                 <div class="sig-line"></div>Adviser
                             </td>
                         </tr>
                     </table>
 
                     <div class="form-footer">
-                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
+                            the office of:</div>
                         <table class="copy-furnished-table">
                             <tr>
                                 <td>Principal/Dean</td>
-                                <td style="text-align: center;">Prefect of Discipline<div
-                                        style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">Charles
-                                        Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
+                                <td style="text-align: center;">
+                                    Prefect of Discipline
+                                    <div style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">
+                                        Charles Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
                                 </td>
                                 <td>Others (Specify)</td>
                             </tr>
@@ -1235,19 +1191,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </div>
             <?php endforeach; else: ?>
             <div class="hcc-form">
-                <h2>NO ITEMS IN QUEUE</h2>
-            </div><?php endif; ?>
+                <div class="form-title">
+                    <h2>NO ITEMS IN QUEUE</h2>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 
     <div id="print-blank-area">
         <div class="hcc-form">
-            <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                    src="header_hcc.png" alt="Header" class="header-banner"></div>
+            <div class="header-layout">
+                <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
+                <img src="header_hcc.png" alt="Header" class="header-banner">
+            </div>
             <div class="form-title">
                 <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                 <div class="form-title-text">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>INCIDENT REPORT</h3>
+                    <h3>VAPING INCIDENT REPORT</h3>
                 </div>
             </div>
             <table class="form-table">
@@ -1271,7 +1232,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             <table class="desc-table">
                 <tr>
                     <td>
-                        <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong> <span
+                        <div class="desc-content">
+                            <strong>DESCRIPTION OF INCIDENT:</strong> <span
                                 style="font-size: 8pt; font-style: italic;">(What happened, person involved, specific
                                 dates/events)</span>
                             <div class="desc-box"></div>
@@ -1362,8 +1324,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <th>ID</th>
                         <th>Images</th>
                         <th>Case Title</th>
-                        <th>Student</th>
-                        <th>Level/Sec</th>
+                        <th>Location</th>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Action</th>
@@ -1380,10 +1341,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                                 'date' => $row['incident_date'],
                                 'time' => $row['incident_time'],
                                 'desc' => $row['description'],
-                                'student' => $row['student_name'],
-                                'level' => $row['level_section'],
-                                'parent' => $row['parent_name'],
-                                'adviser' => $row['adviser'],
                                 'images' => json_decode($row['image_paths'], true)
                             ];
                             $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
@@ -1411,8 +1368,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars($row['case_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['student_name'] ?: '-'); ?></td>
-                                <td><?php echo htmlspecialchars($row['level_section'] ?: '-'); ?></td>
+                                <td><?php echo strtoupper($row['location']); ?></td>
                                 <td><?php echo $row['incident_date']; ?></td>
                                 <td><?php echo date('h:i A', strtotime($row['incident_time'])); ?></td>
                                 <td class="text-end">
@@ -1432,7 +1388,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center py-4">
+                            <td colspan="7" class="text-center py-4">
                                 <i class="fa fa-database fa-2x mb-3"></i><br>
                                 No records found.
                             </td>
@@ -1465,14 +1421,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
         function printBlank() { document.body.classList.add('print-blank'); window.print(); }
 
-        let loadedImages = [];
-        let isLoadedMode = false;
+        // --- GLOBAL VARIABLES ---
+        let loadedImages = []; // Stores images from DB load
+        let isLoadedMode = false; // Flag to check if we are viewing a DB record
 
         function updatePreview() {
             document.getElementById('out_case').innerText = document.getElementById('in_case').value.toUpperCase();
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
-            document.getElementById('out_date').innerText = document.getElementById('in_date').value || '';
-
+            const dateVal = document.getElementById('in_date').value;
+            document.getElementById('out_date').innerText = dateVal || '';
             let timeVal = document.getElementById('in_time').value;
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
@@ -1484,18 +1441,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
 
-            // Update New Fields in Preview
-            document.getElementById('out_student').innerText = document.getElementById('in_student').value.toUpperCase();
-            document.getElementById('out_level').innerText = document.getElementById('in_level').value.toUpperCase();
-            document.getElementById('out_parent').innerText = document.getElementById('in_parent').value.toUpperCase();
-            document.getElementById('out_adviser').innerText = document.getElementById('in_adviser').value.toUpperCase();
-
-            // Image Preview Logic
+            // Image Preview Logic (Only update from file input if NOT in Loaded Mode, or if user added files)
+            // But simplify: If file input has files, show them. Else if loadedImages has items, show them.
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
 
             if (fileInput.files.length > 0) {
-
+                // User uploaded new files, show those
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'block';
                 [...fileInput.files].forEach(file => {
@@ -1509,7 +1461,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-
+                // Show loaded images from DB
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'block';
                 loadedImages.forEach(src => {
@@ -1519,32 +1471,30 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     paperImageContainer.appendChild(img);
                 });
             } else {
-
+                // No images
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'none';
             }
         }
 
-        // --- Load Data to Preview ---
+        // --- NEW: Load Data to Preview ---
         function loadToPreview(data) {
-
+            // Fill inputs
             document.getElementById('in_case').value = data.case;
             document.getElementById('in_loc').value = data.loc;
             document.getElementById('in_date').value = data.date;
             document.getElementById('in_time').value = data.time;
             document.getElementById('in_desc').value = data.desc;
 
-            // Load New Fields
-            document.getElementById('in_student').value = data.student || '';
-            document.getElementById('in_level').value = data.level || '';
-            document.getElementById('in_parent').value = data.parent || '';
-            document.getElementById('in_adviser').value = data.adviser || '';
-
+            // Handle Images
             loadedImages = data.images || [];
             isLoadedMode = true;
 
+            // Clear current file input since we loaded from DB
             document.getElementById('in_images').value = "";
-            document.getElementById('form-image-previews').innerHTML = "";
+            document.getElementById('form-image-previews').innerHTML = ""; // Clear mini previews
+
+            // Render mini previews for Loaded Images (Optional, for visual feedback on left)
             const formPreviewContainer = document.getElementById('form-image-previews');
             if (loadedImages.length > 0) {
                 loadedImages.forEach((src, index) => {
@@ -1556,15 +1506,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
 
             updatePreview();
-    
+
+            // Scroll to top to see details
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- Reset Form ---
+        // --- NEW: Reset Form ---
         function resetForm() {
             document.getElementById('reportForm').reset();
             document.getElementById('in_images').value = "";
-            dt = new DataTransfer();
+            dt = new DataTransfer(); // Reset file list
             loadedImages = [];
             isLoadedMode = false;
             document.getElementById('form-image-previews').innerHTML = "";
@@ -1577,6 +1528,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         let dt = new DataTransfer();
 
         fileInput.addEventListener('change', function () {
+            // If user adds files, we clear loaded images to avoid confusion or mix
             if (isLoadedMode) {
                 loadedImages = [];
                 isLoadedMode = false;
@@ -1588,11 +1540,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
             this.files = dt.files;
             renderFormPreviews();
-            updatePreview();
+            updatePreview(); // Update paper preview
         });
 
         function renderFormPreviews() {
-
+            // Form Previews (Mini with Delete)
             formPreviewContainer.innerHTML = '';
             [...dt.files].forEach((file, index) => {
                 let reader = new FileReader();
@@ -1623,4 +1575,5 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     </script>
 
 </body>
+
 </html>

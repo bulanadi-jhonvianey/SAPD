@@ -15,39 +15,48 @@ $password = "";
 $dbname = "sapd_db";
 
 // Create Connection
-try {
-    $conn = new mysqli($servername, $username, $password);
-    $conn->select_db($dbname);
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
 // --- THEME DETECTION ---
 $theme_mode = $_COOKIE['theme'] ?? 'light';
 
-// --- 2. HANDLE ACTIONS (APPROVE / REJECT) ---
+// --- ACTION HANDLER: DELETE USER ---
 $msg = "";
 $msg_type = "";
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['action']) && isset($_POST['user_id'])) {
-        $user_id = intval($_POST['user_id']);
-        $action = $_POST['action'];
+if (isset($_POST['delete_user'])) {
+    $user_id = intval($_POST['user_id']);
 
-        if ($action === 'approve') {
-            $conn->query("UPDATE users SET status='active' WHERE id = $user_id");
-            $msg = "User approved successfully.";
-            $msg_type = "success";
-        } elseif ($action === 'reject') {
-            $conn->query("DELETE FROM users WHERE id = $user_id");
-            $msg = "User rejected.";
-            $msg_type = "warning";
+    // Prevent deleting self
+    if ($user_id != $_SESSION['id']) {
+        // Double check to ensure we aren't deleting an admin (safety check)
+        $check_sql = "SELECT role FROM users WHERE id = $user_id";
+        $check_res = $conn->query($check_sql);
+        if ($check_res && $check_res->fetch_assoc()['role'] != 'admin') {
+            $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            if ($stmt->execute()) {
+                $msg = "User successfully removed.";
+                $msg_type = "success";
+            } else {
+                $msg = "Error removing user.";
+                $msg_type = "danger";
+            }
+            $stmt->close();
+        } else {
+            $msg = "Cannot remove administrator accounts.";
+            $msg_type = "danger";
         }
     }
 }
 
-// --- 3. FETCH PENDING USERS ---
-$result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id DESC");
+// --- FETCH ACTIVE USERS (EXCLUDING ADMINS) ---
+// query filters for 'active' status and ensures role is NOT 'admin'
+$sql = "SELECT * FROM users WHERE status = 'active' AND role != 'admin' ORDER BY id DESC";
+$result = $conn->query($sql);
 ?>
 
 <!DOCTYPE html>
@@ -56,7 +65,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Approval - SAPD</title>
+    <title>Active Users - SAPD</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -65,7 +74,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
         @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
         @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
-        /* --- SHARED CSS VARIABLES (From Dashboard/Active Users) --- */
+        /* --- SAME CSS AS DASHBOARD FOR CONSISTENCY --- */
         :root {
             --bg-body: #f4f7fe;
             --bg-card: #ffffff;
@@ -104,6 +113,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             height: var(--navbar-height);
             background: var(--navbar-bg) !important;
             border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             position: fixed;
             top: 0;
             left: 0;
@@ -199,6 +209,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 
         .table-custom td {
             background: var(--bg-card);
+            /* Ensure row matches card bg */
             padding: 15px;
             vertical-align: middle;
             color: var(--text-main);
@@ -218,13 +229,11 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             border-bottom-right-radius: 10px;
         }
 
-        /* Avatar Style (Same as Active Users) */
         .avatar-initial {
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            /* Yellow for Pending */
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
             color: white;
             display: flex;
             align-items: center;
@@ -242,12 +251,11 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             text-transform: uppercase;
         }
 
-        .status-pending {
-            background: rgba(246, 194, 62, 0.1);
-            color: #f6c23e;
+        .status-active {
+            background: rgba(28, 200, 138, 0.1);
+            color: #1cc88a;
         }
 
-        /* Action Buttons */
         .btn-icon {
             width: 35px;
             height: 35px;
@@ -257,25 +265,14 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             border-radius: 8px;
             border: none;
             transition: all 0.2s;
-            margin-left: 5px;
         }
 
-        .btn-approve {
-            background: rgba(28, 200, 138, 0.1);
-            color: #1cc88a;
-        }
-
-        .btn-approve:hover {
-            background: #1cc88a;
-            color: white;
-        }
-
-        .btn-reject {
+        .btn-delete {
             background: rgba(231, 74, 59, 0.1);
             color: #e74a3b;
         }
 
-        .btn-reject:hover {
+        .btn-delete:hover {
             background: #e74a3b;
             color: white;
         }
@@ -345,10 +342,10 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                         Dashboard</a></li>
 
                 <h6 class="sidebar-heading">Admin</h6>
-                <li class="nav-item"><a class="nav-link active" href="admin_approval.php"><i
+                <li class="nav-item"><a class="nav-link" href="admin_approval.php"><i
                             class="fas fa-user-check me-3"></i> Approvals</a></li>
-                <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i>
-                        Active Users</a></li>
+                <li class="nav-item"><a class="nav-link active" href="active_users.php"><i
+                            class="fas fa-users me-3"></i> Active Users</a></li>
 
                 <h6 class="sidebar-heading">Forms Management</h6>
                 <li class="nav-item"><a class="nav-link" href="violator_report.php"><i
@@ -379,7 +376,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 
     <div class="main-content">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="fw-bold">Pending Approvals</h2>
+            <h2 class="fw-bold">Active User Management</h2>
         </div>
 
         <?php if ($msg): ?>
@@ -391,7 +388,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 
         <div class="card-custom">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold m-0 text-primary">Pending Requests</h5>
+                <h5 class="fw-bold m-0 text-primary">Active Accounts</h5>
                 <input type="text" id="userSearch" class="form-control"
                     style="width: 250px; background: var(--input-bg); border-color: var(--border-color); color: var(--text-main);"
                     placeholder="Search user...">
@@ -401,9 +398,9 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                 <table class="table-custom">
                     <thead>
                         <tr>
-                            <th>User Details</th>
-                            <th>Username</th>
-                            <th>Role Requested</th>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
                             <th>Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -417,7 +414,6 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                                 if (count($name_parts) > 1) {
                                     $initials .= isset($name_parts[1][0]) ? strtoupper($name_parts[1][0]) : '';
                                 }
-                                $req_date = date("M d, Y", strtotime($row['created_at'] ?? 'now'));
                                 ?>
                                 <tr>
                                     <td>
@@ -425,40 +421,30 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                                             <div class="avatar-initial"><?php echo $initials; ?></div>
                                             <div>
                                                 <div class="fw-bold"><?php echo htmlspecialchars($row['name']); ?></div>
-                                                <div class="small text-muted">Requested: <?php echo $req_date; ?></div>
+                                                <div class="small text-muted">ID: #<?php echo $row['id']; ?></div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($row['username']); ?></td>
+                                    <td><?php echo htmlspecialchars($row['email']); ?></td>
                                     <td class="text-capitalize"><?php echo htmlspecialchars($row['role']); ?></td>
-                                    <td><span class="status-badge status-pending">Pending</span></td>
+                                    <td><span class="status-badge status-active">Active</span></td>
                                     <td class="text-end">
-                                        <div class="d-flex justify-content-end">
-                                            <form method="POST" style="margin: 0;">
-                                                <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
-                                                <input type="hidden" name="action" value="approve">
-                                                <button type="submit" class="btn-icon btn-approve" title="Approve">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
-                                            </form>
-
-                                            <form method="POST" onsubmit="return confirm('Reject this user request?');"
-                                                style="margin: 0;">
-                                                <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
-                                                <input type="hidden" name="action" value="reject">
-                                                <button type="submit" class="btn-icon btn-reject" title="Reject">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
-                                            </form>
-                                        </div>
+                                        <form method="POST"
+                                            onsubmit="return confirm('Are you sure you want to remove this active user? This action cannot be undone.');">
+                                            <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
+                                            <button type="submit" name="delete_user" class="btn-icon btn-delete"
+                                                title="Remove User">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
                                 <td colspan="5" class="text-center py-5">
-                                    <i class="fas fa-clipboard-check fa-3x text-muted mb-3 opacity-50"></i>
-                                    <p class="text-muted fw-bold">All caught up! No pending requests.</p>
+                                    <i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-50"></i>
+                                    <p class="text-muted fw-bold">No active users found.</p>
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -475,7 +461,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
         const toggleBtnMobile = document.getElementById('sidebarToggle');
         if (toggleBtnMobile) toggleBtnMobile.addEventListener('click', () => sidebar.classList.toggle('show'));
 
-        // --- THEME TOGGLE ---
+        // --- THEME TOGGLE (SAME AS DASHBOARD) ---
         const toggleBtn = document.getElementById('themeToggle');
         const icon = toggleBtn.querySelector('i');
         const html = document.documentElement;
@@ -489,6 +475,15 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             html.setAttribute('data-bs-theme', newTheme);
             updateIcon(newTheme);
             document.cookie = "theme=" + newTheme + "; path=/; max-age=31536000";
+            localStorage.setItem('appTheme', newTheme);
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const storedTheme = localStorage.getItem('appTheme');
+            if (storedTheme && storedTheme !== html.getAttribute('data-bs-theme')) {
+                html.setAttribute('data-bs-theme', storedTheme);
+                updateIcon(storedTheme);
+            }
         });
 
         // --- SEARCH FUNCTIONALITY ---

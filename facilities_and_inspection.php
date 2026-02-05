@@ -1,5 +1,5 @@
 <?php
-// --- 1. SETUP & CONFIGURATION ---
+// --- facilities_and_inspection.php ---
 ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -13,7 +13,7 @@ error_reporting(E_ALL);
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "sapd_db";
+$dbname = "sapd_db"; // Using the same database
 
 // Create Connection
 $conn = new mysqli($servername, $username, $password);
@@ -25,56 +25,43 @@ if ($conn->connect_error) {
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
 
-// Table Setup - ADDED NEW COLUMNS
-$table_sql = "CREATE TABLE IF NOT EXISTS incident_reports (
+// Table Setup
+$table_sql = "CREATE TABLE IF NOT EXISTS facility_inspections (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    case_title VARCHAR(255) NOT NULL,
+    title VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL,
-    incident_date DATE NOT NULL,
-    incident_time TIME NOT NULL,
+    inspection_date DATE NOT NULL,
+    inspection_time TIME NOT NULL,
     description TEXT NOT NULL,
-    student_name VARCHAR(255) DEFAULT NULL,
-    level_section VARCHAR(100) DEFAULT NULL,
-    parent_name VARCHAR(255) DEFAULT NULL,
-    adviser VARCHAR(255) DEFAULT NULL,
     image_paths TEXT DEFAULT NULL, 
-    status VARCHAR(50) DEFAULT 'Recorded',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 $conn->query($table_sql);
-// Auto-Repair Columns - ADDED NEW COLUMNS TO CHECK
+
+// Auto-Repair Columns
 $required_columns = [
-    'case_title' => 'VARCHAR(255) NOT NULL',
+    'title' => 'VARCHAR(255) NOT NULL',
     'location' => 'VARCHAR(255) NOT NULL',
-    'incident_date' => 'DATE NOT NULL',
-    'incident_time' => 'TIME NOT NULL',
+    'inspection_date' => 'DATE NOT NULL',
+    'inspection_time' => 'TIME NOT NULL',
     'description' => 'TEXT NOT NULL',
-    'student_name' => 'VARCHAR(255) DEFAULT NULL',
-    'level_section' => 'VARCHAR(100) DEFAULT NULL',
-    'parent_name' => 'VARCHAR(255) DEFAULT NULL',
-    'adviser' => 'VARCHAR(255) DEFAULT NULL',
     'image_paths' => 'TEXT DEFAULT NULL'
 ];
 
 foreach ($required_columns as $col => $def) {
-    $check = $conn->query("SHOW COLUMNS FROM incident_reports LIKE '$col'");
+    $check = $conn->query("SHOW COLUMNS FROM facility_inspections LIKE '$col'");
     if ($check && $check->num_rows == 0) {
-        $conn->query("ALTER TABLE incident_reports ADD $col $def");
-    } else if ($check && $col === 'image_paths') {
-        $row = $check->fetch_assoc();
-        if (strpos(strtolower($row['Type']), 'varchar') !== false) {
-            $conn->query("ALTER TABLE incident_reports CHANGE $col $col $def");
-        }
+        $conn->query("ALTER TABLE facility_inspections ADD $col $def");
     }
 }
 
 // Session Queue
-if (!isset($_SESSION['incident_print_queue'])) {
-    $_SESSION['incident_print_queue'] = [];
+if (!isset($_SESSION['facility_print_queue'])) {
+    $_SESSION['facility_print_queue'] = [];
 }
 
 // Upload Directory
-$upload_dir = "uploads/incidents/";
+$upload_dir = "uploads/facilities/";
 if (!file_exists($upload_dir)) {
     mkdir($upload_dir, 0777, true);
 }
@@ -85,34 +72,29 @@ $error_msg = "";
 
 // HANDLE: ADD REQUEST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
-    $case = $conn->real_escape_string($_POST['case_title']);
+    $title = $conn->real_escape_string($_POST['title']);
     $loc = $conn->real_escape_string($_POST['location']);
-    $date = $conn->real_escape_string($_POST['incident_date']);
-    $time = $conn->real_escape_string($_POST['incident_time']);
+    $date = $conn->real_escape_string($_POST['inspection_date']);
+    $time = $conn->real_escape_string($_POST['inspection_time']);
     $desc = $conn->real_escape_string($_POST['description']);
-    // Capture New Fields
-    $student = $conn->real_escape_string($_POST['student_name']);
-    $level = $conn->real_escape_string($_POST['level_section']);
-    $parent = $conn->real_escape_string($_POST['parent_name']);
-    $adviser = $conn->real_escape_string($_POST['adviser']);
 
     $image_paths_json = null;
     $uploaded_files = [];
     $upload_errors = [];
 
     // Handle Multiple Image Uploads
-    if (isset($_FILES['incident_images']) && !empty($_FILES['incident_images']['name'][0])) {
-        $total_files = count($_FILES['incident_images']['name']);
+    if (isset($_FILES['inspection_images']) && !empty($_FILES['inspection_images']['name'][0])) {
+        $total_files = count($_FILES['inspection_images']['name']);
         $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
 
         for ($i = 0; $i < $total_files; $i++) {
-            if ($_FILES['incident_images']['error'][$i] === UPLOAD_ERR_OK) {
-                $file_tmp = $_FILES['incident_images']['tmp_name'][$i];
-                $file_name = basename($_FILES['incident_images']['name'][$i]);
+            if ($_FILES['inspection_images']['error'][$i] === UPLOAD_ERR_OK) {
+                $file_tmp = $_FILES['inspection_images']['tmp_name'][$i];
+                $file_name = basename($_FILES['inspection_images']['name'][$i]);
                 $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
 
                 if (in_array($file_ext, $allowed_exts)) {
-                    $new_file_name = uniqid('inc_') . '_' . $i . '.' . $file_ext;
+                    $new_file_name = uniqid('fac_') . '_' . $i . '.' . $file_ext;
                     $target_path = $upload_dir . $new_file_name;
 
                     if (move_uploaded_file($file_tmp, $target_path)) {
@@ -135,25 +117,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
         if (!empty($uploaded_files)) {
             $image_paths_json = json_encode($uploaded_files);
         }
-        // Updated INSERT to include new fields
-        $stmt = $conn->prepare("INSERT INTO incident_reports (case_title, location, incident_date, incident_time, description, student_name, level_section, parent_name, adviser, image_paths) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        $stmt = $conn->prepare("INSERT INTO facility_inspections (title, location, inspection_date, inspection_time, description, image_paths) VALUES (?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
             $error_msg = "<strong>Database Error:</strong> " . $conn->error;
         } else {
-            $stmt->bind_param("ssssssssss", $case, $loc, $date, $time, $desc, $student, $level, $parent, $adviser, $image_paths_json);
+            $stmt->bind_param("ssssss", $title, $loc, $date, $time, $desc, $image_paths_json);
 
             if ($stmt->execute()) {
-                $_SESSION['incident_print_queue'][] = [
-                    'case' => strtoupper($case),
+                $_SESSION['facility_print_queue'][] = [
+                    'title' => strtoupper($title),
                     'loc' => strtoupper($loc),
                     'date' => $date,
                     'time' => $time,
                     'desc' => $desc,
-                    'student' => $student,
-                    'level' => $level,
-                    'parent' => $parent,
-                    'adviser' => $adviser,
                     'image_paths' => $uploaded_files
                 ];
                 header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
@@ -169,7 +147,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
 // HANDLE: DELETE LOG
 if (isset($_GET['delete_id'])) {
     $del_id = intval($_GET['delete_id']);
-    $res = $conn->query("SELECT image_paths FROM incident_reports WHERE id = $del_id");
+    $res = $conn->query("SELECT image_paths FROM facility_inspections WHERE id = $del_id");
     if ($row = $res->fetch_assoc()) {
         $paths = json_decode($row['image_paths'], true);
         if (is_array($paths)) {
@@ -180,20 +158,20 @@ if (isset($_GET['delete_id'])) {
             }
         }
     }
-    $conn->query("DELETE FROM incident_reports WHERE id = $del_id");
+    $conn->query("DELETE FROM facility_inspections WHERE id = $del_id");
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 // HANDLE: CLEAR QUEUE
 if (isset($_POST['clear_queue'])) {
-    $_SESSION['incident_print_queue'] = [];
+    $_SESSION['facility_print_queue'] = [];
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
 }
 
 if (isset($_GET['success']))
-    $success_msg = "Incident recorded successfully!";
+    $success_msg = "Inspection recorded successfully!";
 if (isset($_GET['error']))
     $error_msg = "An error occurred.";
 
@@ -202,11 +180,11 @@ $search_term = "";
 $where_clause = "";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search_term = $conn->real_escape_string($_GET['search']);
-    $where_clause = "WHERE case_title LIKE '%$search_term%' OR location LIKE '%$search_term%' OR student_name LIKE '%$search_term%'";
+    $where_clause = "WHERE title LIKE '%$search_term%' OR location LIKE '%$search_term%'";
 }
 
-$recent_reports = $conn->query("SELECT * FROM incident_reports $where_clause ORDER BY id DESC LIMIT 10");
-$total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->fetch_assoc()['total'];
+$recent_reports = $conn->query("SELECT * FROM facility_inspections $where_clause ORDER BY id DESC LIMIT 10");
+$total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections")->fetch_assoc()['total'];
 ?>
 
 <!DOCTYPE html>
@@ -215,7 +193,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Incident Report</title>
+    <title>Facilities & Inspection</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -362,7 +340,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             margin: 20px;
         }
 
-        .form-control {
+        .form-control,
+        .form-select {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text-main);
@@ -370,7 +349,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             padding: 12px;
         }
 
-        .form-control:focus {
+        .form-control:focus,
+        .form-select:focus {
             background-color: var(--input-bg);
             border-color: var(--accent);
             color: var(--text-main);
@@ -478,7 +458,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             margin: 0;
         }
 
-       .logo-left {
+        .logo-left {
             width: 185px !important;
             position: fixed !important;
             left: -3px !important;
@@ -494,7 +474,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             margin-top: 30px !important;
             max-width: none !important;
         }
-     /* MODIFIED FORM TITLE FOR LOGO */
+
+        /* MODIFIED FORM TITLE FOR LOGO */
         .form-title {
             display: flex;
             align-items: center;
@@ -505,7 +486,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             color: black;
         }
 
-       .form-title-text {
+        .form-title-text {
             text-align: center;
         }
 
@@ -527,7 +508,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             text-transform: uppercase;
         }
 
-       .form-table {
+        .form-table {
             width: 100%;
             border-collapse: collapse;
             border: 2px solid black;
@@ -569,18 +550,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border-bottom: 1px solid black;
             padding: 4px 6px;
             vertical-align: top;
-            height: 500px;
+            height: 600px;
             position: relative;
         }
 
-     .desc-content {
+        .desc-content {
             font-size: 10pt;
             color: black;
             height: 100%;
             overflow: hidden;
         }
 
-      .desc-box {
+        .desc-box {
             border: none;
             margin-top: 5px;
             width: 100%;
@@ -590,50 +571,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             white-space: pre-wrap;
             word-wrap: break-word;
             word-break: break-all;
-        }
-
-        .signatures-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 2px solid black;
-            border-top: none;
-            margin-top: 0px;
-            color: black;
-            table-layout: fixed;
-        }
-
-        .signatures-table td {
-            border: 2px solid black;
-            width: 50%;
-            vertical-align: bottom;
-            font-size: 9pt;
-            font-weight: bold;
-            text-align: center;
-            height: 80px;
-            /* FIXED HEIGHT TO MAINTAIN TABLE SIZE */
-            padding-bottom: 8px;
-            padding-left: 5px;
-            padding-right: 5px;
-            position: relative;
-        }
-
-        .sig-line {
-            border-bottom: 1px solid black;
-            width: 90%;
-            margin: 0 auto 5px auto;
-        }
-        /* NEW: Class for filled-in values on signatures to sit above line */
-        .sig-val {
-            font-family: 'Courier New', Courier, monospace;
-            font-size: 11pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            position: absolute;
-            bottom: 25px;
-            /* Positions text above the signature line */
-            width: 100%;
-            left: 0;
-            text-align: center;
         }
 
         .image-section {
@@ -676,7 +613,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             padding: 4px;
             width: 33%;
             vertical-align: top;
-            height: 40px;
+            height: 50px;
+            /* Adjusted height for content */
             font-size: 8pt;
         }
 
@@ -693,7 +631,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-size: 8.5pt;
         }
 
-     .officer-container {
+        .officer-container {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -866,7 +804,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i> Back</a>
-            <h4 class="m-0 fw-bold text-white">Incident Report</h4>
+            <h4 class="m-0 fw-bold text-white">Facilities & Inspection</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-theme rounded-circle" onclick="toggleTheme()" id="themeBtn">
@@ -880,9 +818,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         <div class="left-panel">
             <div class="panel-header">
                 <div class="panel-title">
-                    <i class="fa fa-pen-to-square"></i> REPORT DETAILS
+                    <i class="fa fa-clipboard-check"></i> INSPECTION DETAILS
                 </div>
-                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['incident_print_queue']); ?></div>
+                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['facility_print_queue']); ?></div>
             </div>
 
             <?php if (!empty($success_msg)): ?>
@@ -900,38 +838,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             <?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
-                <input type="text" name="case_title" id="in_case" class="form-control"
-                    placeholder="Case (e.g., Bullying, Theft)" required oninput="updatePreview()">
+                <input type="text" name="title" id="in_title" class="form-control" placeholder="Facility / Item Name"
+                    required oninput="updatePreview()">
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
                     oninput="updatePreview()">
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <input type="text" name="student_name" id="in_student" class="form-control"
-                            placeholder="Student's Name" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="level_section" id="in_level" class="form-control"
-                            placeholder="Level/Section" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="parent_name" id="in_parent" class="form-control"
-                            placeholder="Parent's Name" oninput="updatePreview()">
-                    </div>
-                    <div class="col-6">
-                        <input type="text" name="adviser" id="in_adviser" class="form-control" placeholder="Adviser"
-                            oninput="updatePreview()">
-                    </div>
-                </div>
+
                 <div class="row">
                     <div class="col-6">
-                        <label class="small text-secondary mb-1">Incident Date</label>
-                        <input type="date" name="incident_date" id="in_date" class="form-control" required
+                        <label class="small text-secondary mb-1">Inspection Date</label>
+                        <input type="date" name="inspection_date" id="in_date" class="form-control" required
                             oninput="updatePreview()">
                     </div>
                     <div class="col-6">
-                        <label class="small text-secondary mb-1">Incident Time</label>
+                        <label class="small text-secondary mb-1">Inspection Time</label>
                         <div class="input-group mb-2">
-                            <input type="time" name="incident_time" id="in_time" class="form-control mb-0" required
+                            <input type="time" name="inspection_time" id="in_time" class="form-control mb-0" required
                                 oninput="updatePreview()"
                                 style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
                             <button type="button" class="btn btn-outline-secondary"
@@ -943,13 +864,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </div>
 
                 <textarea name="description" id="in_desc" class="form-control" rows="8"
-                    placeholder="Description of Incident..." required oninput="updatePreview()"></textarea>
+                    placeholder="Description of Findings..." required oninput="updatePreview()"></textarea>
 
                 <div class="mb-3 mt-3">
                     <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images
                         (Optional, JPG/PNG/GIF)</label>
 
-                    <input type="file" name="incident_images[]" id="in_images" class="d-none"
+                    <input type="file" name="inspection_images[]" id="in_images" class="d-none"
                         accept="image/png, image/gif, image/jpeg" multiple>
 
                     <button type="button" class="btn btn-outline-primary w-100 dashed-border"
@@ -975,9 +896,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
             <div class="row g-2">
                 <div class="col-6">
-                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['incident_print_queue']) == 0 ? 'disabled' : ''; ?>>
+                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['facility_print_queue']) == 0 ? 'disabled' : ''; ?>>
                         <i class="fa fa-print me-2"></i> Print Queue
-                        (<?php echo count($_SESSION['incident_print_queue']); ?>)
+                        (<?php echo count($_SESSION['facility_print_queue']); ?>)
                     </button>
                 </div>
                 <div class="col-6">
@@ -985,7 +906,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <i class="fa fa-file me-2"></i> Blank Form
                     </button>
                 </div>
-                <?php if (count($_SESSION['incident_print_queue']) > 0): ?>
+                <?php if (count($_SESSION['facility_print_queue']) > 0): ?>
                     <div class="col-12">
                         <form method="POST" class="m-0">
                             <button type="submit" name="clear_queue" class="btn btn-danger w-100 fw-bold"
@@ -1013,14 +934,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                     <div class="form-title-text">
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
-                        <h3>INCIDENT REPORT</h3>
+                        <h3>FACILITIES AND EQUIPMENT INSPECTION REPORT</h3>
                     </div>
                 </div>
 
                 <table class="form-table">
                     <tr>
-                        <td class="label-cell">CASE</td>
-                        <td class="input-cell" id="out_case"></td>
+                        <td class="label-cell">FACILITY / ITEM</td>
+                        <td class="input-cell" id="out_title"></td>
                     </tr>
                     <tr>
                         <td class="label-cell">LOCATION</td>
@@ -1040,9 +961,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <tr>
                         <td>
                             <div class="desc-content">
-                                <strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                    style="font-size: 8pt; font-style: italic;">(What happened, person involved,
-                                    specific dates/events)</span>
+                                <strong>DESCRIPTION OF FINDINGS / INSPECTION:</strong>
                                 <div class="desc-box"><span id="out_desc"></span></div>
                                 <div class="image-section" id="out_images_container"></div>
                             </div>
@@ -1050,49 +969,28 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </tr>
                 </table>
 
-                <table class="signatures-table">
-                    <tr>
-                        <td>
-                            <div class="sig-val" id="out_student"></div>
-                            <div class="sig-line"></div>
-                            Student's Name/ Signature
-                        </td>
-                        <td>
-                            <div class="sig-val" id="out_parent"></div>
-                            <div class="sig-line"></div>
-                            Parent's Name/Signature/ Contact Number
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div class="sig-val" id="out_level"></div>
-                            <div class="sig-line"></div>
-                            Level/ Section
-                        </td>
-                        <td>
-                            <div class="sig-val" id="out_adviser"></div>
-                            <div class="sig-line"></div>
-                            Adviser
-                        </td>
-                    </tr>
-                </table>
-
                 <div class="form-footer">
-                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                        to the office of:</div>
                     <table class="copy-furnished-table">
                         <tr>
                             <td>Principal/Dean</td>
-                            <td style="text-align: center;">
-                                Prefect of Discipline
-                                <div style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">
-                                    Charles Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
+                            <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
+                                <div
+                                    style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                                </div>
+                                <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C.
+                                    LUMBANG, LPT</div>
+                                <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                    for<br>Administrative Office</div>
                             </td>
                             <td>Others (Specify)</td>
                         </tr>
                     </table>
 
                     <div class="officer-section">
-                        <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                        <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:
+                        </div>
                         <div class="officer-container">
                             <div class="officer-box">
                                 <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1108,14 +1006,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
                     <div class="noted-section">
                         <div class="noted-title">Noted by:</div>
-                        <div style="text-align: left;">
-                            <div
-                                style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
-                                <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
-                                <div class="officer-position">CHIEF, Safety and Protection</div>
+                        <div style="display: flex; justify-content: space-between; width: 100%;">
+                            <div style="text-align: center;">
+                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                    <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
+                                    <div class="officer-position">CHIEF, Safety and Protection</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                    <div class="officer-name-line">EDWIN GUEVARRA</div>
+                                    <div class="officer-position">Supervisor</div>
+                                </div>
                             </div>
                         </div>
                     </div>
+
                 </div>
 
             </div>
@@ -1123,8 +1029,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     </div>
 
     <div id="print-area">
-        <?php if (count($_SESSION['incident_print_queue']) > 0):
-            foreach ($_SESSION['incident_print_queue'] as $p):
+        <?php if (count($_SESSION['facility_print_queue']) > 0):
+            foreach ($_SESSION['facility_print_queue'] as $p):
                 $t = strtotime($p['time']);
                 $print_time = date("h:i A", $t); ?>
                 <div class="hcc-form">
@@ -1134,13 +1040,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                         <div class="form-title-text">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
-                            <h3>INCIDENT REPORT</h3>
+                            <h3>FACILITIES AND EQUIPMENT INSPECTION REPORT</h3>
                         </div>
                     </div>
                     <table class="form-table">
                         <tr>
-                            <td class="label-cell">CASE</td>
-                            <td class="input-cell"><?php echo $p['case']; ?></td>
+                            <td class="label-cell">FACILITY / ITEM</td>
+                            <td class="input-cell"><?php echo $p['title']; ?></td>
                         </tr>
                         <tr>
                             <td class="label-cell">LOCATION</td>
@@ -1158,7 +1064,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <table class="desc-table">
                         <tr>
                             <td>
-                                <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong>
+                                <div class="desc-content"><strong>DESCRIPTION OF FINDINGS / INSPECTION:</strong>
                                     <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
                                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                         <div class="image-section" style="display:block;">
@@ -1170,45 +1076,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             </td>
                         </tr>
                     </table>
-
-                    <table class="signatures-table">
-                        <tr>
-                            <td>
-                                <div class="sig-val"><?php echo strtoupper($p['student']); ?></div>
-                                <div class="sig-line"></div>Student's Name/ Signature
-                            </td>
-                            <td>
-                                <div class="sig-val"><?php echo strtoupper($p['parent']); ?></div>
-                                <div class="sig-line"></div>Parent's Name/Signature/ Contact Number
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="sig-val"><?php echo strtoupper($p['level']); ?></div>
-                                <div class="sig-line"></div>Level/ Section
-                            </td>
-                            <td>
-                                <div class="sig-val"><?php echo strtoupper($p['adviser']); ?></div>
-                                <div class="sig-line"></div>Adviser
-                            </td>
-                        </tr>
-                    </table>
-
                     <div class="form-footer">
-                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
+                            the office of:</div>
                         <table class="copy-furnished-table">
                             <tr>
                                 <td>Principal/Dean</td>
-                                <td style="text-align: center;">Prefect of Discipline<div
-                                        style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">Charles
-                                        Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
+                                <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
+                                    <div
+                                        style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                                    </div>
+                                    <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG,
+                                        LPT</div>
+                                    <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                        for<br>Administrative Office</div>
                                 </td>
                                 <td>Others (Specify)</td>
                             </tr>
                         </table>
-
                         <div class="officer-section">
-                            <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                            <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
                             <div class="officer-container">
                                 <div class="officer-box">
                                     <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1223,11 +1110,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
                         <div class="noted-section" style="margin-top: 30px;">
                             <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
-                            <div style="text-align: left;">
-                                <div
-                                    style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
-                                    <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
-                                    <div class="officer-position">CHIEF, Safety and Protection</div>
+                            <div style="display: flex; justify-content: space-between; width: 100%;">
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                        <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
+                                        <div class="officer-position">CHIEF, Safety and Protection</div>
+                                    </div>
+                                </div>
+                                <div style="text-align: center;">
+                                    <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                        <div class="officer-name-line">EDWIN GUEVARRA</div>
+                                        <div class="officer-position">Supervisor</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1247,12 +1141,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                 <div class="form-title-text">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>INCIDENT REPORT</h3>
+                    <h3>FACILITIES AND EQUIPMENT INSPECTION REPORT</h3>
                 </div>
             </div>
             <table class="form-table">
                 <tr>
-                    <td class="label-cell">CASE</td>
+                    <td class="label-cell">FACILITY / ITEM</td>
                     <td class="input-cell">&nbsp;</td>
                 </tr>
                 <tr>
@@ -1271,29 +1165,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             <table class="desc-table">
                 <tr>
                     <td>
-                        <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                style="font-size: 8pt; font-style: italic;">(What happened, person involved, specific
-                                dates/events)</span>
+                        <div class="desc-content"><strong>DESCRIPTION OF FINDINGS / INSPECTION:</strong>
                             <div class="desc-box"></div>
                         </div>
-                    </td>
-                </tr>
-            </table>
-            <table class="signatures-table">
-                <tr>
-                    <td>
-                        <div class="sig-line"></div>Student's Name/ Signature
-                    </td>
-                    <td>
-                        <div class="sig-line"></div>Parent's Name/Signature/ Contact Number
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <div class="sig-line"></div>Level/ Section
-                    </td>
-                    <td>
-                        <div class="sig-line"></div>Adviser
                     </td>
                 </tr>
             </table>
@@ -1303,15 +1177,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <table class="copy-furnished-table">
                     <tr>
                         <td>Principal/Dean</td>
-                        <td style="text-align: center;">Prefect of Discipline<div
-                                style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">Charles
-                                Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
+                        <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
+                            <div
+                                style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                            </div>
+                            <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG,
+                                LPT</div>
+                            <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                for<br>Administrative Office</div>
                         </td>
                         <td>Others (Specify)</td>
                     </tr>
                 </table>
                 <div class="officer-section">
-                    <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                    <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
                     <div class="officer-container">
                         <div class="officer-box">
                             <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1323,13 +1202,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         </div>
                     </div>
                 </div>
+
                 <div class="noted-section" style="margin-top: 30px;">
                     <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
-                    <div style="text-align: left;">
-                        <div
-                            style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
-                            <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
-                            <div class="officer-position">CHIEF, Safety and Protection</div>
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
+                                <div class="officer-position">CHIEF, Safety and Protection</div>
+                            </div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                <div class="officer-name-line">EDWIN GUEVARRA</div>
+                                <div class="officer-position">Supervisor</div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1339,7 +1226,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
     <div class="bottom-panel">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT DATABASE ENTRIES</h5>
+            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT INSPECTIONS</h5>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
                 <form method="GET" class="d-flex gap-0" style="width: 300px;">
@@ -1361,9 +1248,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <tr>
                         <th>ID</th>
                         <th>Images</th>
-                        <th>Case Title</th>
-                        <th>Student</th>
-                        <th>Level/Sec</th>
+                        <th>Facility / Item</th>
+                        <th>Location</th>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Action</th>
@@ -1375,15 +1261,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             <?php
                             // Prepare data for loading into preview
                             $preview_data = [
-                                'case' => $row['case_title'],
+                                'title' => $row['title'],
                                 'loc' => $row['location'],
-                                'date' => $row['incident_date'],
-                                'time' => $row['incident_time'],
+                                'date' => $row['inspection_date'],
+                                'time' => $row['inspection_time'],
                                 'desc' => $row['description'],
-                                'student' => $row['student_name'],
-                                'level' => $row['level_section'],
-                                'parent' => $row['parent_name'],
-                                'adviser' => $row['adviser'],
                                 'images' => json_decode($row['image_paths'], true)
                             ];
                             $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
@@ -1410,11 +1292,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                                         <span class="text-muted small">-</span>
                                     <?php endif; ?>
                                 </td>
-                                <td><?php echo htmlspecialchars($row['case_title']); ?></td>
-                                <td><?php echo htmlspecialchars($row['student_name'] ?: '-'); ?></td>
-                                <td><?php echo htmlspecialchars($row['level_section'] ?: '-'); ?></td>
-                                <td><?php echo $row['incident_date']; ?></td>
-                                <td><?php echo date('h:i A', strtotime($row['incident_time'])); ?></td>
+                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                <td><?php echo strtoupper($row['location']); ?></td>
+                                <td><?php echo $row['inspection_date']; ?></td>
+                                <td><?php echo date('h:i A', strtotime($row['inspection_time'])); ?></td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button type="button" class="btn btn-sm btn-info text-white"
@@ -1433,7 +1314,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <?php else: ?>
                         <tr>
                             <td colspan="8" class="text-center py-4">
-                                <i class="fa fa-database fa-2x mb-3"></i><br>
+                                <i class="fa fa-clipboard-list fa-2x mb-3"></i><br>
                                 No records found.
                             </td>
                         </tr>
@@ -1462,14 +1343,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('themeBtn').innerHTML = '<i class="fa fa-moon"></i>';
         }
 
-        function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
-        function printBlank() { document.body.classList.add('print-blank'); window.print(); }
+        function printQueue() {
+            document.body.classList.remove('print-blank');
+            window.print();
+        }
+
+        function printBlank() {
+            document.body.classList.add('print-blank');
+            window.print();
+        }
 
         let loadedImages = [];
         let isLoadedMode = false;
 
         function updatePreview() {
-            document.getElementById('out_case').innerText = document.getElementById('in_case').value.toUpperCase();
+            document.getElementById('out_title').innerText = document.getElementById('in_title').value.toUpperCase();
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
             document.getElementById('out_date').innerText = document.getElementById('in_date').value || '';
 
@@ -1477,25 +1365,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
                 let ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12; h = h ? h : 12;
+                h = h % 12;
+                h = h ? h : 12;
                 document.getElementById('out_time').innerText = `${h}:${m} ${ampm}`;
             } else {
                 document.getElementById('out_time').innerText = '';
             }
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
 
-            // Update New Fields in Preview
-            document.getElementById('out_student').innerText = document.getElementById('in_student').value.toUpperCase();
-            document.getElementById('out_level').innerText = document.getElementById('in_level').value.toUpperCase();
-            document.getElementById('out_parent').innerText = document.getElementById('in_parent').value.toUpperCase();
-            document.getElementById('out_adviser').innerText = document.getElementById('in_adviser').value.toUpperCase();
-
             // Image Preview Logic
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
 
             if (fileInput.files.length > 0) {
-
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'block';
                 [...fileInput.files].forEach(file => {
@@ -1509,7 +1391,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'block';
                 loadedImages.forEach(src => {
@@ -1519,7 +1400,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     paperImageContainer.appendChild(img);
                 });
             } else {
-
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'none';
             }
@@ -1527,24 +1407,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
         // --- Load Data to Preview ---
         function loadToPreview(data) {
-
-            document.getElementById('in_case').value = data.case;
+            document.getElementById('in_title').value = data.title;
             document.getElementById('in_loc').value = data.loc;
             document.getElementById('in_date').value = data.date;
             document.getElementById('in_time').value = data.time;
             document.getElementById('in_desc').value = data.desc;
-
-            // Load New Fields
-            document.getElementById('in_student').value = data.student || '';
-            document.getElementById('in_level').value = data.level || '';
-            document.getElementById('in_parent').value = data.parent || '';
-            document.getElementById('in_adviser').value = data.adviser || '';
 
             loadedImages = data.images || [];
             isLoadedMode = true;
 
             document.getElementById('in_images').value = "";
             document.getElementById('form-image-previews').innerHTML = "";
+
             const formPreviewContainer = document.getElementById('form-image-previews');
             if (loadedImages.length > 0) {
                 loadedImages.forEach((src, index) => {
@@ -1556,8 +1430,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
 
             updatePreview();
-    
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
         }
 
         // --- Reset Form ---
@@ -1592,7 +1468,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         });
 
         function renderFormPreviews() {
-
             formPreviewContainer.innerHTML = '';
             [...dt.files].forEach((file, index) => {
                 let reader = new FileReader();
@@ -1617,10 +1492,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             updatePreview();
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(alert => { new bootstrap.Alert(alert).close(); });
+                alerts.forEach(alert => {
+                    new bootstrap.Alert(alert).close();
+                });
             }, 5000);
         });
     </script>
 
 </body>
+
 </html>
