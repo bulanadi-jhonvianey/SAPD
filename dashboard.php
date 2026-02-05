@@ -26,7 +26,7 @@ try {
     $conn->select_db($dbname);
 
 } catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
+ die("Database Error: " . $e->getMessage());
 }
 
 // --- THEME DETECTION ---
@@ -48,7 +48,8 @@ function get_cnt($conn, $sql)
     }
     return 0;
 }
-    // 3. Initialize Stats Array
+
+// 3. Initialize Stats Array
 $stats = [
     'users' => 0,
     'total_permits' => 0,
@@ -89,6 +90,25 @@ if ($conn) {
     $stats['cctv_req'] = get_cnt($conn, "SELECT COUNT(*) as c FROM cctv_requests");
 
     // --- FETCH DATA FOR MODALS ---
+    // A. Active Users (NEW)
+    $recent_active_users = [];
+    try {
+        $res = $conn->query("SELECT * FROM users WHERE role='user' AND status='active' ORDER BY id DESC LIMIT 10");
+        if ($res)
+            while ($row = $res->fetch_assoc())
+                $recent_active_users[] = $row;
+    } catch (Exception $e) {
+    }
+
+    // B. Pending Requests (NEW)
+    $recent_pending_requests = [];
+    try {
+        $res = $conn->query("SELECT * FROM users WHERE status='pending' ORDER BY id DESC LIMIT 10");
+        if ($res)
+            while ($row = $res->fetch_assoc())
+                $recent_pending_requests[] = $row;
+    } catch (Exception $e) {
+    }
 
     // 1. Employee Permits
     $recent_emp_permits = [];
@@ -538,8 +558,7 @@ if ($conn) {
             font-size: 1.2rem;
         }
 
-        /* Icons Colors */
-        .icon-blue {
+     .icon-blue {
             background: #e7f1ff;
             color: #33c1ff;
         }
@@ -658,7 +677,8 @@ if ($conn) {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
             border-color: var(--primary-color);
-        }    
+        }
+
         .list-avatar {
             width: 45px;
             height: 45px;
@@ -853,9 +873,8 @@ if ($conn) {
     <div class="sidebar" id="sidebar">
         <div class="sidebar-content">
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="dashboard.php">
-                    <i class="fas fa-th-large me-3"></i> Dashboard</a>
-                </li>
+                <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i
+                            class="fas fa-th-large me-3"></i> Dashboard</a></li>
                 <h6 class="sidebar-heading">Admin</h6>
 
                 <li class="nav-item">
@@ -866,8 +885,7 @@ if ($conn) {
                 </li>
 
                 <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i>
-                 Active Users</a>
-                </li>
+                        Active Users</a></li>
 
                 <h6 class="sidebar-heading">Forms Management</h6>
                 <li class="nav-item"><a class="nav-link" href="violator_report.php"><i
@@ -900,32 +918,33 @@ if ($conn) {
 
         <div class="row g-4 mb-4">
             <div class="col-md-4">
-                <a href="active_users.php" class="card-link">
-                    <div class="solid-stat-card bg-primary-blue">
-                        <div class="stat-text-wrapper"><span
-                                class="stat-value"><?php echo $stats['users']; ?></span><span class="stat-label">Active
-                                Users</span></div>
-                        <i class="fas fa-users stat-icon-large"></i>
+                <div class="solid-stat-card bg-primary-blue cursor-pointer" data-bs-toggle="modal"
+                    data-bs-target="#activeUsersModal">
+                    <div class="stat-text-wrapper">
+                        <span class="stat-value"><?php echo $stats['users']; ?></span>
+                        <span class="stat-label">Active Users</span>
                     </div>
-                </a>
+                    <i class="fas fa-users stat-icon-large"></i>
+                </div>
             </div>
             <div class="col-md-4">
                 <div class="solid-stat-card bg-success-green">
-                    <div class="stat-text-wrapper"><span
-                            class="stat-value"><?php echo $stats['total_permits']; ?></span><span
-                            class="stat-label">Total Permits</span></div>
+                    <div class="stat-text-wrapper">
+                        <span class="stat-value"><?php echo $stats['total_permits']; ?></span>
+                        <span class="stat-label">Total Permits</span>
+                    </div>
                     <i class="fas fa-clipboard-check stat-icon-large"></i>
                 </div>
             </div>
             <div class="col-md-4">
-                <a href="admin_approval.php" class="card-link">
-                    <div class="solid-stat-card bg-warning-orange">
-                        <div class="stat-text-wrapper"><span
-                                class="stat-value"><?php echo $stats['pending']; ?></span><span
-                                class="stat-label">Pending Requests</span></div>
-                        <i class="fas fa-hourglass-half stat-icon-large"></i>
+                <div class="solid-stat-card bg-warning-orange cursor-pointer" data-bs-toggle="modal"
+                    data-bs-target="#pendingRequestsModal">
+                    <div class="stat-text-wrapper">
+                        <span class="stat-value"><?php echo $stats['pending']; ?></span>
+                        <span class="stat-label">Pending Requests</span>
                     </div>
-                </a>
+                    <i class="fas fa-hourglass-half stat-icon-large"></i>
+                </div>
             </div>
         </div>
 
@@ -1033,6 +1052,100 @@ if ($conn) {
         </div>
     </div>
 
+    <div class="modal fade" id="activeUsersModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-users me-2"></i>Recent Active Users
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="p-3 sticky-top modal-search-container">
+                    <div class="input-group">
+                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
+                        <input type="text" id="activeUserSearch" class="form-control form-control-themed border-start-0"
+                            placeholder="Filter by Name, Email...">
+                    </div>
+                </div>
+                <div class="modal-body" id="activeUsersContainer">
+                    <?php if (!empty($recent_active_users)): ?>
+                        <?php foreach ($recent_active_users as $u): ?>
+                            <div class="modern-list-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="list-avatar primary"><i class="fas fa-user"></i></div>
+                                    <div class="list-info">
+                                        <div class="list-title"><?php echo htmlspecialchars($u['name']); ?></div>
+                                        <div class="list-subtitle"><span><i
+                                                    class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($u['email']); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="modern-badge badge-soft-success">Active</span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-5"><i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted fw-bold">No active users found.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <a href="active_users.php" class="btn btn-primary rounded-pill px-4">Full System</a>
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="pendingRequestsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-hourglass-half me-2"></i>Pending
+                        Requests</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="p-3 sticky-top modal-search-container">
+                    <div class="input-group">
+                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
+                        <input type="text" id="pendingSearch" class="form-control form-control-themed border-start-0"
+                            placeholder="Filter by Name...">
+                    </div>
+                </div>
+                <div class="modal-body" id="pendingRequestsContainer">
+                    <?php if (!empty($recent_pending_requests)): ?>
+                        <?php foreach ($recent_pending_requests as $p): ?>
+                            <div class="modern-list-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="list-avatar warning"><i class="fas fa-user-clock"></i></div>
+                                    <div class="list-info">
+                                        <div class="list-title"><?php echo htmlspecialchars($p['name']); ?></div>
+                                        <div class="list-subtitle"><span><i
+                                                    class="fas fa-id-badge me-1"></i><?php echo htmlspecialchars($p['role']); ?>
+                                                Request</span></div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <span class="modern-badge badge-soft-warning">Pending</span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-5"><i class="fas fa-check-circle fa-3x text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted fw-bold">No pending requests.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer">
+                    <a href="admin_approval.php" class="btn btn-warning text-white rounded-pill px-4">Full System</a>
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal fade" id="violatorModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
@@ -1041,7 +1154,7 @@ if ($conn) {
                         Violator Reports</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-                
+
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
@@ -1571,7 +1684,9 @@ if ($conn) {
         attachSearch('facilitiesSearch', 'facilitiesContainer');
         attachSearch('violatorSearch', 'violatorContainer');
         attachSearch('guidanceSearch', 'guidanceContainer');
-
+        // New Search attachments
+        attachSearch('activeUserSearch', 'activeUsersContainer');
+        attachSearch('pendingSearch', 'pendingRequestsContainer');
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 

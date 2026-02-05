@@ -15,17 +15,15 @@ $password = "";
 $dbname = "sapd_db";
 
 // Create Connection
-try {
-    $conn = new mysqli($servername, $username, $password);
-    $conn->select_db($dbname);
-} catch (Exception $e) {
-    die("Database Error: " . $e->getMessage());
+$conn = new mysqli($servername, $username, $password, $dbname);
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
 }
 
 // --- THEME DETECTION ---
 $theme_mode = $_COOKIE['theme'] ?? 'light';
 
-// --- 2. HANDLE ACTIONS (APPROVE / REJECT) ---
+// --- ACTION HANDLER: APPROVE / REJECT ---
 $msg = "";
 $msg_type = "";
 
@@ -35,19 +33,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'];
 
         if ($action === 'approve') {
-            $conn->query("UPDATE users SET status='active' WHERE id = $user_id");
-            $msg = "User approved successfully.";
-            $msg_type = "success";
+            $stmt = $conn->prepare("UPDATE users SET status='active' WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            if ($stmt->execute()) {
+                $msg = "User account has been approved and activated.";
+                $msg_type = "success";
+            }
+            $stmt->close();
         } elseif ($action === 'reject') {
-            $conn->query("DELETE FROM users WHERE id = $user_id");
-            $msg = "User rejected.";
-            $msg_type = "warning";
+            $stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->bind_param("i", $user_id);
+            if ($stmt->execute()) {
+                $msg = "Registration request has been rejected.";
+                $msg_type = "warning";
+            }
+            $stmt->close();
         }
     }
 }
 
-// --- 3. FETCH PENDING USERS ---
-$result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id DESC");
+// --- FETCH PENDING USERS ---
+$sql = "SELECT * FROM users WHERE status = 'pending' ORDER BY id DESC";
+$result = $conn->query($sql);
+$pending_count = $result->num_rows;
 ?>
 
 <!DOCTYPE html>
@@ -56,7 +64,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Approval - SAPD</title>
+    <title>Admin Approvals - SAPD</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -65,7 +73,6 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
         @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
         @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
-        /* --- SHARED CSS VARIABLES (From Dashboard/Active Users) --- */
         :root {
             --bg-body: #f4f7fe;
             --bg-card: #ffffff;
@@ -104,6 +111,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             height: var(--navbar-height);
             background: var(--navbar-bg) !important;
             border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
             position: fixed;
             top: 0;
             left: 0;
@@ -218,13 +226,12 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             border-bottom-right-radius: 10px;
         }
 
-        /* Avatar Style (Same as Active Users) */
-        .avatar-initial {
+       .avatar-initial {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            /* Yellow for Pending */
+
             color: white;
             display: flex;
             align-items: center;
@@ -247,8 +254,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             color: #f6c23e;
         }
 
-        /* Action Buttons */
-        .btn-icon {
+     .btn-icon {
             width: 35px;
             height: 35px;
             display: inline-flex;
@@ -257,7 +263,7 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             border-radius: 8px;
             border: none;
             transition: all 0.2s;
-            margin-left: 5px;
+
         }
 
         .btn-approve {
@@ -345,8 +351,14 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                         Dashboard</a></li>
 
                 <h6 class="sidebar-heading">Admin</h6>
-                <li class="nav-item"><a class="nav-link active" href="admin_approval.php"><i
-                            class="fas fa-user-check me-3"></i> Approvals</a></li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="admin_approval.php">
+                        <i class="fas fa-user-check me-3"></i> Approvals
+                        <?php if ($pending_count > 0): ?>
+                            <span class="badge rounded-pill bg-danger ms-auto"><?php echo $pending_count; ?></span>
+                        <?php endif; ?>
+                    </a>
+                </li>
                 <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i>
                         Active Users</a></li>
 
@@ -391,10 +403,10 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 
         <div class="card-custom">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="fw-bold m-0 text-primary">Pending Requests</h5>
+                <h5 class="fw-bold m-0 text-warning">Waiting for Action</h5>
                 <input type="text" id="userSearch" class="form-control"
                     style="width: 250px; background: var(--input-bg); border-color: var(--border-color); color: var(--text-main);"
-                    placeholder="Search user...">
+                    placeholder="Filter names...">
             </div>
 
             <div class="table-responsive">
@@ -402,8 +414,9 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                     <thead>
                         <tr>
                             <th>User Details</th>
-                            <th>Username</th>
+
                             <th>Role Requested</th>
+                            <th>Date Requested</th>
                             <th>Status</th>
                             <th class="text-end">Actions</th>
                         </tr>
@@ -411,13 +424,9 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                     <tbody id="userTableBody">
                         <?php if ($result && $result->num_rows > 0): ?>
                             <?php while ($row = $result->fetch_assoc()):
-                                // Generate Initials
+
                                 $name_parts = explode(" ", $row['name']);
-                                $initials = isset($name_parts[0][0]) ? strtoupper($name_parts[0][0]) : '';
-                                if (count($name_parts) > 1) {
-                                    $initials .= isset($name_parts[1][0]) ? strtoupper($name_parts[1][0]) : '';
-                                }
-                                $req_date = date("M d, Y", strtotime($row['created_at'] ?? 'now'));
+                                $initials = strtoupper(substr($name_parts[0], 0, 1) . (isset($name_parts[1]) ? substr($name_parts[1], 0, 1) : ''));
                                 ?>
                                 <tr>
                                     <td>
@@ -425,30 +434,28 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                                             <div class="avatar-initial"><?php echo $initials; ?></div>
                                             <div>
                                                 <div class="fw-bold"><?php echo htmlspecialchars($row['name']); ?></div>
-                                                <div class="small text-muted">Requested: <?php echo $req_date; ?></div>
+                                                <div class="small text-muted"><?php echo htmlspecialchars($row['email']); ?>
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td><?php echo htmlspecialchars($row['username']); ?></td>
+                                    
                                     <td class="text-capitalize"><?php echo htmlspecialchars($row['role']); ?></td>
+                                    <td><?php echo date("M d, Y", strtotime($row['created_at'] ?? 'now')); ?></td>
                                     <td><span class="status-badge status-pending">Pending</span></td>
                                     <td class="text-end">
-                                        <div class="d-flex justify-content-end">
-                                            <form method="POST" style="margin: 0;">
+                                        <div class="d-flex justify-content-end gap-2">
+                                            <form method="POST" onsubmit="return confirm('Approve this account?');">
                                                 <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
                                                 <input type="hidden" name="action" value="approve">
-                                                <button type="submit" class="btn-icon btn-approve" title="Approve">
-                                                    <i class="fas fa-check"></i>
-                                                </button>
+                                                <button type="submit" class="btn-icon btn-approve" title="Approve"><i
+                                                        class="fas fa-check"></i></button>
                                             </form>
-
-                                            <form method="POST" onsubmit="return confirm('Reject this user request?');"
-                                                style="margin: 0;">
+                                            <form method="POST" onsubmit="return confirm('Reject and delete this request?');">
                                                 <input type="hidden" name="user_id" value="<?php echo $row['id']; ?>">
                                                 <input type="hidden" name="action" value="reject">
-                                                <button type="submit" class="btn-icon btn-reject" title="Reject">
-                                                    <i class="fas fa-times"></i>
-                                                </button>
+                                                <button type="submit" class="btn-icon btn-reject" title="Reject"><i
+                                                        class="fas fa-times"></i></button>
                                             </form>
                                         </div>
                                     </td>
@@ -457,8 +464,8 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
                         <?php else: ?>
                             <tr>
                                 <td colspan="5" class="text-center py-5">
-                                    <i class="fas fa-clipboard-check fa-3x text-muted mb-3 opacity-50"></i>
-                                    <p class="text-muted fw-bold">All caught up! No pending requests.</p>
+                                    <i class="fas fa-check-circle fa-3x text-muted mb-3 opacity-50"></i>
+                                    <p class="text-muted fw-bold">No pending registration requests found.</p>
                                 </td>
                             </tr>
                         <?php endif; ?>
@@ -470,13 +477,13 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // --- SIDEBAR TOGGLE ---
+
         const sidebar = document.getElementById('sidebar');
         const toggleBtnMobile = document.getElementById('sidebarToggle');
         if (toggleBtnMobile) toggleBtnMobile.addEventListener('click', () => sidebar.classList.toggle('show'));
-
-        // --- THEME TOGGLE ---
+        
         const toggleBtn = document.getElementById('themeToggle');
+
         const icon = toggleBtn.querySelector('i');
         const html = document.documentElement;
 
@@ -489,9 +496,17 @@ $result = $conn->query("SELECT * FROM users WHERE status = 'pending' ORDER BY id
             html.setAttribute('data-bs-theme', newTheme);
             updateIcon(newTheme);
             document.cookie = "theme=" + newTheme + "; path=/; max-age=31536000";
+            localStorage.setItem('appTheme', newTheme);
         });
 
-        // --- SEARCH FUNCTIONALITY ---
+        document.addEventListener('DOMContentLoaded', function () {
+            const storedTheme = localStorage.getItem('appTheme');
+            if (storedTheme && storedTheme !== html.getAttribute('data-bs-theme')) {
+                html.setAttribute('data-bs-theme', storedTheme);
+                updateIcon(storedTheme);
+            }
+        });
+
         document.getElementById('userSearch').addEventListener('keyup', function () {
             let filter = this.value.toLowerCase();
             let rows = document.querySelectorAll('#userTableBody tr');
