@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jan 29, 2026 at 08:02 AM
+-- Generation Time: Feb 05, 2026 at 07:59 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -61,6 +61,24 @@ CREATE TABLE `events` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `facility_inspections`
+--
+
+CREATE TABLE `facility_inspections` (
+  `id` int(11) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `location` varchar(255) NOT NULL,
+  `inspection_date` date NOT NULL,
+  `inspection_time` time NOT NULL,
+  `description` text NOT NULL,
+  `image_paths` text DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Inspected',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `form_submissions`
 --
 
@@ -85,6 +103,33 @@ CREATE TABLE `global_permit_sequence` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `guidance_referrals`
+--
+
+CREATE TABLE `guidance_referrals` (
+  `id` int(11) NOT NULL,
+  `student_name` varchar(255) NOT NULL,
+  `grade_section` varchar(255) NOT NULL,
+  `referred_by` varchar(255) NOT NULL,
+  `referral_date` date NOT NULL,
+  `reason` text NOT NULL,
+  `actions_taken` text DEFAULT NULL,
+  `image_paths` text DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `offense_list` text DEFAULT NULL,
+  `action_list` text DEFAULT NULL,
+  `narrative_action` text DEFAULT NULL,
+  `offense_type` text DEFAULT NULL,
+  `referral_time` time DEFAULT NULL,
+  `reason_list` text DEFAULT NULL,
+  `other_reason` varchar(255) DEFAULT NULL,
+  `description` text NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `incident_reports`
 --
 
@@ -98,7 +143,11 @@ CREATE TABLE `incident_reports` (
   `status` varchar(50) DEFAULT 'Recorded',
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `image_path` varchar(255) DEFAULT NULL,
-  `image_paths` text DEFAULT NULL
+  `image_paths` text DEFAULT NULL,
+  `student_name` varchar(255) DEFAULT NULL,
+  `level_section` varchar(100) DEFAULT NULL,
+  `parent_name` varchar(255) DEFAULT NULL,
+  `adviser` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -253,6 +302,24 @@ INSERT INTO `users` (`id`, `name`, `email`, `username`, `password`, `role`, `sta
 (3, 'Sapd Staff', 'sapdstaff@gmail.com', 'sapdstaff', '$2y$10$nRIXjycQxV20CmaNNQRPpuTiZcMIpoVJH4JGmsfrNXZpoN9PJXFRG', 'user', 'active', 0, '2026-01-06 04:52:46'),
 (4, 'System Admin', 'admin@sapd.com', 'admin', '$2y$10$dcTJNGOPC0Ji9NBW2EWN2uqtGIXE.mMwOPeSB7sOoSs565mL12M2a', 'admin', 'active', 0, '2026-01-06 04:54:07');
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `vaping_reports`
+--
+
+CREATE TABLE `vaping_reports` (
+  `id` int(11) NOT NULL,
+  `case_title` varchar(255) NOT NULL,
+  `location` varchar(255) NOT NULL,
+  `incident_date` date NOT NULL,
+  `incident_time` time NOT NULL,
+  `description` text NOT NULL,
+  `image_paths` text DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Recorded',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -270,6 +337,12 @@ ALTER TABLE `events`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `facility_inspections`
+--
+ALTER TABLE `facility_inspections`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- Indexes for table `form_submissions`
 --
 ALTER TABLE `form_submissions`
@@ -279,6 +352,12 @@ ALTER TABLE `form_submissions`
 -- Indexes for table `global_permit_sequence`
 --
 ALTER TABLE `global_permit_sequence`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `guidance_referrals`
+--
+ALTER TABLE `guidance_referrals`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -325,6 +404,12 @@ ALTER TABLE `users`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `vaping_reports`
+--
+ALTER TABLE `vaping_reports`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -341,6 +426,12 @@ ALTER TABLE `events`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `facility_inspections`
+--
+ALTER TABLE `facility_inspections`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
 -- AUTO_INCREMENT for table `form_submissions`
 --
 ALTER TABLE `form_submissions`
@@ -353,10 +444,16 @@ ALTER TABLE `global_permit_sequence`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `guidance_referrals`
+--
+ALTER TABLE `guidance_referrals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `incident_reports`
 --
 ALTER TABLE `incident_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `layout_settings`
@@ -386,7 +483,13 @@ ALTER TABLE `student_permits`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `vaping_reports`
+--
+ALTER TABLE `vaping_reports`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
