@@ -13,17 +13,26 @@ error_reporting(E_ALL);
 $servername = "localhost";
 $username = "root";
 $password = "";
-$dbname = "sapd_db"; // Using the same database
+$dbname = "sapd_db";
 
-// Create Connection
+// 1. Create Connection (Connect ONLY to server first, not the DB)
 $conn = new mysqli($servername, $username, $password);
+
+// Check connection
 if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// Initialize Database & Table
-$conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
-$conn->select_db($dbname);
+// 2. Create Database IF NOT EXISTS (Robust Check)
+$db_create_sql = "CREATE DATABASE IF NOT EXISTS $dbname";
+if ($conn->query($db_create_sql) === FALSE) {
+    die("Error creating database '$dbname': " . $conn->error);
+}
+
+// 3. Select the Database
+if (!$conn->select_db($dbname)) {
+    die("Error selecting database '$dbname': " . $conn->error);
+}
 
 // Table Setup
 $table_sql = "CREATE TABLE IF NOT EXISTS facility_inspections (
@@ -36,7 +45,9 @@ $table_sql = "CREATE TABLE IF NOT EXISTS facility_inspections (
     image_paths TEXT DEFAULT NULL, 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
-$conn->query($table_sql);
+if ($conn->query($table_sql) === FALSE) {
+    die("Error creating table: " . $conn->error);
+}
 
 // Auto-Repair Columns
 $required_columns = [
@@ -394,7 +405,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             border-radius: 4px;
         }
 
-        /* --- IMAGE PREVIEWS --- */
+        /* --- IMAGE PREVIEWS (FORM SIDE) --- */
         .form-preview-item {
             position: relative;
             width: 80px;
@@ -439,7 +450,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             height: 14in;
             background: white;
             color: black;
-            padding: 0.25in 0.5in 0.25in 0.5in;
+            padding: 0.1in 0.5in 0.5in 0.5in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -452,6 +463,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             flex-direction: column;
         }
 
+        /* --- HEADER LAYOUT (DUPLICATED EXACTLY FROM GUIDANCE REFERRAL) --- */
         .header-layout {
             position: relative;
             width: 100%;
@@ -461,8 +473,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         .logo-left {
             width: 185px !important;
             position: fixed !important;
-            left: -3px !important;
-            top: 35px !important;
+            left: -4px !important;
+            top: 15px !important;
             z-index: 50 !important;
         }
 
@@ -471,17 +483,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             display: block;
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: 30px !important;
+            margin-top: 20px !important;
             max-width: none !important;
         }
 
-        /* MODIFIED FORM TITLE FOR LOGO */
         .form-title {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            /* Space between logo and text */
             margin: 10px 0 10px 0;
             color: black;
         }
@@ -533,6 +543,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             color: black;
         }
 
+        /* --- STABLE LAYOUT FOR DESCRIPTION --- */
         .desc-table {
             width: 100%;
             border-collapse: collapse;
@@ -548,16 +559,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             border-right: 2px solid black;
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 4px 6px;
+            padding: 8px;
             vertical-align: top;
             height: 600px;
-            position: relative;
+            /* Fixed height */
         }
 
+        /* FLEXBOX TO KEEP IMAGES AT BOTTOM */
         .desc-content {
             font-size: 10pt;
             color: black;
             height: 100%;
+            display: flex;
+            flex-direction: column;
+            /* Stack vertically */
             overflow: hidden;
         }
 
@@ -571,22 +586,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             white-space: pre-wrap;
             word-wrap: break-word;
             word-break: break-all;
+            flex-grow: 1;
+            /* Takes up available space */
         }
-
+        
         .image-section {
             display: none;
+            /* Hidden by default */
             text-align: center;
-            page-break-inside: avoid;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-            pointer-events: none;
+            margin-top: auto;
+            /* Pushes to bottom */
+            padding-top: 10px;
         }
 
         .paper-preview-img {
             max-width: 48%;
-            max-height: 300px;
+            max-height: 250px;
             border: 1px solid #ccc;
             margin: 5px;
             display: inline-block;
@@ -614,7 +629,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             width: 33%;
             vertical-align: top;
             height: 50px;
-            /* Adjusted height for content */
+
             font-size: 8pt;
         }
 
@@ -734,14 +749,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 width: 8.5in !important;
                 height: 14in !important;
             }
-
+            /* --- HEADER PRINT SETTINGS (DUPLICATED EXACTLY FROM GUIDANCE REFERRAL) --- */
             .header-banner {
                 width: calc(100% + 1in) !important;
                 margin-left: -0.5in !important;
                 margin-right: -0.5in !important;
                 margin-top: 30px !important;
             }
-
+            .logo-left {
+                top: 25px !important;
+            }
             .image-section {
                 display: block !important;
             }
@@ -839,24 +856,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
                 <input type="text" name="title" id="in_title" class="form-control" placeholder="Facility / Item Name"
-                    required oninput="updatePreview()">
+                    required oninput="updateTextPreview()">
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
-                    oninput="updatePreview()">
+                    oninput="updateTextPreview()">
 
                 <div class="row">
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Inspection Date</label>
                         <input type="date" name="inspection_date" id="in_date" class="form-control" required
-                            oninput="updatePreview()">
+                            oninput="updateTextPreview()">
                     </div>
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Inspection Time</label>
                         <div class="input-group mb-2">
                             <input type="time" name="inspection_time" id="in_time" class="form-control mb-0" required
-                                oninput="updatePreview()"
+                                oninput="updateTextPreview()"
                                 style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
                             <button type="button" class="btn btn-outline-secondary"
-                                onclick="document.getElementById('in_time').value=''; updatePreview();">
+                                onclick="document.getElementById('in_time').value=''; updateTextPreview();">
                                 <i class="fa fa-times"></i>
                             </button>
                         </div>
@@ -864,20 +881,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 </div>
 
                 <textarea name="description" id="in_desc" class="form-control" rows="8"
-                    placeholder="Description of Findings..." required oninput="updatePreview()"></textarea>
+                    placeholder="Description of Findings..." required oninput="updateTextPreview()"></textarea>
 
                 <div class="mb-3 mt-3">
                     <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images
                         (Optional, JPG/PNG/GIF)</label>
-
-                    <input type="file" name="inspection_images[]" id="in_images" class="d-none"
+ 
+                        <input type="file" name="inspection_images[]" id="in_images" class="d-none"
                         accept="image/png, image/gif, image/jpeg" multiple>
-
-                    <button type="button" class="btn btn-outline-primary w-100 dashed-border"
+ 
+                        <button type="button" class="btn btn-outline-primary w-100 dashed-border"
                         onclick="document.getElementById('in_images').click()">
                         <i class="fa fa-plus-circle me-1"></i> Add Images
+  
                     </button>
-
                     <div id="form-image-previews" class="mt-3 d-flex flex-wrap gap-2"></div>
                 </div>
 
@@ -996,7 +1013,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                                 <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
                                 <div class="officer-position">Safety and Protection Officer</div>
                             </div>
-
+  
                             <div class="officer-box">
                                 <div class="officer-name-line">LESTER P. LUMBANG, SO2</div>
                                 <div class="officer-position">Safety and Protection Officer</div>
@@ -1021,9 +1038,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                             </div>
                         </div>
                     </div>
-
+     
                 </div>
-
+      
             </div>
         </div>
     </div>
@@ -1034,8 +1051,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 $t = strtotime($p['time']);
                 $print_time = date("h:i A", $t); ?>
                 <div class="hcc-form">
-                    <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                            src="header_hcc.png" alt="Header" class="header-banner"></div>
+                    <div class="header-layout">
+                        <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
+                        <img src="header_hcc.png" alt="Header" class="header-banner">
+                    </div>
+
                     <div class="form-title">
                         <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
                         <div class="form-title-text">
@@ -1068,9 +1088,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                                     <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
                                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                         <div class="image-section" style="display:block;">
-                                            <?php foreach ($p['image_paths'] as $path): ?>                 <?php if (file_exists($path)): ?><img
-                                                        src="<?php echo $path; ?>" class="paper-preview-img"
-                                                        alt="Evidence"><?php endif; ?><?php endforeach; ?>
+                                            <?php foreach ($p['image_paths'] as $path): ?>
+                                                <?php if (file_exists($path)): ?><img src="<?php echo $path; ?>"
+                                                        class="paper-preview-img" alt="Evidence"><?php endif; ?>
+                                            <?php endforeach; ?>
                                         </div><?php endif; ?>
                                 </div>
                             </td>
@@ -1259,7 +1280,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                     <?php if ($recent_reports && $recent_reports->num_rows > 0): ?>
                         <?php while ($row = $recent_reports->fetch_assoc()): ?>
                             <?php
-                            // Prepare data for loading into preview
+
                             $preview_data = [
                                 'title' => $row['title'],
                                 'loc' => $row['location'],
@@ -1356,7 +1377,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         let loadedImages = [];
         let isLoadedMode = false;
 
-        function updatePreview() {
+        // --- SPLIT LOGIC: TEXT UPDATE ONLY ---
+        function updateTextPreview() {
             document.getElementById('out_title').innerText = document.getElementById('in_title').value.toUpperCase();
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
             document.getElementById('out_date').innerText = document.getElementById('in_date').value || '';
@@ -1372,37 +1394,80 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 document.getElementById('out_time').innerText = '';
             }
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
+            // NOTE: NO IMAGE LOGIC HERE
+        }
 
-            // Image Preview Logic
-            const paperImageContainer = document.getElementById('out_images_container');
-            const fileInput = document.getElementById('in_images');
+        // --- SPLIT LOGIC: IMAGE UPDATE ONLY ---
+        const fileInput = document.getElementById('in_images');
+        const paperImageContainer = document.getElementById('out_images_container');
+        const formPreviewContainer = document.getElementById('form-image-previews');
+        let dt = new DataTransfer();
+
+        fileInput.addEventListener('change', function () {
+            if (isLoadedMode) {
+                loadedImages = [];
+                isLoadedMode = false;
+                formPreviewContainer.innerHTML = '';
+            }
+            for (let file of this.files) {
+                dt.items.add(file);
+            }
+            this.files = dt.files;
+
+            renderFormPreviews();
+            updateImagePreview(); // Only update images
+        });
+
+        function updateImagePreview() {
+
+            // Clear existing paper images
+            paperImageContainer.innerHTML = '';
+
+            const appendImage = (src) => {
+                let img = document.createElement('img');
+                img.src = src;
+                img.className = 'paper-preview-img';
+                paperImageContainer.appendChild(img);
+            };
 
             if (fileInput.files.length > 0) {
-                paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'block';
                 [...fileInput.files].forEach(file => {
                     let reader = new FileReader();
                     reader.onload = function (e) {
-                        let img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'paper-preview-img';
-                        paperImageContainer.appendChild(img);
+                        appendImage(e.target.result);
                     }
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-                paperImageContainer.innerHTML = '';
+
                 paperImageContainer.style.display = 'block';
-                loadedImages.forEach(src => {
-                    let img = document.createElement('img');
-                    img.src = src;
-                    img.className = 'paper-preview-img';
-                    paperImageContainer.appendChild(img);
-                });
+                loadedImages.forEach(src => appendImage(src));
             } else {
-                paperImageContainer.innerHTML = '';
+
                 paperImageContainer.style.display = 'none';
             }
+        }
+
+        function renderFormPreviews() {
+            formPreviewContainer.innerHTML = '';
+            [...dt.files].forEach((file, index) => {
+                let reader = new FileReader();
+                reader.onload = function (e) {
+                    let item = document.createElement('div');
+                    item.className = 'form-preview-item';
+                    item.innerHTML = `<img src="${e.target.result}"><button type="button" class="btn-delete-img" onclick="removeFile(${index})"><i class="fa fa-times"></i></button>`;
+                    formPreviewContainer.appendChild(item);
+                }
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function removeFile(index) {
+            dt.items.remove(index);
+            fileInput.files = dt.files;
+            renderFormPreviews();
+            updateImagePreview();
         }
 
         // --- Load Data to Preview ---
@@ -1429,7 +1494,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 });
             }
 
-            updatePreview();
+            // Call both updates
+            updateTextPreview();
+            updateImagePreview();
+
             window.scrollTo({
                 top: 0,
                 behavior: 'smooth'
@@ -1444,52 +1512,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             loadedImages = [];
             isLoadedMode = false;
             document.getElementById('form-image-previews').innerHTML = "";
-            updatePreview();
-        }
 
-        // --- MULTIPLE IMAGE UPLOAD & PREVIEW LOGIC ---
-        const fileInput = document.getElementById('in_images');
-        const formPreviewContainer = document.getElementById('form-image-previews');
-        let dt = new DataTransfer();
-
-        fileInput.addEventListener('change', function () {
-            if (isLoadedMode) {
-                loadedImages = [];
-                isLoadedMode = false;
-                formPreviewContainer.innerHTML = '';
-            }
-
-            for (let file of this.files) {
-                dt.items.add(file);
-            }
-            this.files = dt.files;
-            renderFormPreviews();
-            updatePreview();
-        });
-
-        function renderFormPreviews() {
-            formPreviewContainer.innerHTML = '';
-            [...dt.files].forEach((file, index) => {
-                let reader = new FileReader();
-                reader.onload = function (e) {
-                    let item = document.createElement('div');
-                    item.className = 'form-preview-item';
-                    item.innerHTML = `<img src="${e.target.result}"><button type="button" class="btn-delete-img" onclick="removeFile(${index})"><i class="fa fa-times"></i></button>`;
-                    formPreviewContainer.appendChild(item);
-                }
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function removeFile(index) {
-            dt.items.remove(index);
-            fileInput.files = dt.files;
-            renderFormPreviews();
-            updatePreview();
+            updateTextPreview();
+            updateImagePreview();
         }
 
         document.addEventListener('DOMContentLoaded', function () {
-            updatePreview();
+            updateTextPreview();
+            updateImagePreview();
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => {

@@ -404,7 +404,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             flex-direction: column;
         }
 
-        /* HEADER LAYOUT - REVISED FOR LOGO ON LEFT */
+        /* HEADER LAYOUT */
         .header-layout {
             position: relative;
             width: 100%;
@@ -414,8 +414,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         .logo-left {
             width: 185px !important;
             position: fixed !important;
-            left: -3px !important; /* Adjusted to match Incident Report */
-            top: 35px !important; /* Adjusted to match Incident Report */
+            left: -1px !important;
+            top:35px !important;
             z-index: 50 !important;
         }
 
@@ -438,7 +438,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             z-index: 60;
         }
         
-        /* NEW SAPD LOGO STYLE */
         .sapd-logo {
             width: 45px; 
             height: auto;
@@ -473,7 +472,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             border-collapse: collapse;
             border: 2px solid black;
             margin-bottom: 15px;
-            table-layout: fixed; /* FIXED: Keeps table from expanding beyond width */
+            table-layout: fixed; 
         }
 
         .info-table td {
@@ -492,13 +491,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         }
 
         .info-table .input-cell {
-            font-family: "Calibri", "Gill Sans", sans-serif; /* CHANGED: Calibri Font */
+            font-family: "Calibri", "Gill Sans", sans-serif;
             text-transform: uppercase;
-            word-wrap: break-word; /* FIXED: Wraps text */
+            word-wrap: break-word;
             overflow-wrap: break-word;
         }
 
-        /* Checkbox Section - REVISED FOR LINES */
+        /* Checkbox Section */
         .referral-reasons {
             margin-bottom: 10px;
             line-height: 1.6;
@@ -536,7 +535,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             margin-left: 5px;
             height: 20px;
             padding-left: 10px;
-            font-family: "Calibri", "Gill Sans", sans-serif; /* CHANGED: Calibri Font */
+            font-family: "Calibri", "Gill Sans", sans-serif;
             font-weight: bold;
         }
 
@@ -572,14 +571,41 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         }
 
         .incident-content {
-            padding: 10px;
+            padding: 5px; 
             font-family: Arial, sans-serif;
             font-size: 11pt;
             white-space: pre-wrap;
             flex-grow: 1;
             overflow: hidden;
-            word-wrap: break-word; /* FIXED: Wraps text inside box */
+            word-wrap: break-word;
             overflow-wrap: break-word;
+            position: relative;
+            text-align: left;
+        }
+
+        .image-section {
+            display: none;
+            position: absolute;
+            bottom: 5px; 
+            left: 0;
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+            display: flex; 
+            justify-content: center;
+            align-items: flex-end;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .paper-preview-img {
+            max-width: 45%; 
+            max-height: 250px; 
+            border: 1px solid #ccc;
+            margin: 0;
+            display: block;
+            background: white;
+            object-fit: contain;
         }
 
         /* Footer Section */
@@ -608,58 +634,91 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             width: 150px;
             margin-left: 5px;
             text-align: center;
-            font-family: "Calibri", "Gill Sans", sans-serif; /* CHANGED: Calibri Font */
+            font-family: "Calibri", "Gill Sans", sans-serif;
             font-weight: bold;
         }
 
-        /* Removed .form-code style as the element is deleted */
-
-        .image-section {
-            display: none;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-        }
-
-        .paper-preview-img {
-            max-width: 48%;
-            max-height: 200px;
-            border: 1px solid #ccc;
-            margin: 5px;
-            display: inline-block;
-        }
-
-        /* --- PRINT MEDIA QUERIES --- */
+        /* --- PRINT MEDIA QUERIES (FIXED FOR WHITE PAGE & DARK MODE ISSUES) --- */
         @page { size: 8.5in 14in; margin: 0; }
+        
         #print-area, #print-blank-area { display: none; }
 
         @media print {
-            body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; }
-            .navbar, .main-container, .bottom-panel, .btn, .d-print-none { display: none !important; }
-            
-            #print-area {
-                display: block !important;
-                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            /* FORCE WHITE BACKGROUND AND BLACK TEXT */
+            body {
+                background-color: white !important;
+                color: black !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
-            #print-area .hcc-form {
+
+            /* FORCE ALL TEXT BLACK */
+            * { color: black !important; text-shadow: none !important; }
+
+            /* HIDE UI */
+            .navbar, .main-container, .bottom-panel, .btn, .d-print-none { 
+                display: none !important; 
+            }
+
+            /* SHOW PRINT AREA BASED ON CLASS */
+            body.printing-mode-queue #print-area {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                z-index: 9999;
+            }
+
+            body.printing-mode-blank #print-blank-area {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                z-index: 9999;
+            }
+
+            .hcc-form {
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
                 width: 8.5in !important;
                 height: 14in !important;
+                page-break-after: always;
+                display: flex !important;
+                flex-direction: column;
+                visibility: visible !important;
+                border: none !important; /* Remove screen border if any */
             }
             
-            .print-blank #print-area { display: none !important; }
-            .print-blank #print-blank-area { display: block !important; position: absolute; top: 0; left: 0; }
-            .print-blank #print-blank-area .hcc-form { transform: none !important; box-shadow: none !important; margin: 0 auto !important; }
-            
-            .image-section { display: block !important; }
+            .hcc-form:last-child { page-break-after: auto; }
 
-            .header-banner {
-                width: calc(100% + 1in) !important;
-                margin-left: -0.5in !important;
-                margin-right: -0.5in !important;
+            /* Fix Images & Header for Print */
+            .image-section { display: flex !important; }
+            
+            /* Banner updated to match screen preview layout */
+            .header-banner { 
+                width: calc(100% + 1in) !important; 
+                margin: 0 0 0 -0.5in !important; 
+                position: relative;
+                z-index: 1;
+            }
+            
+            /* IMPORTANT: Reset header-layout to static so logo positions relative to the Paper (hcc-form) */
+            .header-layout {
+                position: static !important;
+                overflow: visible !important;
+            }
+
+            /* Logo updated to match screen preview position relative to Paper */
+            .logo-left { 
+                position: absolute !important; 
+                top: 35px !important; 
+                left: -1px !important;
+                z-index: 50 !important;
             }
         }
 
@@ -710,24 +769,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             <form method="POST" enctype="multipart/form-data" id="referralForm">
                 <div class="row g-2 mb-2">
                     <div class="col-12">
-                        <input type="text" name="student_name" id="in_student" class="form-control" placeholder="Student's/Pupil's Name" required oninput="updatePreview()">
+                        <input type="text" name="student_name" id="in_student" class="form-control" placeholder="Student's/Pupil's Name" required oninput="updateTextPreview()">
                     </div>
                     <div class="col-12">
-                        <input type="text" name="grade_section" id="in_grade" class="form-control" placeholder="Grade/Year/Course/Section" required oninput="updatePreview()">
+                        <input type="text" name="grade_section" id="in_grade" class="form-control" placeholder="Grade/Year/Course/Section" required oninput="updateTextPreview()">
                     </div>
                     <div class="col-12">
-                        <input type="text" name="referrer" id="in_referrer" class="form-control" placeholder="Person making referral" required oninput="updatePreview()">
+                        <input type="text" name="referrer" id="in_referrer" class="form-control" placeholder="Person making referral" required oninput="updateTextPreview()">
                     </div>
                 </div>
 
                 <div class="row g-2 mb-3">
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Date</label>
-                        <input type="date" name="referral_date" id="in_date" class="form-control" required oninput="updatePreview()">
+                        <input type="date" name="referral_date" id="in_date" class="form-control" required oninput="updateTextPreview()">
                     </div>
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Time</label>
-                        <input type="time" name="referral_time" id="in_time" class="form-control" required oninput="updatePreview()">
+                        <input type="time" name="referral_time" id="in_time" class="form-control" required oninput="updateTextPreview()">
                     </div>
                 </div>
 
@@ -735,41 +794,41 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                     <label class="fw-bold mb-2">Reason/s for referral:</label>
                     
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Victim of bullying" id="chk_bully" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Victim of bullying" id="chk_bully" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_bully">Victim of bullying</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Suspected victim of abuse" id="chk_abuse" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Suspected victim of abuse" id="chk_abuse" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_abuse">Suspected victim of abuse</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Family issues/conflict" id="chk_family" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Family issues/conflict" id="chk_family" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_family">Family issues/conflict</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Brawling Incident" id="chk_brawl" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Brawling Incident" id="chk_brawl" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_brawl">Brawling Incident</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Damage to School Property" id="chk_damage" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Damage to School Property" id="chk_damage" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_damage">Damage to School Property</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Possession of Deadly Weapon" id="chk_weapon" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Possession of Deadly Weapon" id="chk_weapon" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_weapon">Possession of Deadly Weapon</label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Possession of Prohibited Drugs" id="chk_drugs" onchange="updatePreview()">
+                        <input class="form-check-input" type="checkbox" name="reasons[]" value="Possession of Prohibited Drugs" id="chk_drugs" onchange="updateTextPreview()">
                         <label class="form-check-label" for="chk_drugs">Possession of Prohibited Drugs</label>
                     </div>
                     
                     <div class="mt-2">
                         <label class="small text-secondary">Others (Specify):</label>
-                        <input type="text" name="other_reason" id="in_other" class="form-control form-control-sm" oninput="updatePreview()">
+                        <input type="text" name="other_reason" id="in_other" class="form-control form-control-sm" oninput="updateTextPreview()">
                     </div>
                 </div>
 
-                <textarea name="description" id="in_desc" class="form-control" rows="6" placeholder="Description of Incident (What happened, persons involved, dates)..." required oninput="updatePreview()"></textarea>
+                <textarea name="description" id="in_desc" class="form-control" rows="6" placeholder="Description of Incident (What happened, persons involved, dates)..." required oninput="updateTextPreview()"></textarea>
 
                 <div class="mb-3 mt-3">
                     <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images (Optional)</label>
@@ -929,7 +988,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 <div class="incident-header"><div class="incident-title">DESCRIPTION OF INCIDENT</div><div class="incident-subtitle">What happened, persons involved, specific dates/events</div></div>
                 <div class="incident-content"><?php echo nl2br($p['desc']); ?>
                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
-                        <div class="image-section" style="display:block;">
+                        <div class="image-section" style="display:flex!important;">
                             <?php foreach ($p['image_paths'] as $path): if (file_exists($path)): ?><img src="<?php echo $path; ?>" class="paper-preview-img"><?php endif; endforeach; ?>
                         </div>
                     <?php endif; ?>
@@ -1069,13 +1128,27 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         const savedTheme = localStorage.getItem('appTheme') || 'dark';
         if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.getElementById('themeBtn').innerHTML = '<i class="fa fa-sun"></i>'; }
 
-        function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
-        function printBlank() { document.body.classList.add('print-blank'); window.print(); }
+        // --- NEW PRINT LOGIC WITH DELAY AND SPECIFIC CLASSES ---
+        function printQueue() { 
+            document.body.classList.add('printing-mode-queue'); 
+            setTimeout(() => {
+                window.print();
+                document.body.classList.remove('printing-mode-queue');
+            }, 200); // 200ms delay to allow DOM render
+        }
+        
+        function printBlank() { 
+            document.body.classList.add('printing-mode-blank'); 
+            setTimeout(() => {
+                window.print();
+                document.body.classList.remove('printing-mode-blank');
+            }, 200); 
+        }
 
         let loadedImages = [];
         let isLoadedMode = false;
 
-        function updatePreview() {
+        function updateTextPreview() {
             document.getElementById('out_student').innerText = document.getElementById('in_student').value.toUpperCase();
             document.getElementById('out_grade').innerText = document.getElementById('in_grade').value.toUpperCase();
             document.getElementById('out_referrer').innerText = document.getElementById('in_referrer').value.toUpperCase();
@@ -1090,34 +1163,47 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 document.getElementById('out_time').innerText = `${h}:${m} ${ampm}`;
             } else { document.getElementById('out_time').innerText = ''; }
 
-            // Checkbox Mapping with Checkmarks
             const map = {
                 'chk_bully': 'p_bully', 'chk_abuse': 'p_abuse', 'chk_family': 'p_family',
                 'chk_brawl': 'p_brawl', 'chk_damage': 'p_damage', 'chk_weapon': 'p_weapon', 'chk_drugs': 'p_drugs'
             };
             for (let id in map) {
-                // If checked, inject checkmark span, else empty
                 document.getElementById(map[id]).innerHTML = document.getElementById(id).checked ? '<span class="check-mark">✓</span>' : '';
             }
 
             document.getElementById('out_other').innerText = document.getElementById('in_other').value.toUpperCase();
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
+        }
 
-            // Image Preview
+        function updatePaperImages() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
+            
+            paperImageContainer.innerHTML = ''; 
 
             if (fileInput.files.length > 0) {
-                paperImageContainer.innerHTML = ''; paperImageContainer.style.display = 'block';
+                paperImageContainer.style.display = 'flex'; // flex to center
                 [...fileInput.files].forEach(file => {
                     let reader = new FileReader();
-                    reader.onload = function (e) { let img = document.createElement('img'); img.src = e.target.result; img.className = 'paper-preview-img'; paperImageContainer.appendChild(img); }
+                    reader.onload = function (e) { 
+                        let img = document.createElement('img'); 
+                        img.src = e.target.result; 
+                        img.className = 'paper-preview-img'; 
+                        paperImageContainer.appendChild(img); 
+                    }
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-                paperImageContainer.innerHTML = ''; paperImageContainer.style.display = 'block';
-                loadedImages.forEach(src => { let img = document.createElement('img'); img.src = src; img.className = 'paper-preview-img'; paperImageContainer.appendChild(img); });
-            } else { paperImageContainer.innerHTML = ''; paperImageContainer.style.display = 'none'; }
+                paperImageContainer.style.display = 'flex'; // flex to center
+                loadedImages.forEach(src => { 
+                    let img = document.createElement('img'); 
+                    img.src = src; 
+                    img.className = 'paper-preview-img'; 
+                    paperImageContainer.appendChild(img); 
+                });
+            } else { 
+                paperImageContainer.style.display = 'none'; 
+            }
         }
 
         function loadToPreview(data) {
@@ -1128,8 +1214,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             document.getElementById('in_time').value = data.time || '';
             document.getElementById('in_desc').value = data.desc || '';
             document.getElementById('in_other').value = data.other || '';
-
-            // Reset checkboxes then check if in array
+            
             document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
             if (data.reasons && Array.isArray(data.reasons)) {
                 data.reasons.forEach(r => {
@@ -1150,7 +1235,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                     document.getElementById('form-image-previews').appendChild(item);
                 });
             }
-            updatePreview();
+            updateTextPreview();
+            updatePaperImages();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1159,7 +1245,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             document.getElementById('in_images').value = "";
             loadedImages = []; isLoadedMode = false;
             document.getElementById('form-image-previews').innerHTML = "";
-            updatePreview();
+            updateTextPreview();
+            updatePaperImages();
         }
 
         const fileInput = document.getElementById('in_images');
@@ -1169,7 +1256,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         fileInput.addEventListener('change', function () {
             if (isLoadedMode) { loadedImages = []; isLoadedMode = false; formPreviewContainer.innerHTML = ''; }
             for (let file of this.files) { dt.items.add(file); }
-            this.files = dt.files; renderFormPreviews(); updatePreview();
+            this.files = dt.files; 
+            renderFormPreviews(); 
+            updatePaperImages();
         });
 
         function renderFormPreviews() {
@@ -1184,8 +1273,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 reader.readAsDataURL(file);
             });
         }
-        function removeFile(index) { dt.items.remove(index); fileInput.files = dt.files; renderFormPreviews(); updatePreview(); }
-        document.addEventListener('DOMContentLoaded', function () { updatePreview(); setTimeout(() => { document.querySelectorAll('.alert').forEach(a => new bootstrap.Alert(a).close()); }, 5000); });
+        function removeFile(index) { 
+            dt.items.remove(index); 
+            fileInput.files = dt.files; 
+            renderFormPreviews(); 
+            updatePaperImages();
+        }
+        
+        document.addEventListener('DOMContentLoaded', function () { updateTextPreview(); setTimeout(() => { document.querySelectorAll('.alert').forEach(a => new bootstrap.Alert(a).close()); }, 5000); });
     </script>
 </body>
 </html>

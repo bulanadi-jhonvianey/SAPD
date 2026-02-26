@@ -26,7 +26,7 @@ try {
     $conn->select_db($dbname);
 
 } catch (Exception $e) {
- die("Database Error: " . $e->getMessage());
+    die("Database Error: " . $e->getMessage());
 }
 
 // --- THEME DETECTION ---
@@ -79,7 +79,8 @@ if ($conn) {
     $stats['total_permits'] = $stats['emp_permit'] + $stats['student_permit'] + $stats['non_pro_permit'];
 
     // --- FORM COUNTS ---
-    $stats['violator'] = get_cnt($conn, "SELECT COUNT(*) as c FROM violator_reports");
+    // FIXED: Changed table name to violator_logs
+    $stats['violator'] = get_cnt($conn, "SELECT COUNT(*) as c FROM violator_logs");
     $stats['guidance'] = get_cnt($conn, "SELECT COUNT(*) as c FROM guidance_referrals");
     $stats['facilities'] = get_cnt($conn, "SELECT COUNT(*) as c FROM facility_inspections");
     $stats['incident'] = get_cnt($conn, "SELECT COUNT(*) as c FROM incident_reports");
@@ -90,7 +91,8 @@ if ($conn) {
     $stats['cctv_req'] = get_cnt($conn, "SELECT COUNT(*) as c FROM cctv_requests");
 
     // --- FETCH DATA FOR MODALS ---
-    // A. Active Users (NEW)
+
+    // A. Active Users
     $recent_active_users = [];
     try {
         $res = $conn->query("SELECT * FROM users WHERE role='user' AND status='active' ORDER BY id DESC LIMIT 10");
@@ -100,7 +102,7 @@ if ($conn) {
     } catch (Exception $e) {
     }
 
-    // B. Pending Requests (NEW)
+    // B. Pending Requests
     $recent_pending_requests = [];
     try {
         $res = $conn->query("SELECT * FROM users WHERE status='pending' ORDER BY id DESC LIMIT 10");
@@ -180,10 +182,11 @@ if ($conn) {
     } catch (Exception $e) {
     }
 
-    // 8. Violator Reports
+    // 8. Violator Reports (FIXED TABLE NAME)
     $recent_violators = [];
     try {
-        $res = $conn->query("SELECT * FROM violator_reports ORDER BY violator_name ASC LIMIT 10");
+        // Changed from violator_reports to violator_logs
+        $res = $conn->query("SELECT * FROM violator_logs ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_violators[] = $row;
@@ -402,7 +405,6 @@ if ($conn) {
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
-        /* Top Big Stats */
         .solid-stat-card {
             border-radius: 15px;
             padding: 25px;
@@ -448,7 +450,6 @@ if ($conn) {
             color: #fff !important;
         }
 
-        /* Mini Scrollable Cards */
         .scrolling-wrapper {
             overflow-x: auto;
             flex-wrap: nowrap;
@@ -519,7 +520,6 @@ if ($conn) {
             transform: scale(1.1);
         }
 
-        /* Permit Stat Cards */
         .stat-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -558,7 +558,7 @@ if ($conn) {
             font-size: 1.2rem;
         }
 
-     .icon-blue {
+        .icon-blue {
             background: #e7f1ff;
             color: #33c1ff;
         }
@@ -624,7 +624,6 @@ if ($conn) {
             border-left: 5px solid #ffc107 !important;
         }
 
-        /* Calendar */
         .calendar-card {
             background: var(--bg-card);
             border-radius: 20px;
@@ -641,7 +640,6 @@ if ($conn) {
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        /* Modern List Styles */
         .modal-content {
             background-color: var(--bg-card);
             color: var(--text-main);
@@ -673,6 +671,7 @@ if ($conn) {
             border: 1px solid transparent;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.02);
         }
+
         .modern-list-item:hover {
             transform: translateY(-3px);
             box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
@@ -827,6 +826,7 @@ if ($conn) {
         }
     </style>
 </head>
+
 <body>
 
     <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
@@ -876,17 +876,14 @@ if ($conn) {
                 <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i
                             class="fas fa-th-large me-3"></i> Dashboard</a></li>
                 <h6 class="sidebar-heading">Admin</h6>
-
                 <li class="nav-item">
                     <a class="nav-link" href="admin_approval.php"><i class="fas fa-user-check me-3"></i> Approvals
                         <?php if ($stats['pending'] > 0): ?><span
                                 class="badge bg-danger rounded-pill ms-auto"><?php echo $stats['pending']; ?></span><?php endif; ?>
                     </a>
                 </li>
-
                 <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i>
                         Active Users</a></li>
-
                 <h6 class="sidebar-heading">Forms Management</h6>
                 <li class="nav-item"><a class="nav-link" href="violator_report.php"><i
                             class="fas fa-file-contract me-3"></i> Violator Report</a></li>
@@ -1004,7 +1001,6 @@ if ($conn) {
         </div>
 
         <h5 class="fw-bold mb-3 text-secondary">Permit Breakdown</h5>
-
         <div class="row g-3">
             <div class="col-md-4">
                 <div class="stat-card border-l-primary cursor-pointer" data-bs-toggle="modal"
@@ -1080,9 +1076,7 @@ if ($conn) {
                                         </div>
                                     </div>
                                 </div>
-                                <div class="text-end">
-                                    <span class="modern-badge badge-soft-success">Active</span>
-                                </div>
+                                <div class="text-end"><span class="modern-badge badge-soft-success">Active</span></div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -1127,9 +1121,7 @@ if ($conn) {
                                                 Request</span></div>
                                     </div>
                                 </div>
-                                <div class="text-end">
-                                    <span class="modern-badge badge-soft-warning">Pending</span>
-                                </div>
+                                <div class="text-end"><span class="modern-badge badge-soft-warning">Pending</span></div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
@@ -1151,10 +1143,9 @@ if ($conn) {
             <div class="modal-content">
                 <div class="modal-header border-bottom">
                     <h5 class="modal-title fw-bold text-primary"><i class="fas fa-file-contract me-2"></i>Recent
-                        Violator Reports</h5>
+                        Violator Logs</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
@@ -1165,22 +1156,28 @@ if ($conn) {
                 <div class="modal-body" id="violatorContainer">
                     <?php if (!empty($recent_violators)): ?>
                         <?php foreach ($recent_violators as $v): ?>
+                            <?php
+                            // FIXED: Directly use columns from violator_logs
+                            $violation = $v['violation'] ?? 'Violation';
+                            $location = $v['location'] ?? 'Unknown';
+                            ?>
                             <div class="modern-list-item">
                                 <div class="d-flex align-items-center">
                                     <div class="list-avatar primary"><i class="fas fa-user-times"></i></div>
                                     <div class="list-info">
-                                        <div class="list-title">
-                                            <?php echo htmlspecialchars($v['violator_name'] ?? 'Unknown'); ?>
+                                        <div class="list-title"><?php echo htmlspecialchars($v['student_name'] ?? 'Unknown'); ?>
                                         </div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($v['violation_type'] ?? 'Violation'); ?></span>
+                                        <div class="list-subtitle">
+                                            <span class="me-3"><i
+                                                    class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($violation); ?></span>
+                                            <span><i
+                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($location); ?></span>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small mb-1"><?php echo $v['report_date'] ?? date('Y-m-d'); ?></div>
-                                    <span
-                                        class="modern-badge badge-soft-primary"><?php echo htmlspecialchars($v['status'] ?? 'Reported'); ?></span>
+                                    <span class="modern-badge badge-soft-primary">Logged</span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1190,9 +1187,10 @@ if ($conn) {
                         </div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="violator_report.php" class="btn btn-primary rounded-pill px-4">Full
-                        System</a><button type="button" class="btn btn-secondary rounded-pill"
-                        data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer">
+                    <a href="violator_report.php" class="btn btn-primary rounded-pill px-4">Full System</a>
+                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1216,7 +1214,6 @@ if ($conn) {
                     <?php if (!empty($recent_guidance)): ?>
                         <?php foreach ($recent_guidance as $g): ?>
                             <?php
-                            // Logic to get Reason from JSON
                             $reasons_arr = json_decode($g['reasons'] ?? '[]', true);
                             $display_reason = !empty($reasons_arr) ? $reasons_arr[0] : ($g['other_reason'] ?: 'Referral');
                             if (is_array($reasons_arr) && count($reasons_arr) > 1) {
@@ -1376,8 +1373,8 @@ if ($conn) {
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small mb-1">
-                                        <?php echo htmlspecialchars($req['incident_date'] ?? ''); ?>
-                                    </div><span class="modern-badge badge-soft-info">Pending</span>
+                                        <?php echo htmlspecialchars($req['incident_date'] ?? ''); ?></div><span
+                                        class="modern-badge badge-soft-info">Pending</span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1452,10 +1449,9 @@ if ($conn) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="empPermitSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name...">
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
+                                class="fas fa-search"></i></span><input type="text" id="empPermitSearch"
+                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
                     </div>
                 </div>
                 <div class="modal-body" id="employeePermitsContainer">
@@ -1498,10 +1494,9 @@ if ($conn) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="stuPermitSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name...">
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
+                                class="fas fa-search"></i></span><input type="text" id="stuPermitSearch"
+                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
                     </div>
                 </div>
                 <div class="modal-body" id="studentPermitsContainer">
@@ -1544,9 +1539,8 @@ if ($conn) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group">
-                        <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="nonProPermitSearch"
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
+                                class="fas fa-search"></i></span><input type="text" id="nonProPermitSearch"
                             class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
                     </div>
                 </div>
@@ -1611,44 +1605,28 @@ if ($conn) {
         const icon = toggleBtn.querySelector('i');
         const html = document.documentElement;
 
-        // Set initial icon based on what PHP rendered
         function updateIcon(theme) { icon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon'; }
         updateIcon(html.getAttribute('data-bs-theme'));
-        // Handle Toggle Click
+
         toggleBtn.addEventListener('click', () => {
             const currentTheme = html.getAttribute('data-bs-theme');
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-            // 1. Update HTML immediately
             html.setAttribute('data-bs-theme', newTheme);
-
-            // 2. Update Icon
             updateIcon(newTheme);
-
-            // 3. Save to Cookie (This is key for PHP on next reload) - Path is root /
             document.cookie = "theme=" + newTheme + "; path=/; max-age=31536000";
-
-            // 4. Save to LocalStorage (for other pages that might only check LS)
             localStorage.setItem('appTheme', newTheme);
         });
 
-        // --- SYNC SCRIPT: Ensure Theme Consistency on Load ---
-        // This fixes the issue where navigating from a page using LocalStorage would result in mismatch
         document.addEventListener('DOMContentLoaded', function () {
             const serverTheme = html.getAttribute('data-bs-theme');
             const storedTheme = localStorage.getItem('appTheme');
-
-            // If localStorage exists and is different from server render (cookie), sync them
             if (storedTheme && storedTheme !== serverTheme) {
-                // Apply the stored theme immediately
                 html.setAttribute('data-bs-theme', storedTheme);
                 updateIcon(storedTheme);
-                // Update the cookie so PHP gets it right next time
                 document.cookie = "theme=" + storedTheme + "; path=/; max-age=31536000";
             }
         });
 
-        // Search redirection logic
         document.getElementById('searchForm').addEventListener('submit', function (e) {
             e.preventDefault();
             let val = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -1661,6 +1639,7 @@ if ($conn) {
             else if (val.includes('facilities')) window.location.href = 'facilities_and_inspection.php';
             else window.location.href = 'dashboard.php';
         });
+
         function attachSearch(inputId, containerId) {
             const input = document.getElementById(inputId);
             if (input) {
@@ -1684,24 +1663,22 @@ if ($conn) {
         attachSearch('facilitiesSearch', 'facilitiesContainer');
         attachSearch('violatorSearch', 'violatorContainer');
         attachSearch('guidanceSearch', 'guidanceContainer');
-        // New Search attachments
         attachSearch('activeUserSearch', 'activeUsersContainer');
         attachSearch('pendingSearch', 'pendingRequestsContainer');
+
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
             var calendarEl = document.getElementById('calendar');
             var modal = new bootstrap.Modal(document.getElementById('eventModal'));
-
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth', height: 500, headerToolbar: { left: 'prev,next', center: 'title', right: 'dayGridMonth,timeGridWeek' },
                 events: 'event_handler.php?action=fetch',
                 selectable: true,
                 select: function (info) { document.getElementById('eventForm').reset(); document.getElementById('eventStart').value = info.startStr + "T09:00"; document.getElementById('eventEnd').value = info.startStr + "T10:00"; modal.show(); }
             });
-
             calendar.render();
         });
     </script>
 </body>
+
 </html>
