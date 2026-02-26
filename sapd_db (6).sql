@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 05, 2026 at 07:59 AM
+-- Generation Time: Feb 26, 2026 at 01:26 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -61,6 +61,27 @@ CREATE TABLE `events` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `facilities_inspections`
+--
+
+CREATE TABLE `facilities_inspections` (
+  `id` int(11) NOT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `department` varchar(255) DEFAULT NULL,
+  `reporter` varchar(255) DEFAULT NULL,
+  `report_date` date NOT NULL,
+  `report_time` time NOT NULL,
+  `concerns` text DEFAULT NULL,
+  `other_concern` varchar(255) DEFAULT NULL,
+  `description` text NOT NULL,
+  `image_paths` text DEFAULT NULL,
+  `status` varchar(50) DEFAULT 'Recorded',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `facility_inspections`
 --
 
@@ -103,6 +124,18 @@ CREATE TABLE `global_permit_sequence` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `guidance_images`
+--
+
+CREATE TABLE `guidance_images` (
+  `id` int(11) NOT NULL,
+  `referral_id` int(11) NOT NULL,
+  `file_path` varchar(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `guidance_referrals`
 --
 
@@ -124,7 +157,9 @@ CREATE TABLE `guidance_referrals` (
   `referral_time` time DEFAULT NULL,
   `reason_list` text DEFAULT NULL,
   `other_reason` varchar(255) DEFAULT NULL,
-  `description` text NOT NULL
+  `description` text NOT NULL,
+  `referrer` varchar(255) DEFAULT NULL,
+  `reasons` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -206,6 +241,60 @@ CREATE TABLE `non_pro_permits` (
   `school_year` varchar(50) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `parking_applications`
+--
+
+CREATE TABLE `parking_applications` (
+  `id` int(11) NOT NULL,
+  `app_date` date DEFAULT NULL,
+  `file_no` varchar(50) DEFAULT NULL,
+  `applicant_type` enum('Employee','Student') DEFAULT 'Employee',
+  `last_name` varchar(100) DEFAULT NULL,
+  `first_name` varchar(100) DEFAULT NULL,
+  `mi` varchar(10) DEFAULT NULL,
+  `department` varchar(100) DEFAULT NULL,
+  `address` text DEFAULT NULL,
+  `cel_no` varchar(50) DEFAULT NULL,
+  `license_no` varchar(50) DEFAULT NULL,
+  `or_no` varchar(50) DEFAULT NULL,
+  `cr_no` varchar(50) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `fb_account` varchar(100) DEFAULT NULL,
+  `p_type` varchar(50) DEFAULT NULL,
+  `p_brand` varchar(50) DEFAULT NULL,
+  `p_color` varchar(50) DEFAULT NULL,
+  `emergency_name` varchar(150) DEFAULT NULL,
+  `emergency_addr` varchar(255) DEFAULT NULL,
+  `emergency_rel` varchar(50) DEFAULT NULL,
+  `emergency_contact` varchar(50) DEFAULT NULL,
+  `extra_vehicles` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`extra_vehicles`)),
+  `documents` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`documents`)),
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `applicant_name` varchar(255) DEFAULT '',
+  `contact_number` varchar(255) DEFAULT '',
+  `vehicle_type` varchar(255) DEFAULT '',
+  `vehicle_brand` varchar(255) DEFAULT '',
+  `vehicle_color` varchar(255) DEFAULT '',
+  `emerg_name` varchar(255) DEFAULT '',
+  `emerg_address` varchar(255) DEFAULT '',
+  `emerg_relation` varchar(255) DEFAULT '',
+  `emerg_contact` varchar(255) DEFAULT '',
+  `image_paths` varchar(255) DEFAULT '',
+  `checklist_data` varchar(255) DEFAULT '',
+  `secondary_vehicles` varchar(255) DEFAULT '',
+  `violation_data` varchar(255) DEFAULT ''
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `parking_applications`
+--
+
+INSERT INTO `parking_applications` (`id`, `app_date`, `file_no`, `applicant_type`, `last_name`, `first_name`, `mi`, `department`, `address`, `cel_no`, `license_no`, `or_no`, `cr_no`, `email`, `fb_account`, `p_type`, `p_brand`, `p_color`, `emergency_name`, `emergency_addr`, `emergency_rel`, `emergency_contact`, `extra_vehicles`, `documents`, `created_at`, `applicant_name`, `contact_number`, `vehicle_type`, `vehicle_brand`, `vehicle_color`, `emerg_name`, `emerg_address`, `emerg_relation`, `emerg_contact`, `image_paths`, `checklist_data`, `secondary_vehicles`, `violation_data`) VALUES
+(1, NULL, NULL, 'Employee', NULL, NULL, NULL, 'BSHM', 'Lacmit Arayat Pampanga', NULL, 'c1024006075', '2233904680', '48547067', 'Christianjeffluciano@gmail.com', 'Christian jeff luciano', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-02-16 05:10:42', 'Luciano, christian jeff, garcia', '09567548085', 'Single Motor', 'Aerox Yamaha', 'Black', 'Florencia Luciano', 'Lacmit Arayat Pampanga', 'Mother', '0956718085', '', '', '', '');
 
 -- --------------------------------------------------------
 
@@ -320,6 +409,23 @@ CREATE TABLE `vaping_reports` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `violator_logs`
+--
+
+CREATE TABLE `violator_logs` (
+  `id` int(11) NOT NULL,
+  `report_date` date NOT NULL,
+  `student_name` varchar(255) DEFAULT NULL,
+  `location` varchar(255) DEFAULT NULL,
+  `violation` varchar(255) DEFAULT NULL,
+  `report_time` time NOT NULL,
+  `officer_name` varchar(255) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -334,6 +440,12 @@ ALTER TABLE `cctv_requests`
 -- Indexes for table `events`
 --
 ALTER TABLE `events`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `facilities_inspections`
+--
+ALTER TABLE `facilities_inspections`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -353,6 +465,13 @@ ALTER TABLE `form_submissions`
 --
 ALTER TABLE `global_permit_sequence`
   ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `guidance_images`
+--
+ALTER TABLE `guidance_images`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `referral_id` (`referral_id`);
 
 --
 -- Indexes for table `guidance_referrals`
@@ -376,6 +495,12 @@ ALTER TABLE `layout_settings`
 -- Indexes for table `non_pro_permits`
 --
 ALTER TABLE `non_pro_permits`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indexes for table `parking_applications`
+--
+ALTER TABLE `parking_applications`
   ADD PRIMARY KEY (`id`);
 
 --
@@ -410,6 +535,12 @@ ALTER TABLE `vaping_reports`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `violator_logs`
+--
+ALTER TABLE `violator_logs`
+  ADD PRIMARY KEY (`id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -417,7 +548,7 @@ ALTER TABLE `vaping_reports`
 -- AUTO_INCREMENT for table `cctv_requests`
 --
 ALTER TABLE `cctv_requests`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `events`
@@ -426,10 +557,16 @@ ALTER TABLE `events`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `facilities_inspections`
+--
+ALTER TABLE `facilities_inspections`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `facility_inspections`
 --
 ALTER TABLE `facility_inspections`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `form_submissions`
@@ -444,16 +581,22 @@ ALTER TABLE `global_permit_sequence`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `guidance_images`
+--
+ALTER TABLE `guidance_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `guidance_referrals`
 --
 ALTER TABLE `guidance_referrals`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `incident_reports`
 --
 ALTER TABLE `incident_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `layout_settings`
@@ -466,6 +609,12 @@ ALTER TABLE `layout_settings`
 --
 ALTER TABLE `non_pro_permits`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `parking_applications`
+--
+ALTER TABLE `parking_applications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `permits`
@@ -489,7 +638,23 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `vaping_reports`
 --
 ALTER TABLE `vaping_reports`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+
+--
+-- AUTO_INCREMENT for table `violator_logs`
+--
+ALTER TABLE `violator_logs`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `guidance_images`
+--
+ALTER TABLE `guidance_images`
+  ADD CONSTRAINT `guidance_images_ibfk_1` FOREIGN KEY (`referral_id`) REFERENCES `guidance_referrals` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

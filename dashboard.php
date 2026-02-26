@@ -79,14 +79,14 @@ if ($conn) {
     $stats['total_permits'] = $stats['emp_permit'] + $stats['student_permit'] + $stats['non_pro_permit'];
 
     // --- FORM COUNTS ---
-    // FIXED: Changed table name to violator_logs
     $stats['violator'] = get_cnt($conn, "SELECT COUNT(*) as c FROM violator_logs");
     $stats['guidance'] = get_cnt($conn, "SELECT COUNT(*) as c FROM guidance_referrals");
     $stats['facilities'] = get_cnt($conn, "SELECT COUNT(*) as c FROM facility_inspections");
     $stats['incident'] = get_cnt($conn, "SELECT COUNT(*) as c FROM incident_reports");
     $stats['vaping'] = get_cnt($conn, "SELECT COUNT(*) as c FROM vaping_reports");
 
-    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM form_submissions WHERE form_type='parking'");
+    // Count strictly from parking_applications
+    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM parking_applications");
 
     $stats['cctv_req'] = get_cnt($conn, "SELECT COUNT(*) as c FROM cctv_requests");
 
@@ -182,10 +182,9 @@ if ($conn) {
     } catch (Exception $e) {
     }
 
-    // 8. Violator Reports (FIXED TABLE NAME)
+    // 8. Violator Reports
     $recent_violators = [];
     try {
-        // Changed from violator_reports to violator_logs
         $res = $conn->query("SELECT * FROM violator_logs ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
@@ -200,6 +199,16 @@ if ($conn) {
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_guidance[] = $row;
+    } catch (Exception $e) {
+    }
+
+    // 10. Parking Applications (New Fetch for Modal)
+    $recent_parking = [];
+    try {
+        $res = $conn->query("SELECT * FROM parking_applications ORDER BY id DESC LIMIT 10");
+        if ($res)
+            while ($row = $res->fetch_assoc())
+                $recent_parking[] = $row;
     } catch (Exception $e) {
     }
 }
@@ -893,8 +902,8 @@ if ($conn) {
                             class="fas fa-exclamation-triangle me-3"></i> Incident Report</a></li>
                 <li class="nav-item"><a class="nav-link" href="vaping_incident.php"><i
                             class="fas fa-smoking-ban me-3"></i> Vaping Incident</a></li>
-                <li class="nav-item"><a class="nav-link" href="view_details.php?view=parking"><i
-                            class="fas fa-car-crash me-3"></i> Parking Form</a></li>
+                <li class="nav-item"><a class="nav-link" href="student_and_employee_form.php"><i
+                            class="fas fa-car me-3"></i> Parking Form</a></li>
                 <li class="nav-item"><a class="nav-link" href="cctv_review_form.php"><i class="fas fa-video me-3"></i>
                         CCTV Review</a></li>
                 <li class="nav-item"><a class="nav-link" href="facilities_and_inspection.php"><i
@@ -976,13 +985,11 @@ if ($conn) {
                 </div>
             </div>
             <div class="col mini-card-col">
-                <a href="view_details.php?view=parking" class="card-link">
-                    <div class="mini-card">
-                        <div class="mini-icon text-success"><i class="fas fa-car"></i></div>
-                        <div class="mini-value"><?php echo $stats['parking_form']; ?></div>
-                        <div class="mini-label">Parking</div>
-                    </div>
-                </a>
+                <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#parkingModal">
+                    <div class="mini-icon text-success"><i class="fas fa-car"></i></div>
+                    <div class="mini-value"><?php echo $stats['parking_form']; ?></div>
+                    <div class="mini-label">Parking</div>
+                </div>
             </div>
             <div class="col mini-card-col">
                 <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#cctvRequestsModal">
@@ -1373,8 +1380,8 @@ if ($conn) {
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small mb-1">
-                                        <?php echo htmlspecialchars($req['incident_date'] ?? ''); ?></div><span
-                                        class="modern-badge badge-soft-info">Pending</span>
+                                        <?php echo htmlspecialchars($req['incident_date'] ?? ''); ?>
+                                    </div><span class="modern-badge badge-soft-info">Pending</span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -1436,6 +1443,55 @@ if ($conn) {
                         class="btn text-white rounded-pill px-4" style="background-color: #9c27b0;">Full
                         System</a><button type="button" class="btn btn-secondary rounded-pill"
                         data-bs-dismiss="modal">Close</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="parkingModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold text-success"><i class="fas fa-car me-2"></i>Recent Parking
+                        Applications</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="p-3 sticky-top modal-search-container">
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
+                                class="fas fa-search"></i></span><input type="text" id="parkingSearch"
+                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
+                    </div>
+                </div>
+                <div class="modal-body" id="parkingContainer">
+                    <?php if (!empty($recent_parking)): ?>
+                        <?php foreach ($recent_parking as $p): ?>
+                            <div class="modern-list-item">
+                                <div class="d-flex align-items-center">
+                                    <div class="list-avatar success"><i class="fas fa-car"></i></div>
+                                    <div class="list-info">
+                                        <div class="list-title">
+                                            <?php echo htmlspecialchars($p['name'] ?? $p['applicant_name'] ?? 'Applicant'); ?>
+                                        </div>
+                                        <div class="list-subtitle"><span><i
+                                                    class="fas fa-id-card me-1"></i><?php echo htmlspecialchars($p['role'] ?? 'Application'); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-end">
+                                    <div class="text-muted small mb-1"><?php echo $p['created_at'] ?? date('Y-m-d'); ?></div>
+                                    <span
+                                        class="modern-badge badge-soft-success"><?php echo htmlspecialchars($p['status'] ?? 'Submitted'); ?></span>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-5"><i class="fas fa-car-crash fa-3x text-muted mb-3 opacity-50"></i>
+                            <p class="text-muted fw-bold">No parking records found.</p>
+                        </div>
+                    <?php endif; ?>
+                </div>
+                <div class="modal-footer"><a href="student_and_employee_form.php"
+                        class="btn btn-success text-white rounded-pill px-4">Full System</a><button type="button"
+                        class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1634,7 +1690,7 @@ if ($conn) {
             else if (val.includes('guidance')) window.location.href = 'guidance_referral.php';
             else if (val.includes('incident')) window.location.href = 'incident_report.php';
             else if (val.includes('vaping')) window.location.href = 'vaping_incident.php';
-            else if (val.includes('parking')) window.location.href = 'view_details.php?view=parking';
+            else if (val.includes('parking')) window.location.href = 'student_and_employee_form.php';
             else if (val.includes('cctv')) window.location.href = 'cctv_review_form.php';
             else if (val.includes('facilities')) window.location.href = 'facilities_and_inspection.php';
             else window.location.href = 'dashboard.php';
@@ -1665,6 +1721,8 @@ if ($conn) {
         attachSearch('guidanceSearch', 'guidanceContainer');
         attachSearch('activeUserSearch', 'activeUsersContainer');
         attachSearch('pendingSearch', 'pendingRequestsContainer');
+        // Added search for the new Parking Modal
+        attachSearch('parkingSearch', 'parkingContainer');
 
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
