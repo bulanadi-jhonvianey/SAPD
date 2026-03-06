@@ -25,7 +25,7 @@ if ($conn->connect_error) {
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
 
-// Table Setup - ADDED NEW COLUMNS
+// Table Setup (image_size changed to TEXT to store JSON arrays)
 $table_sql = "CREATE TABLE IF NOT EXISTS incident_reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     case_title VARCHAR(255) NOT NULL,
@@ -38,11 +38,13 @@ $table_sql = "CREATE TABLE IF NOT EXISTS incident_reports (
     parent_name VARCHAR(255) DEFAULT NULL,
     adviser VARCHAR(255) DEFAULT NULL,
     image_paths TEXT DEFAULT NULL, 
+    image_size TEXT DEFAULT NULL,
     status VARCHAR(50) DEFAULT 'Recorded',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 $conn->query($table_sql);
-// Auto-Repair Columns - ADDED NEW COLUMNS TO CHECK
+
+// Auto-Repair Columns (Upgrade image_size to TEXT if it was INT)
 $required_columns = [
     'case_title' => 'VARCHAR(255) NOT NULL',
     'location' => 'VARCHAR(255) NOT NULL',
@@ -53,7 +55,8 @@ $required_columns = [
     'level_section' => 'VARCHAR(100) DEFAULT NULL',
     'parent_name' => 'VARCHAR(255) DEFAULT NULL',
     'adviser' => 'VARCHAR(255) DEFAULT NULL',
-    'image_paths' => 'TEXT DEFAULT NULL'
+    'image_paths' => 'TEXT DEFAULT NULL',
+    'image_size' => 'TEXT DEFAULT NULL'
 ];
 
 foreach ($required_columns as $col => $def) {
@@ -64,6 +67,12 @@ foreach ($required_columns as $col => $def) {
         $row = $check->fetch_assoc();
         if (strpos(strtolower($row['Type']), 'varchar') !== false) {
             $conn->query("ALTER TABLE incident_reports CHANGE $col $col $def");
+        }
+    } else if ($check && $col === 'image_size') {
+        $row = $check->fetch_assoc();
+        if (strpos(strtolower($row['Type']), 'int') !== false) {
+            // Upgrade existing INT column to TEXT for JSON storage
+            $conn->query("ALTER TABLE incident_reports CHANGE $col $col TEXT DEFAULT NULL");
         }
     }
 }
@@ -90,11 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $date = $conn->real_escape_string($_POST['incident_date']);
     $time = $conn->real_escape_string($_POST['incident_time']);
     $desc = $conn->real_escape_string($_POST['description']);
-    // Capture New Fields
     $student = $conn->real_escape_string($_POST['student_name']);
     $level = $conn->real_escape_string($_POST['level_section']);
     $parent = $conn->real_escape_string($_POST['parent_name']);
     $adviser = $conn->real_escape_string($_POST['adviser']);
+    $img_size = isset($_POST['image_size']) && !empty($_POST['image_size']) ? $conn->real_escape_string($_POST['image_size']) : '[]';
 
     $image_paths_json = null;
     $uploaded_files = [];
@@ -135,18 +144,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
         if (!empty($uploaded_files)) {
             $image_paths_json = json_encode($uploaded_files);
         }
-        // Updated INSERT to include new fields
-        $stmt = $conn->prepare("INSERT INTO incident_reports (case_title, location, incident_date, incident_time, description, student_name, level_section, parent_name, adviser, image_paths) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        
+        $stmt = $conn->prepare("INSERT INTO incident_reports (case_title, location, incident_date, incident_time, description, student_name, level_section, parent_name, adviser, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
             $error_msg = "<strong>Database Error:</strong> " . $conn->error;
         } else {
-            $stmt->bind_param("ssssssssss", $case, $loc, $date, $time, $desc, $student, $level, $parent, $adviser, $image_paths_json);
+            // Note: img_size is now bound as a string ("s")
+            $stmt->bind_param("sssssssssss", $case, $loc, $date, $time, $desc, $student, $level, $parent, $adviser, $image_paths_json, $img_size);
 
             if ($stmt->execute()) {
                 $_SESSION['incident_print_queue'][] = [
-                    'case' => strtoupper($case),
-                    'loc' => strtoupper($loc),
+                    'case' => $case,
+                    'loc' => $loc,
                     'date' => $date,
                     'time' => $time,
                     'desc' => $desc,
@@ -154,7 +164,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
                     'level' => $level,
                     'parent' => $parent,
                     'adviser' => $adviser,
-                    'image_paths' => $uploaded_files
+                    'image_paths' => $uploaded_files,
+                    'image_size' => $img_size
                 ];
                 header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
                 exit();
@@ -221,6 +232,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -362,7 +386,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             margin: 20px;
         }
 
-        .form-control {
+        .form-control, .form-range {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text-main);
@@ -414,7 +438,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border-radius: 4px;
         }
 
-        /* --- IMAGE PREVIEWS --- */
+        /* --- FORM IMAGE PREVIEWS --- */
         .form-preview-item {
             position: relative;
             width: 80px;
@@ -453,13 +477,84 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             background: rgba(220, 53, 69, 1);
         }
 
-        /* --- PAPER FORM DESIGN (SCREEN PREVIEW) --- */
+        /* --- NEW HEADER LAYOUT --- */
+        .new-header-wrapper {
+            position: relative;
+            width: calc(100% + 0.5in);
+            margin-left: -0.25in;
+            margin-right: -0.25in;
+            margin-top: -0.25in;
+            padding-top: 0;
+            margin-bottom: 5px;
+        }
+
+        /* LOGO POSITION FIX - Set to Absolute instead of Fixed */
+        .new-header-logo {
+            position: absolute;
+            left: 0.10in;
+            top: -15px;
+            width: 183px;
+            height: auto;
+            z-index: 10;
+        }
+
+        .new-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-left: 1.6in;
+            padding-right: 0.5in;
+            padding-bottom: 5px;
+            min-height: 45px;
+        }
+
+        .new-header-title {
+            font-family: "Old English Text MT", serif;
+            font-size: 26pt;
+            color: #002060;
+            margin: 0;
+            line-height: 0.9;
+            white-space: nowrap;
+        }
+
+        .new-header-address {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 8pt;
+            color: #002060;
+            margin: 0;
+            padding-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .new-header-bar {
+            background-color: #FFB800;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5in;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .new-header-url {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #002060;
+            margin: 0;
+        }
+
+        /* --- PAPER FORM DESIGN --- */
         .hcc-form {
             width: 8.5in;
             height: 14in;
             background: white;
             color: black;
-            padding: 0.25in 0.5in 0.25in 0.5in;
+            padding: 0.75in 0.25in 0.25in 0.25in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -472,62 +567,45 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             flex-direction: column;
         }
 
-        .header-layout {
-            position: relative;
-            width: 100%;
-            margin: 0;
-        }
-
-       .logo-left {
-            width: 185px !important;
-            position: fixed !important;
-            left: -3px !important;
-            top: 35px !important;
-            z-index: 50 !important;
-        }
-
-        .header-banner {
-            width: calc(100% + 1in) !important;
-            display: block;
-            margin-left: -0.5in;
-            margin-right: -0.5in;
-            margin-top: 30px !important;
-            max-width: none !important;
-        }
-     /* MODIFIED FORM TITLE FOR LOGO */
-        .form-title {
+        .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            /* Space between logo and text */
-            margin: 10px 0 10px 0;
-            color: black;
+            gap: 15px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 60;
         }
 
-       .form-title-text {
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
             text-align: center;
+            margin-top: 5px;
         }
 
-        .form-title h2 {
-            font-family: "Bookman Old Style", "Bookman", serif !important;
-            font-weight: 900 !important;
-            font-size: 18px !important;
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
+            font-weight: 900;
+            font-size: 18px;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .form-title h3 {
-            font-family: Arial, sans-serif;
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
             font-weight: bold;
-            font-size: 13px;
-            margin: 2px 0 0 0;
             text-decoration: underline;
+            font-size: 14px;
+            margin: 2px 0 0 0;
             text-transform: uppercase;
         }
 
-       .form-table {
+        .form-table {
             width: 100%;
             border-collapse: collapse;
             border: 2px solid black;
@@ -540,7 +618,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border: 2px solid black;
             padding: 4px 6px;
             vertical-align: middle;
-            font-size: 10pt;
+            font-size: 11pt;
             color: black;
         }
 
@@ -552,51 +630,129 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             color: black;
         }
 
-        .desc-table {
-            width: 100%;
-            border-collapse: collapse;
+        .incident-box {
             border: 2px solid black;
-            border-top: none;
-            border-bottom: none;
-            margin: 0;
-            table-layout: fixed;
-        }
-
-        .desc-table td {
-            border-left: 2px solid black;
-            border-right: 2px solid black;
-            border-top: 1px solid black;
-            border-bottom: 1px solid black;
-            padding: 4px 6px;
-            vertical-align: top;
-            height: 500px;
-            position: relative;
-        }
-
-     .desc-content {
-            font-size: 10pt;
-            color: black;
-            height: 100%;
-            overflow: hidden;
-        }
-
-      .desc-box {
-            border: none;
-            margin-top: 5px;
             width: 100%;
-            background: transparent;
-            padding: 0px;
-            font-family: Arial, sans-serif;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            word-break: break-all;
+            flex-grow: 1;
+            min-height: 500px; 
+            margin-bottom: 0px; 
+            position: relative;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            color: black;
         }
+
+        .incident-header {
+            display: flex;
+            border-bottom: 2px solid black;
+        }
+
+        .incident-title {
+            padding: 5px 10px;
+            font-weight: bold;
+            border-right: 2px solid black;
+            white-space: nowrap;
+            font-size: 12pt;
+        }
+
+        .incident-subtitle {
+            padding: 5px 10px;
+            font-style: italic;
+            font-size: 11pt;
+            flex-grow: 1;
+        }
+
+        .incident-content {
+            padding: 5px 8px;
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            flex-grow: 1;
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            position: relative;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .desc-text {
+            white-space: pre-wrap;
+            display: block;
+            width: 100%;
+        }
+
+        .image-section {
+            display: none;
+            width: 100%;
+            margin-top: auto;
+            padding: 5px 0;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        /* --- CUSTOM DRAG-TO-RESIZE (ALL 4 SIDES) --- */
+        .resize-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px dashed transparent;
+            max-width: 100%;
+            min-width: 10%;
+            margin: 0;
+            padding: 0;
+            transition: border-color 0.2s;
+            user-select: none;
+        }
+        
+        .resize-wrapper:hover, .resize-wrapper:active {
+            border-color: rgba(0, 123, 255, 0.7);
+        }
+
+        .paper-preview-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none;
+            object-fit: contain;
+        }
+
+        /* --- INTERACTIVE DRAG HANDLES --- */
+        .resize-handle {
+            position: absolute;
+            background: #007bff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .resize-wrapper:hover .resize-handle, 
+        .resize-wrapper:active .resize-handle {
+            opacity: 1;
+        }
+
+        /* Corners */
+        .resizer-nw { top: -6px; left: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+        .resizer-ne { top: -6px; right: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
+        .resizer-sw { bottom: -6px; left: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
+        .resizer-se { bottom: -6px; right: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+        
+        /* Edges */
+        .resizer-n { top: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
+        .resizer-s { bottom: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
+        .resizer-e { top: 50%; right: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
+        .resizer-w { top: 50%; left: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
 
         .signatures-table {
             width: 100%;
             border-collapse: collapse;
             border: 2px solid black;
-            border-top: none;
+            border-top: none; 
             margin-top: 0px;
             color: black;
             table-layout: fixed;
@@ -606,11 +762,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border: 2px solid black;
             width: 50%;
             vertical-align: bottom;
-            font-size: 9pt;
+            font-size: 10pt;
             font-weight: bold;
             text-align: center;
-            height: 80px;
-            /* FIXED HEIGHT TO MAINTAIN TABLE SIZE */
+            height: 95px; 
             padding-bottom: 8px;
             padding-left: 5px;
             padding-right: 5px;
@@ -622,43 +777,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             width: 90%;
             margin: 0 auto 5px auto;
         }
-        /* NEW: Class for filled-in values on signatures to sit above line */
+
         .sig-val {
             font-family: 'Courier New', Courier, monospace;
-            font-size: 11pt;
+            font-size: 12pt;
             font-weight: bold;
             text-transform: uppercase;
             position: absolute;
             bottom: 25px;
-            /* Positions text above the signature line */
             width: 100%;
             left: 0;
             text-align: center;
         }
 
-        .image-section {
-            display: none;
-            text-align: center;
-            page-break-inside: avoid;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-            pointer-events: none;
-        }
-
-        .paper-preview-img {
-            max-width: 48%;
-            max-height: 300px;
-            border: 1px solid #ccc;
-            margin: 5px;
-            display: inline-block;
-            vertical-align: top;
-            object-fit: contain;
-        }
-
         .form-footer {
-            margin-top: 15px;
+            margin-top: 10px;
             padding-bottom: 10px;
             background-color: white;
         }
@@ -693,7 +826,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-size: 8.5pt;
         }
 
-     .officer-container {
+        .officer-container {
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
@@ -733,7 +866,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
         /* --- PRINT MEDIA QUERIES --- */
         @page {
-            size: 8.5in 14in;
+            size: auto;
             margin: 0;
         }
 
@@ -748,6 +881,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 padding: 0 !important;
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             .navbar,
@@ -772,8 +906,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
-                width: 8.5in !important;
-                height: 14in !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.75in 0.25in 0.25in 0.25in !important; 
             }
 
             .print-blank #print-area {
@@ -793,19 +929,43 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
-                width: 8.5in !important;
-                height: 14in !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.75in 0.25in 0.25in 0.25in !important; 
             }
 
-            .header-banner {
-                width: calc(100% + 1in) !important;
-                margin-left: -0.5in !important;
-                margin-right: -0.5in !important;
-                margin-top: 30px !important;
+            .new-header-wrapper {
+                margin-top: -0.25in !important;
+                margin-left: -0.25in !important;
+                margin-right: -0.25in !important;
+                padding-top: 0 !important;
+            }
+
+            /* MATCHING LOGO POSITION FOR PRINT */
+            .new-header-logo {
+                position: absolute !important;
+                top: -15px !important; 
+                left: 0.10in !important;
+                width: 180px !important;
+            }
+
+            .new-header-title,
+            .new-header-address,
+            .new-header-url {
+                color: #002060 !important;
             }
 
             .image-section {
-                display: block !important;
+                display: flex !important;
+            }
+
+            /* Disable resize elements on print */
+            .resize-wrapper {
+                border: none !important;
+            }
+            .resize-handle {
+                display: none !important;
             }
         }
 
@@ -945,9 +1105,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <textarea name="description" id="in_desc" class="form-control" rows="8"
                     placeholder="Description of Incident..." required oninput="updatePreview()"></textarea>
 
+                <input type="hidden" name="image_size" id="in_img_size" value="[]">
+
                 <div class="mb-3 mt-3">
-                    <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images
-                        (Optional, JPG/PNG/GIF)</label>
+                    <label class="small text-secondary mb-2 d-block">
+                        <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
+                        <br>
+                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                    </label>
 
                     <input type="file" name="incident_images[]" id="in_images" class="d-none"
                         accept="image/png, image/gif, image/jpeg" multiple>
@@ -1004,14 +1169,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             </div>
 
             <div class="hcc-form" id="paper-preview">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                <div class="new-header-wrapper">
+                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                    
+                    <div class="new-header-top">
+                        <div class="new-header-title">Holy Cross College</div>
+                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                    </div>
+                    
+                    <div class="new-header-bar">
+                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    </div>
                 </div>
 
-                <div class="form-title">
-                    <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                    <div class="form-title-text">
+                <div class="division-header">
+                    <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                    <div class="division-title">
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
                         <h3>INCIDENT REPORT</h3>
                     </div>
@@ -1036,19 +1209,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </tr>
                 </table>
 
-                <table class="desc-table">
-                    <tr>
-                        <td>
-                            <div class="desc-content">
-                                <strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                    style="font-size: 8pt; font-style: italic;">(What happened, person involved,
-                                    specific dates/events)</span>
-                                <div class="desc-box"><span id="out_desc"></span></div>
-                                <div class="image-section" id="out_images_container"></div>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+                <div class="incident-box">
+                    <div class="incident-header">
+                        <div class="incident-title">DESCRIPTION OF INCIDENT</div>
+                        <div class="incident-subtitle">What happened, persons involved, specific dates/events</div>
+                    </div>
+                    <div class="incident-content">
+                        <span id="out_desc" class="desc-text"></span>
+                        <div class="image-section" id="out_images_container"></div>
+                    </div>
+                </div>
 
                 <table class="signatures-table">
                     <tr>
@@ -1126,25 +1296,47 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         <?php if (count($_SESSION['incident_print_queue']) > 0):
             foreach ($_SESSION['incident_print_queue'] as $p):
                 $t = strtotime($p['time']);
-                $print_time = date("h:i A", $t); ?>
+                $print_time = date("h:i A", $t); 
+                
+                // Parse the array of sizes, or fallback to 50 if it was saved before the update
+                $print_sizes = [];
+                if (!empty($p['image_size'])) {
+                    $decoded_sizes = json_decode($p['image_size'], true);
+                    if (is_array($decoded_sizes)) {
+                        $print_sizes = $decoded_sizes;
+                    } else {
+                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                    }
+                }
+                ?>
                 <div class="hcc-form">
-                    <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                            src="header_hcc.png" alt="Header" class="header-banner"></div>
-                    <div class="form-title">
-                        <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                        <div class="form-title-text">
+                    <div class="new-header-wrapper">
+                        <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="new-header-top">
+                            <div class="new-header-title">Holy Cross College</div>
+                            <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                        </div>
+                        <div class="new-header-bar">
+                            <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                        </div>
+                    </div>
+
+                    <div class="division-header">
+                        <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                        <div class="division-title">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
                             <h3>INCIDENT REPORT</h3>
                         </div>
                     </div>
+
                     <table class="form-table">
                         <tr>
                             <td class="label-cell">CASE</td>
-                            <td class="input-cell"><?php echo $p['case']; ?></td>
+                            <td class="input-cell"><?php echo htmlspecialchars($p['case']); ?></td>
                         </tr>
                         <tr>
                             <td class="label-cell">LOCATION</td>
-                            <td class="input-cell"><?php echo $p['loc']; ?></td>
+                            <td class="input-cell"><?php echo htmlspecialchars($p['loc']); ?></td>
                         </tr>
                         <tr>
                             <td class="label-cell">DATE</td>
@@ -1155,40 +1347,49 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             <td class="input-cell"><?php echo $print_time; ?></td>
                         </tr>
                     </table>
-                    <table class="desc-table">
-                        <tr>
-                            <td>
-                                <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong>
-                                    <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
-                                    <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
-                                        <div class="image-section" style="display:block;">
-                                            <?php foreach ($p['image_paths'] as $path): ?>                 <?php if (file_exists($path)): ?><img
-                                                        src="<?php echo $path; ?>" class="paper-preview-img"
-                                                        alt="Evidence"><?php endif; ?><?php endforeach; ?>
-                                        </div><?php endif; ?>
+
+                    <div class="incident-box">
+                        <div class="incident-header">
+                            <div class="incident-title">DESCRIPTION OF INCIDENT</div>
+                            <div class="incident-subtitle">What happened, persons involved, specific dates/events</div>
+                        </div>
+                        <div class="incident-content">
+                            <span class="desc-text"><?php echo nl2br(htmlspecialchars($p['desc'])); ?></span>
+                            <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
+                                <div class="image-section" style="display:flex!important;">
+                                    <?php foreach ($p['image_paths'] as $idx => $path): ?>
+                                        <?php 
+                                        $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 50;
+                                        if (file_exists($path)): 
+                                        ?>
+                                            <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                                <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
+                                            </div>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
                                 </div>
-                            </td>
-                        </tr>
-                    </table>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
                     <table class="signatures-table">
                         <tr>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['student']); ?></div>
+                                <div class="sig-val"><?php echo htmlspecialchars($p['student']); ?></div>
                                 <div class="sig-line"></div>Student's Name/ Signature
                             </td>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['parent']); ?></div>
+                                <div class="sig-val"><?php echo htmlspecialchars($p['parent']); ?></div>
                                 <div class="sig-line"></div>Parent's Name/Signature/ Contact Number
                             </td>
                         </tr>
                         <tr>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['level']); ?></div>
+                                <div class="sig-val"><?php echo htmlspecialchars($p['level']); ?></div>
                                 <div class="sig-line"></div>Level/ Section
                             </td>
                             <td>
-                                <div class="sig-val"><?php echo strtoupper($p['adviser']); ?></div>
+                                <div class="sig-val"><?php echo htmlspecialchars($p['adviser']); ?></div>
                                 <div class="sig-line"></div>Adviser
                             </td>
                         </tr>
@@ -1241,15 +1442,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
     <div id="print-blank-area">
         <div class="hcc-form">
-            <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                    src="header_hcc.png" alt="Header" class="header-banner"></div>
-            <div class="form-title">
-                <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                <div class="form-title-text">
+            <div class="new-header-wrapper">
+                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                <div class="new-header-top">
+                    <div class="new-header-title">Holy Cross College</div>
+                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                </div>
+                <div class="new-header-bar">
+                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                </div>
+            </div>
+
+            <div class="division-header">
+                <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                <div class="division-title">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
                     <h3>INCIDENT REPORT</h3>
                 </div>
             </div>
+
             <table class="form-table">
                 <tr>
                     <td class="label-cell">CASE</td>
@@ -1268,17 +1479,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <td class="input-cell">&nbsp;</td>
                 </tr>
             </table>
-            <table class="desc-table">
-                <tr>
-                    <td>
-                        <div class="desc-content"><strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                style="font-size: 8pt; font-style: italic;">(What happened, person involved, specific
-                                dates/events)</span>
-                            <div class="desc-box"></div>
-                        </div>
-                    </td>
-                </tr>
-            </table>
+
+            <div class="incident-box">
+                <div class="incident-header">
+                    <div class="incident-title">DESCRIPTION OF INCIDENT</div>
+                    <div class="incident-subtitle">What happened, persons involved, specific dates/events</div>
+                </div>
+                <div class="incident-content">
+                    <span class="desc-text"></span>
+                </div>
+            </div>
+
             <table class="signatures-table">
                 <tr>
                     <td>
@@ -1297,6 +1508,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </td>
                 </tr>
             </table>
+
             <div class="form-footer">
                 <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
                     the office of:</div>
@@ -1310,6 +1522,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <td>Others (Specify)</td>
                     </tr>
                 </table>
+
                 <div class="officer-section">
                     <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
                     <div class="officer-container">
@@ -1323,6 +1536,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         </div>
                     </div>
                 </div>
+
                 <div class="noted-section" style="margin-top: 30px;">
                     <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
                     <div style="text-align: left;">
@@ -1373,7 +1587,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <?php if ($recent_reports && $recent_reports->num_rows > 0): ?>
                         <?php while ($row = $recent_reports->fetch_assoc()): ?>
                             <?php
-                            // Prepare data for loading into preview
                             $preview_data = [
                                 'case' => $row['case_title'],
                                 'loc' => $row['location'],
@@ -1384,7 +1597,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                                 'level' => $row['level_section'],
                                 'parent' => $row['parent_name'],
                                 'adviser' => $row['adviser'],
-                                'images' => json_decode($row['image_paths'], true)
+                                'images' => json_decode($row['image_paths'], true),
+                                'image_size' => $row['image_size']
                             ];
                             $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
                             ?>
@@ -1465,12 +1679,44 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
         function printBlank() { document.body.classList.add('print-blank'); window.print(); }
 
+        // --- TEXT AUTO-SHRINK FUNCTION ---
+        function autoFitAllTexts() {
+            const containers = document.querySelectorAll('.incident-content');
+            
+            containers.forEach(container => {
+                const textEl = container.querySelector('.desc-text');
+                const imgEl = container.querySelector('.image-section');
+                
+                if (!textEl) return;
+                
+                // Reset to default font size to measure accurately
+                textEl.style.fontSize = '12pt';
+                
+                const availableHeight = container.clientHeight;
+                if (availableHeight === 0) return; // If hidden, we can't measure
+                
+                let imgHeight = 0;
+                if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
+                    imgHeight = imgEl.offsetHeight;
+                }
+                
+                let currentSize = 12;
+                const minSize = 7;
+                
+                while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
+                    currentSize -= 0.5;
+                    textEl.style.fontSize = currentSize + 'pt';
+                }
+            });
+        }
+
         let loadedImages = [];
         let isLoadedMode = false;
 
+        // --- UPDATE TEXT ONLY ---
         function updatePreview() {
-            document.getElementById('out_case').innerText = document.getElementById('in_case').value.toUpperCase();
-            document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
+            document.getElementById('out_case').innerText = document.getElementById('in_case').value;
+            document.getElementById('out_loc').innerText = document.getElementById('in_loc').value;
             document.getElementById('out_date').innerText = document.getElementById('in_date').value || '';
 
             let timeVal = document.getElementById('in_time').value;
@@ -1484,42 +1730,130 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
 
-            // Update New Fields in Preview
-            document.getElementById('out_student').innerText = document.getElementById('in_student').value.toUpperCase();
-            document.getElementById('out_level').innerText = document.getElementById('in_level').value.toUpperCase();
-            document.getElementById('out_parent').innerText = document.getElementById('in_parent').value.toUpperCase();
-            document.getElementById('out_adviser').innerText = document.getElementById('in_adviser').value.toUpperCase();
+            document.getElementById('out_student').innerText = document.getElementById('in_student').value;
+            document.getElementById('out_level').innerText = document.getElementById('in_level').value;
+            document.getElementById('out_parent').innerText = document.getElementById('in_parent').value;
+            document.getElementById('out_adviser').innerText = document.getElementById('in_adviser').value;
 
-            // Image Preview Logic
+            autoFitAllTexts();
+        }
+
+        // --- UPDATE IMAGES ONLY ---
+        function updateImagePreview() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
 
-            if (fileInput.files.length > 0) {
+            // --- Fetch current Array of Saved Sizes ---
+            let savedSizesVal = document.getElementById('in_img_size').value;
+            let sizeArray = [];
+            try {
+                sizeArray = JSON.parse(savedSizesVal);
+                if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
+            } catch(e) {
+                sizeArray = [parseInt(savedSizesVal) || 50];
+            }
 
+            // --- HELPER FUNCTION TO APPEND MS-WORD STYLE RESIZABLE IMAGES ---
+            function appendImage(src, index) {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'resize-wrapper';
+                
+                // Assign specifically saved size or fallback to 50
+                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 50;
+                wrapper.style.width = initialSize + '%';
+                
+                let img = document.createElement('img');
+                img.src = src;
+                img.className = 'paper-preview-img';
+                img.onload = function() { autoFitAllTexts(); };
+                
+                wrapper.appendChild(img);
+
+                // Inject 8 interaction handles (4 edges, 4 corners)
+                const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+                handles.forEach(dir => {
+                    let handle = document.createElement('div');
+                    handle.className = `resize-handle resizer-${dir}`;
+                    wrapper.appendChild(handle);
+                });
+
+                paperImageContainer.appendChild(wrapper);
+
+                // Custom JavaScript Drag & Resize Logic
+                const resizers = wrapper.querySelectorAll('.resize-handle');
+                let original_width = 0;
+                let original_mouse_x = 0;
+                let original_mouse_y = 0;
+
+                resizers.forEach(function(resizer) {
+                    resizer.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
+                        original_mouse_x = e.pageX;
+                        original_mouse_y = e.pageY;
+                        
+                        function resize(e) {
+                            let width = original_width;
+                            
+                            // Scale up or down depending on the direction of the handle pulled
+                            if (resizer.classList.contains('resizer-e') || resizer.classList.contains('resizer-se') || resizer.classList.contains('resizer-ne')) {
+                                width = original_width + (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-w') || resizer.classList.contains('resizer-sw') || resizer.classList.contains('resizer-nw')) {
+                                width = original_width - (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-s')) {
+                                width = original_width + (e.pageY - original_mouse_y);
+                            } else if (resizer.classList.contains('resizer-n')) {
+                                width = original_width - (e.pageY - original_mouse_y);
+                            }
+                            
+                            let percent = (width / paperImageContainer.clientWidth) * 100;
+                            if(percent > 100) percent = 100;
+                            if(percent < 10) percent = 10;
+                            wrapper.style.width = percent + '%';
+                        }
+                        
+                        function stopResize() {
+                            window.removeEventListener('mousemove', resize);
+                            window.removeEventListener('mouseup', stopResize);
+                            
+                            let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
+                            if(percent > 100) percent = 100;
+                            if(percent < 10) percent = 10;
+                            wrapper.style.width = percent + '%';
+                            
+                            // Loop over all images, gather their individual sizes, and save back to JSON Array
+                            let updatedSizes = [];
+                            document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
+                                updatedSizes.push(parseFloat(w.style.width) || 50);
+                            });
+                            document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
+                            
+                            autoFitAllTexts();
+                        }
+                        
+                        window.addEventListener('mousemove', resize);
+                        window.addEventListener('mouseup', stopResize);
+                    });
+                });
+            }
+
+            if (fileInput.files.length > 0) {
                 paperImageContainer.innerHTML = '';
-                paperImageContainer.style.display = 'block';
-                [...fileInput.files].forEach(file => {
+                paperImageContainer.style.display = 'flex';
+                [...fileInput.files].forEach((file, index) => {
                     let reader = new FileReader();
                     reader.onload = function (e) {
-                        let img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'paper-preview-img';
-                        paperImageContainer.appendChild(img);
+                        appendImage(e.target.result, index);
                     }
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-
                 paperImageContainer.innerHTML = '';
-                paperImageContainer.style.display = 'block';
-                loadedImages.forEach(src => {
-                    let img = document.createElement('img');
-                    img.src = src;
-                    img.className = 'paper-preview-img';
-                    paperImageContainer.appendChild(img);
+                paperImageContainer.style.display = 'flex';
+                loadedImages.forEach((src, index) => {
+                    appendImage(src, index);
                 });
             } else {
-
                 paperImageContainer.innerHTML = '';
                 paperImageContainer.style.display = 'none';
             }
@@ -1527,18 +1861,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
         // --- Load Data to Preview ---
         function loadToPreview(data) {
-
             document.getElementById('in_case').value = data.case;
             document.getElementById('in_loc').value = data.loc;
             document.getElementById('in_date').value = data.date;
             document.getElementById('in_time').value = data.time;
             document.getElementById('in_desc').value = data.desc;
 
-            // Load New Fields
             document.getElementById('in_student').value = data.student || '';
             document.getElementById('in_level').value = data.level || '';
             document.getElementById('in_parent').value = data.parent || '';
             document.getElementById('in_adviser').value = data.adviser || '';
+
+            // Apply Saved Image Sizes (JSON string array from DB)
+            let savedSize = data.image_size || '[]';
+            if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
+            document.getElementById('in_img_size').value = savedSize;
 
             loadedImages = data.images || [];
             isLoadedMode = true;
@@ -1546,6 +1883,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('in_images').value = "";
             document.getElementById('form-image-previews').innerHTML = "";
             const formPreviewContainer = document.getElementById('form-image-previews');
+            
             if (loadedImages.length > 0) {
                 loadedImages.forEach((src, index) => {
                     let item = document.createElement('div');
@@ -1556,7 +1894,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
 
             updatePreview();
-    
+            updateImagePreview();
+            setTimeout(autoFitAllTexts, 200);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1564,11 +1903,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function resetForm() {
             document.getElementById('reportForm').reset();
             document.getElementById('in_images').value = "";
+            document.getElementById('in_img_size').value = "[]";
             dt = new DataTransfer();
             loadedImages = [];
             isLoadedMode = false;
             document.getElementById('form-image-previews').innerHTML = "";
             updatePreview();
+            updateImagePreview();
+            document.querySelectorAll('.desc-text').forEach(el => el.style.fontSize = '12pt');
         }
 
         // --- MULTIPLE IMAGE UPLOAD & PREVIEW LOGIC ---
@@ -1587,12 +1929,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 dt.items.add(file);
             }
             this.files = dt.files;
+            
+            // Re-sync size array to match newly added items
+            let currentSizes = [];
+            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
+            while(currentSizes.length < this.files.length) currentSizes.push(50);
+            document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
+
             renderFormPreviews();
-            updatePreview();
+            updateImagePreview();
         });
 
         function renderFormPreviews() {
-
             formPreviewContainer.innerHTML = '';
             [...dt.files].forEach((file, index) => {
                 let reader = new FileReader();
@@ -1609,12 +1957,23 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function removeFile(index) {
             dt.items.remove(index);
             fileInput.files = dt.files;
+            
+            // Remove the associated size from the JSON array
+            try {
+                let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
+                if (Array.isArray(sizeArray)) {
+                    sizeArray.splice(index, 1);
+                    document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
+                }
+            } catch(e) {}
+
             renderFormPreviews();
-            updatePreview();
+            updateImagePreview();
         }
 
         document.addEventListener('DOMContentLoaded', function () {
             updatePreview();
+            updateImagePreview();
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => { new bootstrap.Alert(alert).close(); });

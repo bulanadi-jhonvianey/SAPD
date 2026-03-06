@@ -172,6 +172,19 @@ foreach ($_SESSION['log_print_queue'] as $page) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -436,33 +449,77 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             display: none;
         }
 
-        /* --- HEADER STYLES --- */
-        .header-layout {
+        /* --- NEW HEADER LAYOUT (FROM GUIDANCE FORM) --- */
+        .new-header-wrapper {
             position: relative;
             width: calc(100% + 1in);
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: -0.2in;
-            margin-bottom: 10px;
-            text-align: center;
+            margin-top: -0.4in;
+            padding-top: 5px;
+            margin-bottom: 5px;
         }
 
-        .header-banner {
-            width: 100% !important;
-            height: auto !important;
-            display: block;
+        .new-header-logo {
+            position: fixed;
+            left: 5px;
+            top: -1px;
+            width: 180px;
+            height: auto;
+            z-index: 10;
         }
 
-        .logo-left {
-            width: 180px !important;
-            height: auto !important;
-            position: fixed !important;
-            left: 20px !important;
-            top: 12% !important;
-            transform: translateY(-50%) !important;
-            z-index: 50 !important;
+        .new-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-left: 1.6in;
+            padding-right: 0.5in;
+            padding-bottom: 5px;
+            min-height: 45px;
         }
 
+        .new-header-title {
+            font-family: "Old English Text MT", serif;
+            font-size: 26pt;
+            color: #002060;
+            margin: 0;
+            line-height: 0.9;
+            white-space: nowrap;
+        }
+
+        .new-header-address {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 8pt;
+            color: #002060;
+            margin: 0;
+            padding-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .new-header-bar {
+            background-color: #FFB800;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5in;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .new-header-url {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #002060;
+            margin: 0;
+        }
+
+        /* Form Sub-Header (SAPD) - Keep existing */
         .division-header {
             display: flex;
             align-items: center;
@@ -630,27 +687,25 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 page-break-after: avoid;
             }
 
-            .header-layout {
-                width: calc(100% + 1in) !important;
+            /* New header adjustments for print */
+            .new-header-wrapper {
+                margin-top: -0.6in !important;
                 margin-left: -0.5in !important;
                 margin-right: -0.5in !important;
-                margin-top: -0.2in !important;
-                display: block !important;
+                padding-top: 0.4in !important;
             }
 
-            .logo-left {
-                position: fixed !important;
-                left: 20px !important;
-                top: 12% !important;
-                transform: translateY(-50%) !important;
-                width: 170px !important;
-                z-index: 50 !important;
+            .new-header-logo {
+                position: absolute !important;
+                top: 0.2in !important;
+                left: 0.1in !important;
+                width: 180px !important;
             }
 
-            .header-banner {
-                width: 100% !important;
-                margin: 0 !important;
-                display: block !important;
+            .new-header-title,
+            .new-header-address,
+            .new-header-url {
+                color: #002060 !important;
             }
         }
 
@@ -899,9 +954,18 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             <!-- Print Queue Preview -->
             <div class="print-area-container" id="print-area">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                <!-- NEW HEADER (replaces old header-layout) -->
+                <div class="new-header-wrapper">
+                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                    
+                    <div class="new-header-top">
+                        <div class="new-header-title">Holy Cross College</div>
+                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                    </div>
+                    
+                    <div class="new-header-bar">
+                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    </div>
                 </div>
 
                 <div class="division-header">
@@ -977,9 +1041,18 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             <!-- Blank Form Preview (Hidden by default) -->
             <div class="print-area-container" id="print-blank-area">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                <!-- NEW HEADER (same as above) -->
+                <div class="new-header-wrapper">
+                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                    
+                    <div class="new-header-top">
+                        <div class="new-header-title">Holy Cross College</div>
+                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                    </div>
+                    
+                    <div class="new-header-bar">
+                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    </div>
                 </div>
 
                 <div class="division-header">
