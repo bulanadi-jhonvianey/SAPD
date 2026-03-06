@@ -2192,7 +2192,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         function updatePrintButton() {
             const queueCount = <?php echo count($_SESSION['parking_print_queue']); ?>;
-            const btn = document.getElementById('printQueueBtn');
+            const btn = document.getElementById('printQueueBtn'); 
             if (btn) btn.disabled = queueCount === 0;
         }
 

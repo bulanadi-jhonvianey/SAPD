@@ -33,7 +33,7 @@ $table_sql = "CREATE TABLE IF NOT EXISTS guidance_referrals (
     referrer VARCHAR(255) DEFAULT NULL,
     referral_date DATE NOT NULL,
     referral_time TIME NOT NULL,
-    reasons TEXT DEFAULT NULL, -- Stores JSON of selected checkboxes
+    reasons TEXT DEFAULT NULL,
     other_reason VARCHAR(255) DEFAULT NULL,
     description TEXT NOT NULL,
     image_paths TEXT DEFAULT NULL, 
@@ -57,7 +57,6 @@ if (!file_exists($upload_dir)) {
 $success_msg = "";
 $error_msg = "";
 
-// HANDLE: ADD REQUEST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $student = $conn->real_escape_string($_POST['student_name']);
     $grade = $conn->real_escape_string($_POST['grade_section']);
@@ -67,14 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $desc = $conn->real_escape_string($_POST['description']);
     $other = $conn->real_escape_string($_POST['other_reason']);
     
-    // Handle Checkboxes
     $reasons = isset($_POST['reasons']) ? json_encode($_POST['reasons']) : json_encode([]);
 
     $image_paths_json = null;
     $uploaded_files = [];
     $upload_errors = [];
 
-    // Handle Multiple Image Uploads
     if (isset($_FILES['incident_images']) && !empty($_FILES['incident_images']['name'][0])) {
         $total_files = count($_FILES['incident_images']['name']);
         $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
@@ -139,7 +136,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     }
 }
 
-// HANDLE: DELETE LOG
 if (isset($_GET['delete_id'])) {
     $del_id = intval($_GET['delete_id']);
     $res = $conn->query("SELECT image_paths FROM guidance_referrals WHERE id = $del_id");
@@ -158,7 +154,30 @@ if (isset($_GET['delete_id'])) {
     exit();
 }
 
-// HANDLE: CLEAR QUEUE
+// HANDLE: REPRINT (add to queue)
+if (isset($_GET['reprint_id'])) {
+    $reprint_id = intval($_GET['reprint_id']);
+    $result = $conn->query("SELECT * FROM guidance_referrals WHERE id = $reprint_id");
+    if ($result && $row = $result->fetch_assoc()) {
+        $reprint_item = [
+            'student' => $row['student_name'],
+            'grade' => $row['grade_section'],
+            'referrer' => $row['referrer'],
+            'date' => $row['referral_date'],
+            'time' => $row['referral_time'],
+            'reasons' => json_decode($row['reasons'], true),
+            'other' => $row['other_reason'],
+            'desc' => $row['description'],
+            'image_paths' => json_decode($row['image_paths'], true) ?: []
+        ];
+        $_SESSION['guidance_print_queue'][] = $reprint_item;
+        header("Location: " . strtok($_SERVER["REQUEST_URI"], '?') . "?reprint_success=1");
+        exit();
+    } else {
+        $error_msg = "Referral not found.";
+    }
+}
+
 if (isset($_POST['clear_queue'])) {
     $_SESSION['guidance_print_queue'] = [];
     header("Location: " . $_SERVER['PHP_SELF']);
@@ -167,10 +186,11 @@ if (isset($_POST['clear_queue'])) {
 
 if (isset($_GET['success']))
     $success_msg = "Referral recorded successfully!";
+if (isset($_GET['reprint_success']))
+    $success_msg = "Referral added to print queue.";
 if (isset($_GET['error']))
     $error_msg = "An error occurred.";
 
-// --- SEARCH LOGIC ---
 $search_term = "";
 $where_clause = "";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
@@ -194,6 +214,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- EXACT OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -233,7 +266,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         .btn {
             border-radius: 8px;
             font-weight: 600;
-            text-transform: uppercase;
             letter-spacing: 0.5px;
             padding: 10px 20px;
             border: none;
@@ -297,6 +329,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             position: relative;
             background-color: var(--panel-bg);
             overflow: hidden;
+            padding: 10px; 
         }
         .bottom-panel { margin: 20px; }
 
@@ -325,7 +358,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         .panel-title {
             color: #0d6efd;
             font-weight: 900;
-            text-transform: uppercase;
             font-size: 1.1rem;
             display: flex;
             align-items: center;
@@ -388,52 +420,99 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         /* --- PAPER FORM DESIGN (Guidance Style) --- */
         .hcc-form {
             width: 8.5in;
-            height: 14in;
+            height: 14in; 
             background: white;
             color: black;
-            padding: 0.5in;
+            padding: 0.6in 0.3in 0.3in 0.3in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             transform: scale(0.65);
             transform-origin: top center;
-            margin-bottom: -5in;
-            margin-top: 10px;
+            margin-bottom: -4.9in; 
+            margin-top: 0;
             display: flex;
             flex-direction: column;
+            overflow: hidden; 
         }
 
-        /* HEADER LAYOUT */
-        .header-layout {
+        /* --- HEADER LAYOUT (EDGE-TO-EDGE) --- */
+        .new-header-wrapper {
             position: relative;
+            margin-left: -0.3in; 
+            margin-right: -0.3in; 
+            margin-top: -0.6in;
+            padding-top: 0.4in;
+            margin-bottom: 5px;       
+        }
+
+        .new-header-logo {
+            position: fixed; 
+            left: -6px;                
+            top: 0.2in;
+            width: 184px;                
+            height: auto;
+            z-index: 10;
+        }
+
+        .new-header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-left: 1.5in; 
+            padding-right: 0.5in;
+            padding-bottom: 5px;
+            min-height: 40px;
+        }
+
+        .new-header-title {
+            font-family: "Old English Text MT", serif;
+            font-size: 26pt;
+            color: #002060;
+            margin: 0;
+            line-height: 0.9;
+            white-space: nowrap;
+        }
+
+        .new-header-address {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 8pt;
+            color: #002060;
+            margin: 0;
+            padding-bottom: 2px;
+            white-space: nowrap;
+        }
+
+        .new-header-bar {
+            background-color: #FFB800;
+            height: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5in;
             width: 100%;
-            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        .logo-left {
-            width: 185px !important;
-            position: fixed !important;
-            left: -1px !important;
-            top:35px !important;
-            z-index: 50 !important;
+        .new-header-url {
+            font-family: "Century Gothic", Arial, sans-serif;
+            font-size: 9pt;
+            font-weight: bold;
+            color: #002060;
+            margin: 0;
         }
 
-        .header-banner {
-            width: calc(100% + 1in) !important;
-            display: block;
-            margin-left: -0.5in;
-            margin-right: -0.5in;
-            margin-top: 0px !important;
-            max-width: none !important;
-        }
-
+        /* Form Sub-Header (SAPD) - UPDATED FONTS & SIZES */
         .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 20px;
+            margin-bottom: 5px;       
             position: relative;
             z-index: 60;
         }
@@ -449,58 +528,61 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             margin-top: 5px;
         }
 
+        /* SAFETY AND PROTECTION DIVISION - Bookman Old Style, 14pt bold, all caps */
         .division-title h2 {
             font-family: "Bookman Old Style", "Times New Roman", serif;
-            font-weight: 900;
-            font-size: 18px;
+            font-weight: bold;
+            font-size: 14pt;
             margin: 0;
             text-transform: uppercase;
         }
 
+        /* GUIDANCE REFERRAL FORM - Calibri, 13pt bold, all caps, no underline */
         .division-title h3 {
-            font-family: "Arial", sans-serif;
+            font-family: "Calibri", "Gill Sans", sans-serif;
             font-weight: bold;
-            text-decoration: underline;
-            font-size: 14px;
+            font-size: 13pt;
             margin: 2px 0 0 0;
             text-transform: uppercase;
+            text-decoration: none;
         }
 
         /* Form Table Section */
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            border: 2px solid black;
-            margin-bottom: 15px;
+            border: 1px solid black; 
+            margin-bottom: 10px; 
             table-layout: fixed; 
         }
 
         .info-table td {
-            border: 2px solid black;
-            padding: 5px 8px;
-            font-weight: bold;
+            border: 1px solid black; 
+            padding: 4px 8px; 
             font-size: 11pt;
             font-family: Arial, sans-serif;
             color: black;
-            vertical-align: top;
+            vertical-align: middle; 
+            height: 30px; 
         }
 
         .info-table .label-col {
-            width: 35%;
+            width: 30%; 
+            font-weight: bold;
             white-space: nowrap;
         }
 
         .info-table .input-cell {
             font-family: "Calibri", "Gill Sans", sans-serif;
-            text-transform: uppercase;
+            font-weight: bold; 
             word-wrap: break-word;
             overflow-wrap: break-word;
         }
 
         /* Checkbox Section */
         .referral-reasons {
-            margin-bottom: 10px;
-            line-height: 1.6;
+            margin-bottom: 5px; 
+            line-height: 1.1; 
             font-size: 11pt;
             color: black;
         }
@@ -508,7 +590,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         .reason-line {
             display: flex;
             align-items: center;
-            margin-bottom: 3px;
+            margin-bottom: 0; 
         }
 
         .check-line-print {
@@ -519,7 +601,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             align-items: flex-end;
             justify-content: center;
             font-weight: bold;
-            height: 18px;
+            height: 16px;
             position: relative;
         }
         
@@ -542,7 +624,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         /* Incident Description Section */
         .incident-box {
             border: 2px solid black;
-            height: 500px;
+            width: 100%;
+            flex-grow: 1; /* Automatically stretches to fill remaining vertical space */
+            min-height: 400px;
+            margin-bottom: 15px; /* Adds a bit of breathing room above the signatures */
             position: relative;
             padding: 0;
             display: flex;
@@ -570,37 +655,46 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             flex-grow: 1;
         }
 
+        /* --- UPDATED INCIDENT CONTENT (FLEX) --- */
         .incident-content {
-            padding: 5px; 
+            padding: 5px 8px; 
             font-family: Arial, sans-serif;
             font-size: 11pt;
-            white-space: pre-wrap;
             flex-grow: 1;
             overflow: hidden;
             word-wrap: break-word;
             overflow-wrap: break-word;
             position: relative;
             text-align: left;
+            display: flex;
+            flex-direction: column; /* Allows text to stack on top of images */
         }
 
+        /* Class for targeting text to shrink */
+        .desc-text {
+            white-space: pre-wrap; 
+            display: block;
+            width: 100%;
+        }
+
+        /* --- UPDATED IMAGE SECTION --- */
         .image-section {
             display: none;
-            position: absolute;
-            bottom: 5px; 
-            left: 0;
             width: 100%;
-            padding: 0 10px;
+            margin-top: auto; /* Always pushes the images to the very bottom */
+            padding: 5px 0;
             box-sizing: border-box;
-            display: flex; 
             justify-content: center;
             align-items: flex-end;
+            flex-wrap: wrap; 
             gap: 15px;
             z-index: 10;
         }
 
+        /* --- UPDATED IMAGE SIZES --- */
         .paper-preview-img {
-            max-width: 45%; 
-            max-height: 250px; 
+            max-width: 95%; 
+            max-height: 450px; 
             border: 1px solid #ccc;
             margin: 0;
             display: block;
@@ -610,12 +704,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
 
         /* Footer Section */
         .footer {
-            margin-top: 20px;
+            margin-top: 0; 
             display: flex;
             justify-content: space-between;
             align-items: flex-end;
             font-size: 11pt;
             color: black;
+            padding-top: 10px;
         }
 
         .footer-left { width: 60%; }
@@ -638,45 +733,41 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             font-weight: bold;
         }
 
-        /* --- PRINT MEDIA QUERIES (FIXED FOR WHITE PAGE & DARK MODE ISSUES) --- */
-        @page { size: 8.5in 14in; margin: 0; }
+        /* --- PRINT MEDIA QUERIES --- */
+        @page { 
+            size: 8.5in 14in; 
+            margin: 0; 
+        } 
         
         #print-area, #print-blank-area { display: none; }
 
         @media print {
-            /* FORCE WHITE BACKGROUND AND BLACK TEXT */
-            body {
+            html, body {
                 background-color: white !important;
                 color: black !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
+                height: auto !important; /* Let height flow naturally */
             }
 
-            /* FORCE ALL TEXT BLACK */
-            * { color: black !important; text-shadow: none !important; }
+            * { text-shadow: none !important; }
 
-            /* HIDE UI */
+            .new-header-title,
+            .new-header-address,
+            .new-header-url {
+                color: #002060 !important;
+            }
+
             .navbar, .main-container, .bottom-panel, .btn, .d-print-none { 
                 display: none !important; 
             }
 
-            /* SHOW PRINT AREA BASED ON CLASS */
-            body.printing-mode-queue #print-area {
-                display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                z-index: 9999;
-            }
-
+            body.printing-mode-queue #print-area,
             body.printing-mode-blank #print-blank-area {
                 display: block !important;
-                position: absolute;
-                top: 0;
-                left: 0;
+                position: relative !important; /* Changed from absolute to prevent page break bugs */
                 width: 100%;
                 z-index: 9999;
             }
@@ -685,41 +776,39 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
-                width: 8.5in !important;
-                height: 14in !important;
+                width: 100% !important; 
+                height: 13.9in !important; /* Slightly reduced from 14in to prevent overflow to a blank page */
+                max-height: 13.9in !important; 
                 page-break-after: always;
+                page-break-inside: avoid;
                 display: flex !important;
                 flex-direction: column;
                 visibility: visible !important;
-                border: none !important; /* Remove screen border if any */
+                border: none !important;
+                padding: 0.6in 0.3in 0.3in 0.3in !important;
+                box-sizing: border-box !important;
             }
             
-            .hcc-form:last-child { page-break-after: auto; }
+            .new-header-wrapper {
+                margin-top: -0.6in !important;
+                margin-left: -0.3in !important; 
+                margin-right: -0.3in !important; 
+                padding-top: 0.4in !important; 
+            }
 
-            /* Fix Images & Header for Print */
+            .new-header-logo {
+                position: absolute !important;
+                top: 0.2in !important;
+                left: -5px !important;
+                width: 180px !important;
+            }
+            
+            /* Remove the empty page break for the very last item */
+            .hcc-form:last-of-type { 
+                page-break-after: auto !important; 
+            }
+
             .image-section { display: flex !important; }
-            
-            /* Banner updated to match screen preview layout */
-            .header-banner { 
-                width: calc(100% + 1in) !important; 
-                margin: 0 0 0 -0.5in !important; 
-                position: relative;
-                z-index: 1;
-            }
-            
-            /* IMPORTANT: Reset header-layout to static so logo positions relative to the Paper (hcc-form) */
-            .header-layout {
-                position: static !important;
-                overflow: visible !important;
-            }
-
-            /* Logo updated to match screen preview position relative to Paper */
-            .logo-left { 
-                position: absolute !important; 
-                top: 35px !important; 
-                left: -1px !important;
-                z-index: 50 !important;
-            }
         }
 
         /* THEME TABLES */
@@ -731,7 +820,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         }
         body.light-mode .table-custom { --bs-table-striped-bg: rgba(0, 0, 0, 0.02); }
         .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
-        .table-custom td { color: var(--text-main) !important; border-color: var(--border); }
+        .table-custom td { color: var(--text-main) !important; border-color: var(--border); vertical-align: middle; }
         body.light-mode .table-custom td { color: #212529 !important; }
         .table-img-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
     </style>
@@ -828,7 +917,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                     </div>
                 </div>
 
-                <textarea name="description" id="in_desc" class="form-control" rows="6" placeholder="Description of Incident (What happened, persons involved, dates)..." required oninput="updateTextPreview()"></textarea>
+                <textarea name="description" id="in_desc" class="form-control" rows="10" placeholder="Description of Incident (What happened, persons involved, dates)..." required oninput="updateTextPreview()"></textarea>
 
                 <div class="mb-3 mt-3">
                     <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images (Optional)</label>
@@ -862,16 +951,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             </div>
 
             <div class="hcc-form" id="paper-preview">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                
+                <div class="new-header-wrapper">
+                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                    
+                    <div class="new-header-top">
+                        <div class="new-header-title">Holy Cross College</div>
+                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                    </div>
+                    
+                    <div class="new-header-bar">
+                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    </div>
                 </div>
 
                 <div class="division-header">
                     <img src="background.png" class="sapd-logo" alt="SAPD Logo">
                     <div class="division-title">
-                        <h2>SAFETY AND PROTECTION DIVISION</h2>
-                        <h3>GUIDANCE REFERRAL FORM</h3>
+                        <h2>Safety and Protection Division</h2>
+                        <h3>Guidance Referral Form</h3>
                     </div>
                 </div>
 
@@ -889,11 +987,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <td class="input-cell" id="out_referrer"></td>
                     </tr>
                     <tr>
-                        <td class="label-col">TIME:</td>
+                        <td class="label-col">Time:</td>
                         <td class="input-cell" id="out_time"></td>
                     </tr>
                     <tr>
-                        <td class="label-col">DATE:</td>
+                        <td class="label-col">Date:</td>
                         <td class="input-cell" id="out_date"></td>
                     </tr>
                 </table>
@@ -919,11 +1017,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
 
                 <div class="incident-box">
                     <div class="incident-header">
-                        <div class="incident-title">DESCRIPTION OF INCIDENT</div>
+                        <div class="incident-title">Description of Incident</div>
                         <div class="incident-subtitle">What happened, persons involved, specific dates/events</div>
                     </div>
                     <div class="incident-content">
-                        <span id="out_desc"></span>
+                        <span id="out_desc" class="desc-text"></span>
                         <div class="image-section" id="out_images_container"></div>
                     </div>
                 </div>
@@ -954,23 +1052,30 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 $reasons = $p['reasons'] ?? [];
         ?>
         <div class="hcc-form">
-            <div class="header-layout">
-                <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                <img src="header_hcc.png" alt="Header" class="header-banner">
+            <div class="new-header-wrapper">
+                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                <div class="new-header-top">
+                    <div class="new-header-title">Holy Cross College</div>
+                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                </div>
+                <div class="new-header-bar">
+                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                </div>
             </div>
+
             <div class="division-header">
                 <img src="background.png" class="sapd-logo" alt="SAPD Logo">
                 <div class="division-title">
-                    <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>GUIDANCE REFERRAL FORM</h3>
+                    <h2>Safety and Protection Division</h2>
+                    <h3>Guidance Referral Form</h3>
                 </div>
             </div>
             <table class="info-table">
-                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo strtoupper($p['student']); ?></td></tr>
-                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo strtoupper($p['grade']); ?></td></tr>
-                <tr><td class="label-col">Person making referral</td><td class="input-cell"><?php echo strtoupper($p['referrer']); ?></td></tr>
-                <tr><td class="label-col">TIME:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
-                <tr><td class="label-col">DATE:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
+                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo htmlspecialchars($p['student']); ?></td></tr>
+                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo htmlspecialchars($p['grade']); ?></td></tr>
+                <tr><td class="label-col">Person making referral</td><td class="input-cell"><?php echo htmlspecialchars($p['referrer']); ?></td></tr>
+                <tr><td class="label-col">Time:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
+                <tr><td class="label-col">Date:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -982,11 +1087,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 <div class="reason-line"><span class="check-line-print"><?php echo in_array('Possession of Deadly Weapon', $reasons) ? '<span class="check-mark">✓</span>' : ''; ?></span> Possession of Deadly Weapon</div>
                 <div class="reason-line"><span class="check-line-print"><?php echo in_array('Possession of Prohibited Drugs', $reasons) ? '<span class="check-mark">✓</span>' : ''; ?></span> Possession of Prohibited Drugs</div>
                 <div class="reason-line" style="margin-top: 5px;">Others:</div>
-                <div class="reason-line">Please specify: <div class="specify-line"><?php echo strtoupper($p['other']); ?></div></div>
+                <div class="reason-line">Please specify: <div class="specify-line"><?php echo htmlspecialchars($p['other']); ?></div></div>
             </div>
             <div class="incident-box">
-                <div class="incident-header"><div class="incident-title">DESCRIPTION OF INCIDENT</div><div class="incident-subtitle">What happened, persons involved, specific dates/events</div></div>
-                <div class="incident-content"><?php echo nl2br($p['desc']); ?>
+                <div class="incident-header"><div class="incident-title">Description of Incident</div><div class="incident-subtitle">What happened, persons involved, specific dates/events</div></div>
+                <div class="incident-content">
+                    <span class="desc-text"><?php echo htmlspecialchars($p['desc']); ?></span>
                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                         <div class="image-section" style="display:flex!important;">
                             <?php foreach ($p['image_paths'] as $path): if (file_exists($path)): ?><img src="<?php echo $path; ?>" class="paper-preview-img"><?php endif; endforeach; ?>
@@ -999,28 +1105,35 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 <div class="footer-right"><div style="margin-top: 35px;">Date: <span class="date-line"><?php echo $p['date']; ?></span></div></div>
             </div>
         </div>
-        <?php endforeach; else: ?><div class="hcc-form"><h2>NO ITEMS IN QUEUE</h2></div><?php endif; ?>
+        <?php endforeach; else: ?><div class="hcc-form"><h2>No items in queue</h2></div><?php endif; ?>
     </div>
 
     <div id="print-blank-area">
         <div class="hcc-form">
-            <div class="header-layout">
-                <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                <img src="header_hcc.png" alt="Header" class="header-banner">
+            <div class="new-header-wrapper">
+                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
+                <div class="new-header-top">
+                    <div class="new-header-title">Holy Cross College</div>
+                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
+                </div>
+                <div class="new-header-bar">
+                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                </div>
             </div>
+
             <div class="division-header">
                 <img src="background.png" class="sapd-logo" alt="SAPD Logo">
                 <div class="division-title">
-                    <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>GUIDANCE REFERRAL FORM</h3>
+                    <h2>Safety and Protection Division</h2>
+                    <h3>Guidance Referral Form</h3>
                 </div>
             </div>
             <table class="info-table">
                 <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"></td></tr>
                 <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"></td></tr>
                 <tr><td class="label-col">Person making referral</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">TIME:</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">DATE:</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Time:</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Date:</td><td class="input-cell"></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -1035,8 +1148,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 <div class="reason-line">Please specify: <div class="specify-line"></div></div>
             </div>
             <div class="incident-box">
-                <div class="incident-header"><div class="incident-title">DESCRIPTION OF INCIDENT</div><div class="incident-subtitle">What happened, persons involved, specific dates/events</div></div>
-                <div class="incident-content"></div>
+                <div class="incident-header"><div class="incident-title">Description of Incident</div><div class="incident-subtitle">What happened, persons involved, specific dates/events</div></div>
+                <div class="incident-content"><span class="desc-text"></span></div>
             </div>
             <div class="footer">
                 <div class="footer-left"><div>Received by:</div><div style="margin-top: 20px;">Intake Counsellor: <span class="signature-line"></span></div></div>
@@ -1069,6 +1182,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <th>Level/Section</th>
                         <th>Referrer</th>
                         <th>Date</th>
+                        <th>Images</th>
                         <th>Reasons</th>
                         <th>Action</th>
                     </tr>
@@ -1093,6 +1207,27 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                             $reasons_arr = json_decode($row['reasons'], true);
                             $reason_display = !empty($reasons_arr) ? implode(", ", $reasons_arr) : '-';
                             if($row['other_reason']) $reason_display .= " (" . $row['other_reason'] . ")";
+                            
+                            $images_arr = json_decode($row['image_paths'], true);
+                            $img_html = '<span class="text-muted small">None</span>';
+                            
+                            if (!empty($images_arr) && is_array($images_arr)) {
+                                $img_html = '<div class="d-flex align-items-center gap-1 flex-wrap">';
+                                $has_valid_img = false;
+                                
+                                foreach ($images_arr as $img_path) {
+                                    if (file_exists($img_path)) {
+                                        $safe_img = htmlspecialchars($img_path);
+                                        $img_html .= '<img src="' . $safe_img . '" class="table-img-preview" alt="img" title="Attached Image">';
+                                        $has_valid_img = true;
+                                    }
+                                }
+                                $img_html .= '</div>';
+                                
+                                if (!$has_valid_img) {
+                                    $img_html = '<span class="badge bg-secondary">Not found</span>';
+                                }
+                            }
                             ?>
                             <tr>
                                 <td><?php echo $row['id']; ?></td>
@@ -1100,9 +1235,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                                 <td><?php echo htmlspecialchars($row['grade_section']); ?></td>
                                 <td><?php echo htmlspecialchars($row['referrer']); ?></td>
                                 <td><?php echo $row['referral_date']; ?></td>
+                                <td><?php echo $img_html; ?></td>
                                 <td><small><?php echo mb_strimwidth($reason_display, 0, 40, "..."); ?></small></td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-center">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success" title="Add to print queue"><i class="fa fa-print"></i></a>
                                         <button type="button" class="btn btn-sm btn-info text-white" onclick="loadToPreview(<?php echo $preview_json; ?>)"><i class="fa fa-eye"></i></button>
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
                                     </div>
@@ -1110,7 +1247,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="7" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
+                        <tr><td colspan="8" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -1118,6 +1255,39 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
     </div>
 
     <script>
+        // --- NEW TEXT AUTO-SHRINK FUNCTION ---
+        function autoFitAllTexts() {
+            const containers = document.querySelectorAll('.incident-content');
+            
+            containers.forEach(container => {
+                const textEl = container.querySelector('.desc-text');
+                const imgEl = container.querySelector('.image-section');
+                
+                if (!textEl) return;
+                
+                // Reset to default font size to measure accurately
+                textEl.style.fontSize = '11pt';
+                
+                const availableHeight = container.clientHeight;
+                if (availableHeight === 0) return; // If hidden, we can't measure
+                
+                let imgHeight = 0;
+                if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
+                    imgHeight = imgEl.offsetHeight;
+                }
+                
+                let currentSize = 11;
+                const minSize = 6; // Prevents the text from becoming microscopic 
+                
+                // Keep shrinking by 0.5pt as long as text height + image height overflows the box
+                // Added a 10px buffer to ensure it doesn't clip on the absolute edges
+                while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
+                    currentSize -= 0.5;
+                    textEl.style.fontSize = currentSize + 'pt';
+                }
+            });
+        }
+
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
             const isLight = document.body.classList.contains('light-mode');
@@ -1128,30 +1298,40 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         const savedTheme = localStorage.getItem('appTheme') || 'dark';
         if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.getElementById('themeBtn').innerHTML = '<i class="fa fa-sun"></i>'; }
 
-        // --- NEW PRINT LOGIC WITH DELAY AND SPECIFIC CLASSES ---
         function printQueue() { 
             document.body.classList.add('printing-mode-queue'); 
+            
+            // Allow display block to apply, then auto-shrink before sending to printer
             setTimeout(() => {
-                window.print();
-                document.body.classList.remove('printing-mode-queue');
-            }, 200); // 200ms delay to allow DOM render
+                autoFitAllTexts();
+                setTimeout(() => {
+                    window.print();
+                    // Class removal is now handled by the 'afterprint' event below
+                }, 100);
+            }, 50); 
         }
         
         function printBlank() { 
             document.body.classList.add('printing-mode-blank'); 
             setTimeout(() => {
                 window.print();
-                document.body.classList.remove('printing-mode-blank');
+                // Class removal is now handled by the 'afterprint' event below
             }, 200); 
         }
+
+        // --- NEW: Handle cleanup safely after the print dialog closes ---
+        window.addEventListener('afterprint', () => {
+            document.body.classList.remove('printing-mode-queue');
+            document.body.classList.remove('printing-mode-blank');
+        });
 
         let loadedImages = [];
         let isLoadedMode = false;
 
         function updateTextPreview() {
-            document.getElementById('out_student').innerText = document.getElementById('in_student').value.toUpperCase();
-            document.getElementById('out_grade').innerText = document.getElementById('in_grade').value.toUpperCase();
-            document.getElementById('out_referrer').innerText = document.getElementById('in_referrer').value.toUpperCase();
+            document.getElementById('out_student').innerText = document.getElementById('in_student').value;
+            document.getElementById('out_grade').innerText = document.getElementById('in_grade').value;
+            document.getElementById('out_referrer').innerText = document.getElementById('in_referrer').value;
             document.getElementById('out_date').innerText = document.getElementById('in_date').value || '';
             document.getElementById('out_date_footer').innerText = document.getElementById('in_date').value || '';
             
@@ -1171,8 +1351,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 document.getElementById(map[id]).innerHTML = document.getElementById(id).checked ? '<span class="check-mark">✓</span>' : '';
             }
 
-            document.getElementById('out_other').innerText = document.getElementById('in_other').value.toUpperCase();
+            document.getElementById('out_other').innerText = document.getElementById('in_other').value;
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
+            
+            // Adjust size dynamically as user types
+            autoFitAllTexts();
         }
 
         function updatePaperImages() {
@@ -1181,28 +1364,51 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             
             paperImageContainer.innerHTML = ''; 
 
+            // Logic to wait for images to load before firing autofit
+            let imagesToLoad = 0;
+            let imagesLoaded = 0;
+
+            function checkAllLoaded() {
+                if (imagesLoaded === imagesToLoad) {
+                    autoFitAllTexts();
+                }
+            }
+
             if (fileInput.files.length > 0) {
-                paperImageContainer.style.display = 'flex'; // flex to center
+                paperImageContainer.style.display = 'flex'; 
+                imagesToLoad = fileInput.files.length;
+                
                 [...fileInput.files].forEach(file => {
                     let reader = new FileReader();
                     reader.onload = function (e) { 
                         let img = document.createElement('img'); 
                         img.src = e.target.result; 
                         img.className = 'paper-preview-img'; 
+                        img.onload = function() {
+                            imagesLoaded++;
+                            checkAllLoaded();
+                        };
                         paperImageContainer.appendChild(img); 
                     }
                     reader.readAsDataURL(file);
                 });
             } else if (loadedImages.length > 0) {
-                paperImageContainer.style.display = 'flex'; // flex to center
+                paperImageContainer.style.display = 'flex'; 
+                imagesToLoad = loadedImages.length;
+                
                 loadedImages.forEach(src => { 
                     let img = document.createElement('img'); 
                     img.src = src; 
                     img.className = 'paper-preview-img'; 
+                    img.onload = function() {
+                        imagesLoaded++;
+                        checkAllLoaded();
+                    };
                     paperImageContainer.appendChild(img); 
                 });
             } else { 
                 paperImageContainer.style.display = 'none'; 
+                autoFitAllTexts();
             }
         }
 
