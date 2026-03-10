@@ -37,10 +37,17 @@ $table_sql = "CREATE TABLE IF NOT EXISTS guidance_referrals (
     other_reason VARCHAR(255) DEFAULT NULL,
     description TEXT NOT NULL,
     image_paths TEXT DEFAULT NULL, 
+    image_size TEXT DEFAULT NULL,
     status VARCHAR(50) DEFAULT 'Recorded',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
 $conn->query($table_sql);
+
+// Auto-Repair Columns (Upgrade image_size if it was missing)
+$check = $conn->query("SHOW COLUMNS FROM guidance_referrals LIKE 'image_size'");
+if ($check && $check->num_rows == 0) {
+    $conn->query("ALTER TABLE guidance_referrals ADD image_size TEXT DEFAULT NULL");
+}
 
 // Session Queue
 if (!isset($_SESSION['guidance_print_queue'])) {
@@ -65,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $time = $conn->real_escape_string($_POST['referral_time']);
     $desc = $conn->real_escape_string($_POST['description']);
     $other = $conn->real_escape_string($_POST['other_reason']);
+    $img_size = isset($_POST['image_size']) && !empty($_POST['image_size']) ? $conn->real_escape_string($_POST['image_size']) : '[]';
     
     $reasons = isset($_POST['reasons']) ? json_encode($_POST['reasons']) : json_encode([]);
 
@@ -107,12 +115,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
             $image_paths_json = json_encode($uploaded_files);
         }
 
-        $stmt = $conn->prepare("INSERT INTO guidance_referrals (student_name, grade_section, referrer, referral_date, referral_time, reasons, other_reason, description, image_paths) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO guidance_referrals (student_name, grade_section, referrer, referral_date, referral_time, reasons, other_reason, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
             $error_msg = "<strong>Database Error:</strong> " . $conn->error;
         } else {
-            $stmt->bind_param("sssssssss", $student, $grade, $referrer, $date, $time, $reasons, $other, $desc, $image_paths_json);
+            $stmt->bind_param("ssssssssss", $student, $grade, $referrer, $date, $time, $reasons, $other, $desc, $image_paths_json, $img_size);
 
             if ($stmt->execute()) {
                 $_SESSION['guidance_print_queue'][] = [
@@ -124,7 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
                     'reasons' => json_decode($reasons, true),
                     'other' => $other,
                     'desc' => $desc,
-                    'image_paths' => $uploaded_files
+                    'image_paths' => $uploaded_files,
+                    'image_size' => $img_size
                 ];
                 header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
                 exit();
@@ -168,7 +177,8 @@ if (isset($_GET['reprint_id'])) {
             'reasons' => json_decode($row['reasons'], true),
             'other' => $row['other_reason'],
             'desc' => $row['description'],
-            'image_paths' => json_decode($row['image_paths'], true) ?: []
+            'image_paths' => json_decode($row['image_paths'], true) ?: [],
+            'image_size' => $row['image_size']
         ];
         $_SESSION['guidance_print_queue'][] = $reprint_item;
         header("Location: " . strtok($_SERVER["REQUEST_URI"], '?') . "?reprint_success=1");
@@ -385,7 +395,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             font-size: 0.9rem;
         }
 
-        /* --- IMAGE PREVIEWS --- */
+        /* --- IMAGE PREVIEWS (FORM SIDE) --- */
         .form-preview-item {
             position: relative;
             width: 80px;
@@ -444,7 +454,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             margin-right: -0.3in; 
             margin-top: -0.6in;
             padding-top: 0.4in;
-            margin-bottom: 5px;       
+            margin-bottom: 5px;        
         }
 
         .new-header-logo {
@@ -506,13 +516,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             margin: 0;
         }
 
-        /* Form Sub-Header (SAPD) - UPDATED FONTS & SIZES */
+        /* Form Sub-Header (SAPD) */
         .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 5px;       
+            margin-bottom: 5px;        
             position: relative;
             z-index: 60;
         }
@@ -528,7 +538,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             margin-top: 5px;
         }
 
-        /* SAFETY AND PROTECTION DIVISION - Bookman Old Style, 14pt bold, all caps */
         .division-title h2 {
             font-family: "Bookman Old Style", "Times New Roman", serif;
             font-weight: bold;
@@ -537,7 +546,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             text-transform: uppercase;
         }
 
-        /* GUIDANCE REFERRAL FORM - Calibri, 13pt bold, all caps, no underline */
         .division-title h3 {
             font-family: "Calibri", "Gill Sans", sans-serif;
             font-weight: bold;
@@ -625,9 +633,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         .incident-box {
             border: 2px solid black;
             width: 100%;
-            flex-grow: 1; /* Automatically stretches to fill remaining vertical space */
+            flex-grow: 1;
             min-height: 400px;
-            margin-bottom: 15px; /* Adds a bit of breathing room above the signatures */
+            margin-bottom: 15px; 
             position: relative;
             padding: 0;
             display: flex;
@@ -655,7 +663,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             flex-grow: 1;
         }
 
-        /* --- UPDATED INCIDENT CONTENT (FLEX) --- */
         .incident-content {
             padding: 5px 8px; 
             font-family: Arial, sans-serif;
@@ -667,21 +674,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             position: relative;
             text-align: left;
             display: flex;
-            flex-direction: column; /* Allows text to stack on top of images */
+            flex-direction: column; 
         }
 
-        /* Class for targeting text to shrink */
         .desc-text {
             white-space: pre-wrap; 
             display: block;
             width: 100%;
         }
 
-        /* --- UPDATED IMAGE SECTION --- */
+        /* --- DRAG-TO-RESIZE (PAPER PREVIEW) --- */
         .image-section {
             display: none;
             width: 100%;
-            margin-top: auto; /* Always pushes the images to the very bottom */
+            margin-top: auto;
             padding: 5px 0;
             box-sizing: border-box;
             justify-content: center;
@@ -691,16 +697,56 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             z-index: 10;
         }
 
-        /* --- UPDATED IMAGE SIZES --- */
-        .paper-preview-img {
-            max-width: 95%; 
-            max-height: 450px; 
-            border: 1px solid #ccc;
+        .resize-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px dashed transparent;
+            max-width: 100%;
+            min-width: 10%;
             margin: 0;
+            padding: 0;
+            transition: border-color 0.2s;
+            user-select: none;
+        }
+        
+        .resize-wrapper:hover, .resize-wrapper:active {
+            border-color: rgba(0, 123, 255, 0.7);
+        }
+
+        .paper-preview-img {
+            width: 100%;
+            height: auto;
             display: block;
-            background: white;
+            pointer-events: none;
             object-fit: contain;
         }
+
+        /* Interactive Drag Handles */
+        .resize-handle {
+            position: absolute;
+            background: #007bff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .resize-wrapper:hover .resize-handle, 
+        .resize-wrapper:active .resize-handle {
+            opacity: 1;
+        }
+
+        /* Corners */
+        .resizer-nw { top: -6px; left: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+        .resizer-ne { top: -6px; right: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
+        .resizer-sw { bottom: -6px; left: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
+        .resizer-se { bottom: -6px; right: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
+        
+        /* Edges */
+        .resizer-n { top: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
+        .resizer-s { bottom: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
+        .resizer-e { top: 50%; right: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
+        .resizer-w { top: 50%; left: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
 
         /* Footer Section */
         .footer {
@@ -749,7 +795,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 padding: 0 !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                height: auto !important; /* Let height flow naturally */
+                height: auto !important;
             }
 
             * { text-shadow: none !important; }
@@ -767,7 +813,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             body.printing-mode-queue #print-area,
             body.printing-mode-blank #print-blank-area {
                 display: block !important;
-                position: relative !important; /* Changed from absolute to prevent page break bugs */
+                position: relative !important; 
                 width: 100%;
                 z-index: 9999;
             }
@@ -777,7 +823,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 box-shadow: none !important;
                 margin: 0 auto !important;
                 width: 100% !important; 
-                height: 13.9in !important; /* Slightly reduced from 14in to prevent overflow to a blank page */
+                height: 13.9in !important; 
                 max-height: 13.9in !important; 
                 page-break-after: always;
                 page-break-inside: avoid;
@@ -803,12 +849,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 width: 180px !important;
             }
             
-            /* Remove the empty page break for the very last item */
             .hcc-form:last-of-type { 
                 page-break-after: auto !important; 
             }
 
             .image-section { display: flex !important; }
+
+            /* Disable resize elements on print */
+            .resize-wrapper { border: none !important; }
+            .resize-handle { display: none !important; }
         }
 
         /* THEME TABLES */
@@ -919,8 +968,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
 
                 <textarea name="description" id="in_desc" class="form-control" rows="10" placeholder="Description of Incident (What happened, persons involved, dates)..." required oninput="updateTextPreview()"></textarea>
 
+                <input type="hidden" name="image_size" id="in_img_size" value="[]">
+
                 <div class="mb-3 mt-3">
-                    <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images (Optional)</label>
+                    <label class="small text-secondary mb-2 d-block">
+                        <i class="fa fa-images me-1"></i> Attach Images (Optional)
+                        <br>
+                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                    </label>
                     <input type="file" name="incident_images[]" id="in_images" class="d-none" accept="image/png, image/gif, image/jpeg" multiple>
                     <button type="button" class="btn btn-outline-primary w-100 dashed-border" onclick="document.getElementById('in_images').click()">
                         <i class="fa fa-plus-circle me-1"></i> Add Images
@@ -1050,6 +1105,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 $t = strtotime($p['time']);
                 $print_time = date("h:i A", $t); 
                 $reasons = $p['reasons'] ?? [];
+
+                // Parse the array of sizes, fallback if needed
+                $print_sizes = [];
+                if (!empty($p['image_size'])) {
+                    $decoded_sizes = json_decode($p['image_size'], true);
+                    if (is_array($decoded_sizes)) {
+                        $print_sizes = $decoded_sizes;
+                    } else {
+                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                    }
+                }
         ?>
         <div class="hcc-form">
             <div class="new-header-wrapper">
@@ -1095,7 +1161,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                     <span class="desc-text"><?php echo htmlspecialchars($p['desc']); ?></span>
                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                         <div class="image-section" style="display:flex!important;">
-                            <?php foreach ($p['image_paths'] as $path): if (file_exists($path)): ?><img src="<?php echo $path; ?>" class="paper-preview-img"><?php endif; endforeach; ?>
+                            <?php foreach ($p['image_paths'] as $idx => $path): ?>
+                                <?php 
+                                $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 50;
+                                if (file_exists($path)): 
+                                ?>
+                                    <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                        <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
+                                    </div>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -1200,7 +1275,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                                 'desc' => $row['description'],
                                 'other' => $row['other_reason'],
                                 'reasons' => json_decode($row['reasons'], true),
-                                'images' => json_decode($row['image_paths'], true)
+                                'images' => json_decode($row['image_paths'], true),
+                                'image_size' => $row['image_size']
                             ];
                             $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
                             
@@ -1255,7 +1331,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
     </div>
 
     <script>
-        // --- NEW TEXT AUTO-SHRINK FUNCTION ---
+        // --- TEXT AUTO-SHRINK FUNCTION ---
         function autoFitAllTexts() {
             const containers = document.querySelectorAll('.incident-content');
             
@@ -1280,7 +1356,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 const minSize = 6; // Prevents the text from becoming microscopic 
                 
                 // Keep shrinking by 0.5pt as long as text height + image height overflows the box
-                // Added a 10px buffer to ensure it doesn't clip on the absolute edges
                 while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
                     currentSize -= 0.5;
                     textEl.style.fontSize = currentSize + 'pt';
@@ -1306,7 +1381,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 autoFitAllTexts();
                 setTimeout(() => {
                     window.print();
-                    // Class removal is now handled by the 'afterprint' event below
                 }, 100);
             }, 50); 
         }
@@ -1315,11 +1389,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             document.body.classList.add('printing-mode-blank'); 
             setTimeout(() => {
                 window.print();
-                // Class removal is now handled by the 'afterprint' event below
             }, 200); 
         }
 
-        // --- NEW: Handle cleanup safely after the print dialog closes ---
+        // --- Handle cleanup safely after the print dialog closes ---
         window.addEventListener('afterprint', () => {
             document.body.classList.remove('printing-mode-queue');
             document.body.classList.remove('printing-mode-blank');
@@ -1358,13 +1431,23 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             autoFitAllTexts();
         }
 
+        // --- UPDATED: IMAGE DRAG-TO-RESIZE LOGIC ---
         function updatePaperImages() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
             
+            // Fetch current Array of Saved Sizes
+            let savedSizesVal = document.getElementById('in_img_size').value;
+            let sizeArray = [];
+            try {
+                sizeArray = JSON.parse(savedSizesVal);
+                if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
+            } catch(e) {
+                sizeArray = [parseInt(savedSizesVal) || 50];
+            }
+            
             paperImageContainer.innerHTML = ''; 
 
-            // Logic to wait for images to load before firing autofit
             let imagesToLoad = 0;
             let imagesLoaded = 0;
 
@@ -1374,21 +1457,96 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 }
             }
 
+            function appendResizableImage(src, index) {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'resize-wrapper';
+                
+                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 50;
+                wrapper.style.width = initialSize + '%';
+                
+                let img = document.createElement('img');
+                img.src = src;
+                img.className = 'paper-preview-img';
+                img.onload = function() {
+                    imagesLoaded++;
+                    checkAllLoaded();
+                };
+                
+                wrapper.appendChild(img);
+
+                // Inject 8 interaction handles
+                const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+                handles.forEach(dir => {
+                    let handle = document.createElement('div');
+                    handle.className = `resize-handle resizer-${dir}`;
+                    wrapper.appendChild(handle);
+                });
+
+                paperImageContainer.appendChild(wrapper);
+
+                const resizers = wrapper.querySelectorAll('.resize-handle');
+                let original_width = 0;
+                let original_mouse_x = 0;
+                let original_mouse_y = 0;
+
+                resizers.forEach(function(resizer) {
+                    resizer.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
+                        original_mouse_x = e.pageX;
+                        original_mouse_y = e.pageY;
+                        
+                        function resize(e) {
+                            let width = original_width;
+                            if (resizer.classList.contains('resizer-e') || resizer.classList.contains('resizer-se') || resizer.classList.contains('resizer-ne')) {
+                                width = original_width + (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-w') || resizer.classList.contains('resizer-sw') || resizer.classList.contains('resizer-nw')) {
+                                width = original_width - (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-s')) {
+                                width = original_width + (e.pageY - original_mouse_y);
+                            } else if (resizer.classList.contains('resizer-n')) {
+                                width = original_width - (e.pageY - original_mouse_y);
+                            }
+                            
+                            let percent = (width / paperImageContainer.clientWidth) * 100;
+                            if(percent > 100) percent = 100;
+                            if(percent < 10) percent = 10;
+                            wrapper.style.width = percent + '%';
+                        }
+                        
+                        function stopResize() {
+                            window.removeEventListener('mousemove', resize);
+                            window.removeEventListener('mouseup', stopResize);
+                            
+                            let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
+                            if(percent > 100) percent = 100;
+                            if(percent < 10) percent = 10;
+                            wrapper.style.width = percent + '%';
+                            
+                            // Save individual sizes back to JSON Array
+                            let updatedSizes = [];
+                            document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
+                                updatedSizes.push(parseFloat(w.style.width) || 50);
+                            });
+                            document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
+                            
+                            autoFitAllTexts();
+                        }
+                        
+                        window.addEventListener('mousemove', resize);
+                        window.addEventListener('mouseup', stopResize);
+                    });
+                });
+            }
+
             if (fileInput.files.length > 0) {
                 paperImageContainer.style.display = 'flex'; 
                 imagesToLoad = fileInput.files.length;
                 
-                [...fileInput.files].forEach(file => {
+                [...fileInput.files].forEach((file, index) => {
                     let reader = new FileReader();
                     reader.onload = function (e) { 
-                        let img = document.createElement('img'); 
-                        img.src = e.target.result; 
-                        img.className = 'paper-preview-img'; 
-                        img.onload = function() {
-                            imagesLoaded++;
-                            checkAllLoaded();
-                        };
-                        paperImageContainer.appendChild(img); 
+                        appendResizableImage(e.target.result, index);
                     }
                     reader.readAsDataURL(file);
                 });
@@ -1396,15 +1554,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 paperImageContainer.style.display = 'flex'; 
                 imagesToLoad = loadedImages.length;
                 
-                loadedImages.forEach(src => { 
-                    let img = document.createElement('img'); 
-                    img.src = src; 
-                    img.className = 'paper-preview-img'; 
-                    img.onload = function() {
-                        imagesLoaded++;
-                        checkAllLoaded();
-                    };
-                    paperImageContainer.appendChild(img); 
+                loadedImages.forEach((src, index) => { 
+                    appendResizableImage(src, index);
                 });
             } else { 
                 paperImageContainer.style.display = 'none'; 
@@ -1429,6 +1580,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 });
             }
 
+            // Apply Saved Image Sizes
+            let savedSize = data.image_size || '[]';
+            if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
+            document.getElementById('in_img_size').value = savedSize;
+
             loadedImages = data.images || [];
             isLoadedMode = true;
             document.getElementById('in_images').value = "";
@@ -1449,6 +1605,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         function resetForm() {
             document.getElementById('referralForm').reset();
             document.getElementById('in_images').value = "";
+            document.getElementById('in_img_size').value = "[]";
             loadedImages = []; isLoadedMode = false;
             document.getElementById('form-image-previews').innerHTML = "";
             updateTextPreview();
@@ -1463,6 +1620,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             if (isLoadedMode) { loadedImages = []; isLoadedMode = false; formPreviewContainer.innerHTML = ''; }
             for (let file of this.files) { dt.items.add(file); }
             this.files = dt.files; 
+            
+            // Re-sync size array to match newly added items
+            let currentSizes = [];
+            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
+            while(currentSizes.length < this.files.length) currentSizes.push(50);
+            document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
+
             renderFormPreviews(); 
             updatePaperImages();
         });
@@ -1479,9 +1643,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 reader.readAsDataURL(file);
             });
         }
+        
         function removeFile(index) { 
             dt.items.remove(index); 
             fileInput.files = dt.files; 
+            
+            // Remove the associated size from the JSON array
+            try {
+                let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
+                if (Array.isArray(sizeArray)) {
+                    sizeArray.splice(index, 1);
+                    document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
+                }
+            } catch(e) {}
+
             renderFormPreviews(); 
             updatePaperImages();
         }
