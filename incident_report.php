@@ -477,76 +477,92 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             background: rgba(220, 53, 69, 1);
         }
 
-        /* --- NEW HEADER LAYOUT --- */
+        /* ========== NEW HEADER STYLES (from facilities_and_inspection) ========== */
         .new-header-wrapper {
             position: relative;
             width: calc(100% + 0.5in);
             margin-left: -0.25in;
             margin-right: -0.25in;
             margin-top: -0.25in;
-            padding-top: 0;
-            margin-bottom: 5px;
+            height: 1.5in;
+            margin-bottom: 0;
         }
 
-        /* LOGO POSITION FIX - Set to Absolute instead of Fixed */
-        .new-header-logo {
+        .fading-bar {
             position: absolute;
-            left: 0.10in;
-            top: -15px;
-            width: 183px;
-            height: auto;
-            z-index: 10;
-        }
-
-        .new-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-left: 1.6in;
-            padding-right: 0.5in;
-            padding-bottom: 5px;
-            min-height: 45px;
-        }
-
-        .new-header-title {
-            font-family: "Old English Text MT", serif;
-            font-size: 26pt;
-            color: #002060;
-            margin: 0;
-            line-height: 0.9;
-            white-space: nowrap;
-        }
-
-        .new-header-address {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 8pt;
-            color: #002060;
-            margin: 0;
-            padding-bottom: 2px;
-            white-space: nowrap;
-        }
-
-        .new-header-bar {
-            background-color: #FFB800;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 0.5in;
+            bottom: 20px;
+            left: 0;
             width: 100%;
-            position: relative;
+            height: 40px; 
+            background: 
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
         }
 
-        .new-header-url {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 9pt;
-            font-weight: bold;
-            color: #002060;
-            margin: 0;
+        .header-content {
+            position: relative;
+            z-index: 2; 
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.25in; 
         }
+
+        .new-header-logo {
+            width: 140px;
+            height: auto;
+            margin-right: 5px; 
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
+        }
+
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, 
+                #002b7f 0%, 
+                #002b7f 18%, 
+                rgba(0, 43, 127, 0.25) 24%, 
+                rgba(0, 43, 127, 0.25) 75%, 
+                #002b7f 80%, 
+                #002b7f 100%
+            );
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center;
+            margin-left: 220px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+        /* ========== END NEW HEADER STYLES ========== */
 
         /* --- PAPER FORM DESIGN --- */
         .hcc-form {
@@ -554,7 +570,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             height: 14in;
             background: white;
             color: black;
-            padding: 0.75in 0.25in 0.25in 0.25in;
+            padding: 0.25in 0.25in 0.25in 0.25in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -572,6 +588,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             align-items: center;
             justify-content: center;
             gap: 15px;
+            margin-top: -5px;
             margin-bottom: 10px;
             position: relative;
             z-index: 60;
@@ -813,6 +830,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-size: 8pt;
         }
 
+        /* ===== OFFICER SECTION (two officers side by side, no border) ===== */
         .officer-section {
             margin-top: 15px;
             font-size: 9pt;
@@ -831,15 +849,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             justify-content: space-between;
             align-items: flex-end;
             width: 100%;
-            height: 50px;
-            position: relative;
+            margin-bottom: 15px;
         }
 
         .officer-box {
             width: 220px;
             text-align: center;
-            border-top: 1px solid black;
-            padding-top: 5px;
+            /* no border */
         }
 
         .officer-name-line {
@@ -853,16 +869,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         }
 
         .noted-section {
-            margin-top: 30px;
+            margin-top: 15px;
             font-size: 9pt;
             color: black;
         }
 
         .noted-title {
             font-weight: bold;
-            margin-bottom: 30px;
+            margin-bottom: 10px;
             font-size: 8.5pt;
         }
+        /* ===== END OFFICER SECTION ===== */
 
         /* --- PRINT MEDIA QUERIES --- */
         @page {
@@ -909,7 +926,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 width: 100% !important;
                 height: 100% !important;
                 min-height: 100vh !important;
-                padding: 0.75in 0.25in 0.25in 0.25in !important; 
+                padding: 0.25in 0.25in 0.25in 0.25in !important;
             }
 
             .print-blank #print-area {
@@ -932,7 +949,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 width: 100% !important;
                 height: 100% !important;
                 min-height: 100vh !important;
-                padding: 0.75in 0.25in 0.25in 0.25in !important; 
+                padding: 0.25in 0.25in 0.25in 0.25in !important;
             }
 
             .new-header-wrapper {
@@ -942,25 +959,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 padding-top: 0 !important;
             }
 
-            /* MATCHING LOGO POSITION FOR PRINT */
-            .new-header-logo {
-                position: absolute !important;
-                top: -15px !important; 
-                left: 0.10in !important;
-                width: 180px !important;
-            }
-
-            .new-header-title,
-            .new-header-address,
-            .new-header-url {
-                color: #002060 !important;
+            .fading-bar, .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
             }
 
             .image-section {
                 display: flex !important;
             }
 
-            /* Disable resize elements on print */
             .resize-wrapper {
                 border: none !important;
             }
@@ -1169,16 +1176,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             </div>
 
             <div class="hcc-form" id="paper-preview">
+                <!-- NEW HEADER -->
                 <div class="new-header-wrapper">
-                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                    
-                    <div class="new-header-top">
-                        <div class="new-header-title">Holy Cross College</div>
-                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                    </div>
-                    
-                    <div class="new-header-bar">
-                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1261,14 +1271,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         </tr>
                     </table>
 
+                    <!-- OFFICER SECTION with both officers restored -->
                     <div class="officer-section">
-                        <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                        <div class="officer-title">Officer in charge of the incident:</div>
                         <div class="officer-container">
                             <div class="officer-box">
                                 <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
                                 <div class="officer-position">Safety and Protection Officer</div>
                             </div>
-
                             <div class="officer-box">
                                 <div class="officer-name-line">LESTER P. LUMBANG, SO2</div>
                                 <div class="officer-position">Safety and Protection Officer</div>
@@ -1279,8 +1289,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <div class="noted-section">
                         <div class="noted-title">Noted by:</div>
                         <div style="text-align: left;">
-                            <div
-                                style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                                 <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                 <div class="officer-position">CHIEF, Safety and Protection</div>
                             </div>
@@ -1298,7 +1307,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 $t = strtotime($p['time']);
                 $print_time = date("h:i A", $t); 
                 
-                // Parse the array of sizes, or fallback to 50 if it was saved before the update
                 $print_sizes = [];
                 if (!empty($p['image_size'])) {
                     $decoded_sizes = json_decode($p['image_size'], true);
@@ -1310,14 +1318,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 }
                 ?>
                 <div class="hcc-form">
+                    <!-- NEW HEADER -->
                     <div class="new-header-wrapper">
-                        <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                        <div class="new-header-top">
-                            <div class="new-header-title">Holy Cross College</div>
-                            <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                        </div>
-                        <div class="new-header-bar">
-                            <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                        <div class="fading-bar"></div>
+                        <div class="header-content">
+                            <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                            <div class="text-content">
+                                <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                <div class="divider-line"></div>
+                                <div class="details">
+                                    Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                    www.holycrosscollegesinc.com
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -1408,8 +1421,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             </tr>
                         </table>
 
+                        <!-- OFFICER SECTION with both officers restored -->
                         <div class="officer-section">
-                            <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                            <div class="officer-title">Officer in charge of the incident:</div>
                             <div class="officer-container">
                                 <div class="officer-box">
                                     <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1422,11 +1436,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             </div>
                         </div>
 
-                        <div class="noted-section" style="margin-top: 30px;">
-                            <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
+                        <div class="noted-section">
+                            <div class="noted-title">Noted by:</div>
                             <div style="text-align: left;">
-                                <div
-                                    style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                                     <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                     <div class="officer-position">CHIEF, Safety and Protection</div>
                                 </div>
@@ -1442,14 +1455,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
     <div id="print-blank-area">
         <div class="hcc-form">
+            <!-- NEW HEADER -->
             <div class="new-header-wrapper">
-                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                <div class="new-header-top">
-                    <div class="new-header-title">Holy Cross College</div>
-                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                </div>
-                <div class="new-header-bar">
-                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1510,8 +1528,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             </table>
 
             <div class="form-footer">
-                <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
-                    the office of:</div>
+                <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
                 <table class="copy-furnished-table">
                     <tr>
                         <td>Principal/Dean</td>
@@ -1523,8 +1540,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </tr>
                 </table>
 
+                <!-- OFFICER SECTION with both officers restored -->
                 <div class="officer-section">
-                    <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
+                    <div class="officer-title">Officer in charge of the incident:</div>
                     <div class="officer-container">
                         <div class="officer-box">
                             <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1537,11 +1555,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </div>
                 </div>
 
-                <div class="noted-section" style="margin-top: 30px;">
-                    <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
+                <div class="noted-section">
+                    <div class="noted-title">Noted by:</div>
                     <div style="text-align: left;">
-                        <div
-                            style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                        <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                             <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                             <div class="officer-position">CHIEF, Safety and Protection</div>
                         </div>
@@ -1679,7 +1696,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
         function printBlank() { document.body.classList.add('print-blank'); window.print(); }
 
-        // --- TEXT AUTO-SHRINK FUNCTION ---
         function autoFitAllTexts() {
             const containers = document.querySelectorAll('.incident-content');
             
@@ -1689,11 +1705,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 
                 if (!textEl) return;
                 
-                // Reset to default font size to measure accurately
                 textEl.style.fontSize = '12pt';
                 
                 const availableHeight = container.clientHeight;
-                if (availableHeight === 0) return; // If hidden, we can't measure
+                if (availableHeight === 0) return;
                 
                 let imgHeight = 0;
                 if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
@@ -1713,7 +1728,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         let loadedImages = [];
         let isLoadedMode = false;
 
-        // --- UPDATE TEXT ONLY ---
         function updatePreview() {
             document.getElementById('out_case').innerText = document.getElementById('in_case').value;
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value;
@@ -1738,12 +1752,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             autoFitAllTexts();
         }
 
-        // --- UPDATE IMAGES ONLY ---
         function updateImagePreview() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
 
-            // --- Fetch current Array of Saved Sizes ---
             let savedSizesVal = document.getElementById('in_img_size').value;
             let sizeArray = [];
             try {
@@ -1753,12 +1765,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 sizeArray = [parseInt(savedSizesVal) || 50];
             }
 
-            // --- HELPER FUNCTION TO APPEND MS-WORD STYLE RESIZABLE IMAGES ---
             function appendImage(src, index) {
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
                 
-                // Assign specifically saved size or fallback to 50
                 let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 50;
                 wrapper.style.width = initialSize + '%';
                 
@@ -1769,7 +1779,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 
                 wrapper.appendChild(img);
 
-                // Inject 8 interaction handles (4 edges, 4 corners)
                 const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
                 handles.forEach(dir => {
                     let handle = document.createElement('div');
@@ -1779,7 +1788,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
                 paperImageContainer.appendChild(wrapper);
 
-                // Custom JavaScript Drag & Resize Logic
                 const resizers = wrapper.querySelectorAll('.resize-handle');
                 let original_width = 0;
                 let original_mouse_x = 0;
@@ -1795,7 +1803,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         function resize(e) {
                             let width = original_width;
                             
-                            // Scale up or down depending on the direction of the handle pulled
                             if (resizer.classList.contains('resizer-e') || resizer.classList.contains('resizer-se') || resizer.classList.contains('resizer-ne')) {
                                 width = original_width + (e.pageX - original_mouse_x);
                             } else if (resizer.classList.contains('resizer-w') || resizer.classList.contains('resizer-sw') || resizer.classList.contains('resizer-nw')) {
@@ -1821,7 +1828,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             if(percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
                             
-                            // Loop over all images, gather their individual sizes, and save back to JSON Array
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
                                 updatedSizes.push(parseFloat(w.style.width) || 50);
@@ -1859,7 +1865,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
         }
 
-        // --- Load Data to Preview ---
         function loadToPreview(data) {
             document.getElementById('in_case').value = data.case;
             document.getElementById('in_loc').value = data.loc;
@@ -1872,7 +1877,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('in_parent').value = data.parent || '';
             document.getElementById('in_adviser').value = data.adviser || '';
 
-            // Apply Saved Image Sizes (JSON string array from DB)
             let savedSize = data.image_size || '[]';
             if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
             document.getElementById('in_img_size').value = savedSize;
@@ -1899,7 +1903,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
-        // --- Reset Form ---
         function resetForm() {
             document.getElementById('reportForm').reset();
             document.getElementById('in_images').value = "";
@@ -1913,7 +1916,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.querySelectorAll('.desc-text').forEach(el => el.style.fontSize = '12pt');
         }
 
-        // --- MULTIPLE IMAGE UPLOAD & PREVIEW LOGIC ---
         const fileInput = document.getElementById('in_images');
         const formPreviewContainer = document.getElementById('form-image-previews');
         let dt = new DataTransfer();
@@ -1930,7 +1932,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             }
             this.files = dt.files;
             
-            // Re-sync size array to match newly added items
             let currentSizes = [];
             try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
             while(currentSizes.length < this.files.length) currentSizes.push(50);
@@ -1958,7 +1959,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             dt.items.remove(index);
             fileInput.files = dt.files;
             
-            // Remove the associated size from the JSON array
             try {
                 let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
                 if (Array.isArray(sizeArray)) {

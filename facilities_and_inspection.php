@@ -355,16 +355,23 @@
             .form-select {
                 background-color: var(--input-bg);
                 border: 1px solid var(--border);
-                color: var(--text-main);
+                color: #ffffff !important; /* Forces white text */
                 margin-bottom: 10px;
                 padding: 12px;
+            }
+
+            /* Make placeholders white */
+            .form-control::placeholder,
+            .form-select::placeholder {
+                color: #ffffff !important;
+                opacity: 0.8; 
             }
 
             .form-control:focus,
             .form-select:focus {
                 background-color: var(--input-bg);
                 border-color: var(--accent);
-                color: var(--text-main);
+                color: #ffffff !important; /* Forces white text on focus */
                 box-shadow: none;
             }
 
@@ -389,7 +396,7 @@
             }
 
             .panel-title {
-                color: var(--text-main);
+                color: #0d6efd; 
                 font-weight: 900;
                 text-transform: uppercase;
                 font-size: 1.1rem;
@@ -510,7 +517,7 @@
             }
 
             .new-header-logo {
-                width: 165px;
+                width: 140px;
                 height: auto;
                 margin-right: 5px; 
                 flex-shrink: 0;
@@ -807,7 +814,8 @@
             }
 
             #print-area,
-            #print-blank-area {
+            #print-blank-area,
+            #print-single-area {
                 display: none;
             }
 
@@ -839,7 +847,8 @@
 
                 /* Unscales the form and fills the page */
                 #print-area .hcc-form,
-                .print-blank #print-blank-area .hcc-form {
+                .print-blank #print-blank-area .hcc-form,
+                .print-single-mode #print-single-area .hcc-form {
                     transform: none !important;
                     box-shadow: none !important;
                     margin: 0 auto !important;
@@ -851,11 +860,19 @@
                 }
 
                 /* Toggling Logic for Print Views */
-                .print-blank #print-area {
+                .print-blank #print-area, .print-single-mode #print-area {
                     display: none !important;
                 }
 
                 .print-blank #print-blank-area {
+                    display: block !important;
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                }
+
+                .print-single-mode #print-single-area {
                     display: block !important;
                     position: absolute;
                     top: 0;
@@ -904,7 +921,7 @@
 
             .table-custom th {
                 background-color: var(--input-bg);
-                color: var(--text-main); 
+                color: #0d6efd !important; /* MATCHES INSPECTION DETAILS BLUE */
                 border-color: var(--border);
             }
 
@@ -988,12 +1005,12 @@
 
                     <div class="row">
                         <div class="col-6">
-                            <label class="small mb-1" style="color: var(--text-main);">Inspection Date</label>
+                            <label class="small mb-1" style="color: #ffffff;">Inspection Date</label>
                             <input type="date" name="inspection_date" id="in_date" class="form-control" required
                                 oninput="updateTextPreview()">
                         </div>
                         <div class="col-6">
-                            <label class="small mb-1" style="color: var(--text-main);">Inspection Time</label>
+                            <label class="small mb-1" style="color: #ffffff;">Inspection Time</label>
                             <div class="input-group mb-2">
                                 <input type="time" name="inspection_time" id="in_time" class="form-control mb-0" required
                                     oninput="updateTextPreview()"
@@ -1012,16 +1029,16 @@
                     <input type="hidden" name="image_size" id="in_img_size" value="[]">
 
                     <div class="mb-3 mt-3">
-                        <label class="small mb-2 d-block" style="color: var(--text-main);">
+                        <label class="small mb-2 d-block" style="color: #ffffff;">
                             <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
                             <br>
-                            <span class="fw-bold" style="font-size: 11px; color: var(--text-main);"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                            <span class="fw-bold" style="font-size: 11px; color: #ffffff;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
                         </label>
 
                         <input type="file" name="inspection_images[]" id="in_images" class="d-none"
                         accept="image/png, image/gif, image/jpeg" multiple>
 
-                        <button type="button" class="btn btn-outline-primary w-100 dashed-border"
+                        <button type="button" id="btn_add_images" class="btn btn-outline-primary w-100 dashed-border"
                         onclick="document.getElementById('in_images').click()">
                             <i class="fa fa-plus-circle me-1"></i> Add Images
                         </button>
@@ -1429,9 +1446,11 @@
             </div>
         </div>
 
+        <div id="print-single-area"></div>
+
         <div class="bottom-panel">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT INSPECTIONS</h5>
+                <h5 class="fw-bold m-0" style="color: #ffffff;"><i class="fa fa-database me-2"></i> RECENT INSPECTIONS</h5>
                 <div class="d-flex align-items-center gap-3">
                     <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
                     <form method="GET" class="d-flex gap-0" style="width: 300px;">
@@ -1457,7 +1476,7 @@
                             <th>Location</th>
                             <th>Date</th>
                             <th>Time</th>
-                            <th>Action</th>
+                            <th class="text-center" style="width: 1%; white-space: nowrap;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1502,12 +1521,17 @@
                                     <td><?php echo htmlspecialchars($row['location']); ?></td>
                                     <td><?php echo $row['inspection_date']; ?></td>
                                     <td><?php echo date('h:i A', strtotime($row['inspection_time'])); ?></td>
-                                    <td class="text-end">
-                                        <div class="d-flex gap-1 justify-content-center">
+                                    <td class="text-center" style="white-space: nowrap;">
+                                        <div class="d-flex gap-2 justify-content-center">
                                             <button type="button" class="btn btn-sm btn-info text-white"
                                                 onclick='loadToPreview(<?php echo $preview_json; ?>)'
-                                                title="Load into Display/Form">
+                                                title="View Only">
                                                 <i class="fa fa-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-success text-white"
+                                                onclick='reprintRecord(<?php echo $preview_json; ?>)'
+                                                title="Reprint">
+                                                <i class="fa fa-print"></i>
                                             </button>
                                             <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                                 onclick="return confirm('Delete this record?')" title="Delete">
@@ -1550,13 +1574,154 @@
             }
 
             function printQueue() {
-                document.body.classList.remove('print-blank');
+                document.body.classList.remove('print-blank', 'print-single-mode');
                 window.print();
             }
 
             function printBlank() {
+                document.body.classList.remove('print-single-mode');
                 document.body.classList.add('print-blank');
                 window.print();
+            }
+
+            function reprintRecord(data) {
+                // Build HTML for the specific record
+                let imgHtml = '';
+                if (data.images && data.images.length > 0) {
+                    let sizeArray = [];
+                    try { sizeArray = JSON.parse(data.image_size); } catch(e) { sizeArray = [48]; }
+                    if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
+
+                    imgHtml = '<div class="image-section" style="display:flex!important;">';
+                    data.images.forEach((src, idx) => {
+                        let w = sizeArray[idx] || 48;
+                        imgHtml += `<div class="resize-wrapper" style="width: ${w}%; border: none; resize: none;"><img src="${src}" class="paper-preview-img" alt="Evidence"></div>`;
+                    });
+                    imgHtml += '</div>';
+                }
+
+                let timeStr = '';
+                if (data.time) {
+                    let [h, m] = data.time.split(':');
+                    let ampm = h >= 12 ? 'PM' : 'AM';
+                    h = h % 12;
+                    h = h ? h : 12;
+                    timeStr = `${h}:${m} ${ampm}`;
+                }
+
+                const template = `
+                    <div class="hcc-form">
+                        <div class="form-inner">
+                            <div class="new-header-wrapper">
+                                <div class="fading-bar"></div>
+                                <div class="header-content">
+                                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                                    <div class="text-content">
+                                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                        <div class="divider-line"></div>
+                                        <div class="details">
+                                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                            www.holycrosscollegesinc.com
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="division-header">
+                                <img src="background-logo-hcc.jpg" alt="SAPD Logo" class="sapd-logo">
+                                <div class="division-title">
+                                    <h2>SAFETY AND PROTECTION DIVISION</h2>
+                                    <h3>FACILITIES AND EQUIPMENT INSPECTION REPORT</h3>
+                                </div>
+                            </div>
+
+                            <table class="form-table">
+                                <tr>
+                                    <td class="label-cell">NAME OF FACILITY/EQUIPMENT/ITEM</td>
+                                    <td class="input-cell">${data.title.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label-cell">LOCATION</td>
+                                    <td class="input-cell">${data.loc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label-cell">DATE OF INSPECTION</td>
+                                    <td class="input-cell">${data.date}</td>
+                                </tr>
+                                <tr>
+                                    <td class="label-cell">TIME OF INSPECTION</td>
+                                    <td class="input-cell">${timeStr}</td>
+                                </tr>
+                            </table>
+
+                            <div class="desc-section">
+                                <div class="desc-box">
+                                    <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS / INSPECTION:</strong>
+                                    <span class="desc-text">${data.desc.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\\n/g, '<br>')}</span>
+                                    ${imgHtml}
+                                </div>
+                            </div>
+
+                            <div class="form-footer">
+                                <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                                <table class="copy-furnished-table">
+                                    <tr>
+                                        <td>Principal/Dean</td>
+                                        <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
+                                            <div style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;"></div>
+                                            <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG, LPT</div>
+                                            <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager for<br>Administrative Office</div>
+                                        </td>
+                                        <td>Others (Specify)</td>
+                                    </tr>
+                                </table>
+                                <div class="officer-section">
+                                    <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
+                                    <div class="officer-container">
+                                        <div class="officer-box">
+                                            <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
+                                            <div class="officer-position">Safety and Protection Officer</div>
+                                        </div>
+                                        <div class="officer-box">
+                                            <div class="officer-name-line">LESTER P. LUMBANG, SO2</div>
+                                            <div class="officer-position">Safety and Protection Officer</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="noted-section" style="margin-top: 30px;">
+                                    <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
+                                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                                        <div style="text-align: center;">
+                                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                                <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
+                                                <div class="officer-position">CHIEF, Safety and Protection</div>
+                                            </div>
+                                        </div>
+                                        <div style="text-align: center;">
+                                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                                <div class="officer-name-line">EDWIN GUEVARRA</div>
+                                                <div class="officer-position">Supervisor</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                document.getElementById('print-single-area').innerHTML = template;
+                
+                // Toggle specific print mode
+                document.body.classList.remove('print-blank');
+                document.body.classList.add('print-single-mode');
+                
+                window.print();
+                
+                // Remove class after printing
+                setTimeout(() => {
+                    document.body.classList.remove('print-single-mode');
+                }, 500);
             }
 
             // --- TEXT AUTO-SHRINK FUNCTION ---
@@ -1818,6 +1983,23 @@
 
                 updateTextPreview();
                 updateImagePreview();
+
+                // LOCK FIELDS FOR VIEW ONLY MODE
+                const fieldsToDisable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
+                fieldsToDisable.forEach(id => {
+                    let el = document.getElementById(id);
+                    if(el) el.disabled = true;
+                });
+                
+                let submitBtn = document.querySelector('button[name="submit_report"]');
+                if(submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fa fa-lock me-2"></i> VIEW ONLY';
+                }
+                
+                let addImgBtn = document.getElementById('btn_add_images');
+                if(addImgBtn) addImgBtn.disabled = true;
+
                 setTimeout(autoFitAllTexts, 200);
 
                 window.scrollTo({
@@ -1828,6 +2010,22 @@
 
             // --- Reset Form ---
             function resetForm() {
+                // UNLOCK ALL FIELDS
+                const fieldsToDisable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
+                fieldsToDisable.forEach(id => {
+                    let el = document.getElementById(id);
+                    if(el) el.disabled = false;
+                });
+                
+                let submitBtn = document.querySelector('button[name="submit_report"]');
+                if(submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE';
+                }
+                
+                let addImgBtn = document.getElementById('btn_add_images');
+                if(addImgBtn) addImgBtn.disabled = false;
+
                 document.getElementById('reportForm').reset();
                 document.getElementById('in_images').value = "";
                 document.getElementById('in_img_size').value = "[]";

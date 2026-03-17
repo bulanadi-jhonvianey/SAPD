@@ -25,7 +25,7 @@ if ($conn->connect_error) {
 $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
 $conn->select_db($dbname);
 
-// Table Setup - CHANGED TABLE NAME TO vaping_reports
+// Table Setup - ADDED image_size COLUMN
 $table_sql = "CREATE TABLE IF NOT EXISTS vaping_reports (
     id INT AUTO_INCREMENT PRIMARY KEY,
     case_title VARCHAR(255) NOT NULL,
@@ -33,7 +33,8 @@ $table_sql = "CREATE TABLE IF NOT EXISTS vaping_reports (
     incident_date DATE NOT NULL,
     incident_time TIME NOT NULL,
     description TEXT NOT NULL,
-    image_paths TEXT DEFAULT NULL, 
+    image_paths TEXT DEFAULT NULL,
+    image_size TEXT DEFAULT NULL,   // New column for resizing
     status VARCHAR(50) DEFAULT 'Recorded',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )";
@@ -46,7 +47,8 @@ $required_columns = [
     'incident_date' => 'DATE NOT NULL',
     'incident_time' => 'TIME NOT NULL',
     'description' => 'TEXT NOT NULL',
-    'image_paths' => 'TEXT DEFAULT NULL'
+    'image_paths' => 'TEXT DEFAULT NULL',
+    'image_size' => 'TEXT DEFAULT NULL'
 ];
 
 foreach ($required_columns as $col => $def) {
@@ -57,6 +59,12 @@ foreach ($required_columns as $col => $def) {
         $row = $check->fetch_assoc();
         if (strpos(strtolower($row['Type']), 'varchar') !== false) {
             $conn->query("ALTER TABLE vaping_reports CHANGE $col $col $def");
+        }
+    } else if ($check && $col === 'image_size') {
+        $row = $check->fetch_assoc();
+        if (strpos(strtolower($row['Type']), 'int') !== false) {
+            // Upgrade existing INT column to TEXT for JSON storage
+            $conn->query("ALTER TABLE vaping_reports CHANGE $col $col TEXT DEFAULT NULL");
         }
     }
 }
@@ -83,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     $date = $conn->real_escape_string($_POST['incident_date']);
     $time = $conn->real_escape_string($_POST['incident_time']);
     $desc = $conn->real_escape_string($_POST['description']);
+    $img_size = isset($_POST['image_size']) && !empty($_POST['image_size']) ? $conn->real_escape_string($_POST['image_size']) : '[]';
 
     $image_paths_json = null;
     $uploaded_files = [];
@@ -124,12 +133,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
             $image_paths_json = json_encode($uploaded_files);
         }
 
-        $stmt = $conn->prepare("INSERT INTO vaping_reports (case_title, location, incident_date, incident_time, description, image_paths) VALUES (?, ?, ?, ?, ?, ?)");
+        $stmt = $conn->prepare("INSERT INTO vaping_reports (case_title, location, incident_date, incident_time, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
             $error_msg = "<strong>Database Error:</strong> " . $conn->error;
         } else {
-            $stmt->bind_param("ssssss", $case, $loc, $date, $time, $desc, $image_paths_json);
+            $stmt->bind_param("sssssss", $case, $loc, $date, $time, $desc, $image_paths_json, $img_size);
 
             if ($stmt->execute()) {
                 $_SESSION['vaping_print_queue'][] = [
@@ -138,7 +147,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
                     'date' => $date,
                     'time' => $time,
                     'desc' => $desc,
-                    'image_paths' => $uploaded_files
+                    'image_paths' => $uploaded_files,
+                    'image_size' => $img_size
                 ];
                 header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
                 exit();
@@ -205,6 +215,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -331,6 +354,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             flex-direction: column;
         }
 
+        .left-panel label {
+            color: #ffffff !important;
+        }
+
+        .left-panel .text-secondary {
+            color: #ffffff !important;
+        }
+
         .right-panel {
             flex: 2;
             display: flex;
@@ -359,6 +390,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-color: var(--accent);
             color: var(--text-main);
             box-shadow: none;
+        }
+
+        /* --- Placeholder text color to match theme --- */
+        .form-control::placeholder {
+            color: var(--text-main);
+            opacity: 1;
+        }
+        .form-control:-ms-input-placeholder {
+            color: var(--text-main);
+        }
+        .form-control::-ms-input-placeholder {
+            color: var(--text-main);
         }
 
         .input-group .btn-outline-secondary {
@@ -398,7 +441,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-radius: 4px;
         }
 
-        /* --- IMAGE PREVIEWS --- */
+        /* --- IMAGE PREVIEWS (FORM SIDE) --- */
         .form-preview-item {
             position: relative;
             width: 80px;
@@ -437,13 +480,100 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             background: rgba(220, 53, 69, 1);
         }
 
+        /* ========== NEW HEADER STYLES ========== */
+        .new-header-wrapper {
+            position: relative;
+            width: calc(100% + 0.5in);
+            margin-left: -0.25in;
+            margin-right: -0.25in;
+            margin-top: -0.25in;
+            height: 1.5in;
+            margin-bottom: 0px; /* Kept tight to the line */
+        }
+
+        .fading-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px; 
+            background: 
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2; 
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.25in; 
+        }
+
+        .new-header-logo {
+            width: 140px;
+            height: auto;
+            margin-right: 5px; 
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
+        }
+
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, 
+                #002b7f 0%, 
+                #002b7f 18%, 
+                rgba(0, 43, 127, 0.25) 24%, 
+                rgba(0, 43, 127, 0.25) 75%, 
+                #002b7f 80%, 
+                #002b7f 100%
+            );
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center;
+            margin-left: 220px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+        /* ========== END NEW HEADER STYLES ========== */
+
         /* --- PAPER FORM DESIGN (SCREEN PREVIEW) --- */
         .hcc-form {
             width: 8.5in;
             height: 14in;
             background: white;
             color: black;
-            padding: 0.25in 0.5in 0.25in 0.5in;
+            padding: 0.3in 0.25in 0.25in 0.25in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -456,64 +586,46 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             flex-direction: column;
         }
 
-        .header-layout {
-            position: relative;
-            width: 100%;
-            margin: 0;
-        }
-
-        /* --- LOGO POSITION --- */
-        .logo-left {
-            width: 185px !important;
-            position: fixed !important;
-            left: -3px !important;
-            top: 15px !important;
-            z-index: 50 !important;
-        }
-
-        .header-banner {
-            width: calc(100% + 1in) !important;
-            display: block;
-            margin-left: -0.5in;
-            margin-right: -0.5in;
-            margin-top: 0px !important;
-            max-width: none !important;
-        }
-
-        /* MODIFIED FORM TITLE FOR LOGO */
-        .form-title {
+        /* --- DIVISION TITLE --- */
+        .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            /* Space between logo and text */
-            margin: 10px 0 10px 0;
-            color: black;
+            gap: 15px;
+            margin-top: -5px; /* MODIFIED: Using negative margin to pull it slightly higher */
+            margin-bottom: 5px;
+            position: relative;
+            z-index: 60;
         }
 
-        .form-title-text {
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
             text-align: center;
+            margin-top: 5px;
         }
 
-        .form-title h2 {
-            font-family: "Bookman Old Style", "Bookman", serif !important;
-            font-weight: 900 !important;
-            font-size: 18px !important;
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
+            font-weight: 900;
+            font-size: 18px;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .form-title h3 {
-            font-family: Arial, sans-serif;
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
             font-weight: bold;
-            font-size: 13px;
-            margin: 2px 0 0 0;
             text-decoration: underline;
+            font-size: 14px;
+            margin: 2px 0 0 0;
             text-transform: uppercase;
         }
 
-        /* --- TABLE STYLES --- */
         .form-table {
             width: 100%;
             border-collapse: collapse;
@@ -539,6 +651,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             color: black;
         }
 
+        /* --- FIXED: PREVENT TABLE EXPANSION --- */
         .desc-table {
             width: 100%;
             border-collapse: collapse;
@@ -554,17 +667,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-right: 2px solid black;
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 4px 6px;
+            padding: 0; /* Important: removed padding so absolute inner box handles it */
             vertical-align: top;
-            height: 500px;
-            position: relative;
+            height: 500px; /* Firmly holds layout */
+            position: relative; /* Anchor for internal content */
         }
 
         .desc-content {
+            position: absolute; /* Locks size to table cell bounds */
+            top: 0; bottom: 0; left: 0; right: 0;
+            padding: 6px 8px; /* Restored padding here */
             font-size: 10pt;
             color: black;
-            height: 100%;
-            overflow: hidden;
+            overflow: hidden; /* Stops images from pushing bottom elements */
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
         }
 
         .desc-box {
@@ -577,7 +695,73 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             white-space: pre-wrap;
             word-wrap: break-word;
             word-break: break-all;
+            flex-grow: 1;
+            box-sizing: border-box;
         }
+
+        /* --- RESIZABLE IMAGE STYLES --- */
+        .image-section {
+            display: none;
+            width: 100%;
+            margin-top: auto;  /* Push to bottom */
+            padding: 5px 0;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .resize-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px dashed transparent;
+            max-width: 100%;
+            min-width: 10%;
+            margin: 0;
+            padding: 0;
+            transition: border-color 0.2s;
+            user-select: none; /* Prevent text selection during drag */
+            box-sizing: border-box;
+        }
+        
+        .resize-wrapper:hover, .resize-wrapper:active {
+            border-color: rgba(0, 123, 255, 0.7);
+        }
+
+        .paper-preview-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none;
+            object-fit: contain;
+        }
+
+        .resize-handle {
+            position: absolute;
+            background: #007bff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 20;
+            width: 16px;
+            height: 16px;
+        }
+
+        .resize-wrapper:hover .resize-handle, 
+        .resize-wrapper:active .resize-handle {
+            opacity: 1;
+        }
+
+        .resizer-nw { top: -8px; left: -8px; cursor: nwse-resize; }
+        .resizer-ne { top: -8px; right: -8px; cursor: nesw-resize; }
+        .resizer-sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
+        .resizer-se { bottom: -8px; right: -8px; cursor: nwse-resize; }
+        .resizer-n { top: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .resizer-s { bottom: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
+        .resizer-e { top: 50%; right: -8px; transform: translateY(-50%); cursor: ew-resize; }
+        .resizer-w { top: 50%; left: -8px; transform: translateY(-50%); cursor: ew-resize; }
 
         .signatures-table {
             width: 100%;
@@ -607,28 +791,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-bottom: 1px solid black;
             width: 90%;
             margin: 0 auto 5px auto;
-        }
-
-        /* UPDATED IMAGE STYLING */
-        .image-section {
-            display: none;
-            text-align: center;
-            page-break-inside: avoid;
-            position: absolute;
-            bottom: 5px;
-            left: 5px;
-            right: 5px;
-            pointer-events: none;
-        }
-
-        .paper-preview-img {
-            max-width: 48%;
-            max-height: 300px;
-            border: 1px solid #ccc;
-            margin: 5px;
-            display: inline-block;
-            vertical-align: top;
-            object-fit: contain;
         }
 
         .form-footer {
@@ -705,9 +867,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             font-size: 8.5pt;
         }
 
-        /* --- PRINT MEDIA QUERIES --- */
+        /* --- PRINT MEDIA QUERIES (0 margin) --- */
         @page {
-            size: 8.5in 14in;
+            size: auto;
             margin: 0;
         }
 
@@ -722,6 +884,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 padding: 0 !important;
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
             }
 
             .navbar,
@@ -742,12 +905,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 height: 100%;
             }
 
-            #print-area .hcc-form {
+            #print-area .hcc-form,
+            .print-blank #print-blank-area .hcc-form {
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
-                width: 8.5in !important;
-                height: 14in !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.3in 0.25in 0.25in 0.25in !important;
             }
 
             .print-blank #print-area {
@@ -763,25 +929,28 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 height: 100%;
             }
 
-            .print-blank #print-blank-area .hcc-form {
-                transform: none !important;
-                box-shadow: none !important;
-                margin: 0 auto !important;
-                width: 8.5in !important;
-                height: 14in !important;
+            .new-header-wrapper {
+                margin-top: -0.25in !important;
+                margin-left: -0.25in !important;
+                margin-right: -0.25in !important;
+                padding-top: 0 !important;
             }
 
-            .header-banner {
-                width: calc(100% + 1in) !important;
-                margin-left: -0.5in !important;
-                margin-right: -0.5in !important;
-                margin-top: 0px !important;
+            .fading-bar, .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
             }
 
             .image-section {
-                display: block !important;
+                display: flex !important;
             }
 
+            .resize-wrapper {
+                border: none !important;
+            }
+            .resize-handle {
+                display: none !important;
+            }
         }
 
         /* THEME TABLES */
@@ -799,13 +968,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         .table-custom th {
             background-color: var(--input-bg);
             color: var(--accent);
-            /* Reverted to Theme Blue */
             border-color: var(--border);
         }
 
         .table-custom td {
             color: #ffffff !important;
-            /* Kept White */
             border-color: var(--border);
         }
 
@@ -901,9 +1068,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 <textarea name="description" id="in_desc" class="form-control" rows="8"
                     placeholder="Description of Incident..." required oninput="updatePreview()"></textarea>
 
+                <input type="hidden" name="image_size" id="in_img_size" value="[]">
+
                 <div class="mb-3 mt-3">
-                    <label class="small text-secondary mb-2 d-block"><i class="fa fa-images me-1"></i> Attach Images
-                        (Optional, JPG/PNG/GIF)</label>
+                    <label class="small text-secondary mb-2 d-block">
+                        <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
+                        <br>
+                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                    </label>
 
                     <input type="file" name="incident_images[]" id="in_images" class="d-none"
                         accept="image/png, image/gif, image/jpeg" multiple>
@@ -929,29 +1101,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
             <hr class="border-secondary my-4">
 
-            <div class="row g-2">
-                <div class="col-6">
-                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['vaping_print_queue']) == 0 ? 'disabled' : ''; ?>>
-                        <i class="fa fa-print me-2"></i> Print Queue
-                        (<?php echo count($_SESSION['vaping_print_queue']); ?>)
-                    </button>
-                </div>
-                <div class="col-6">
-                    <button onclick="printBlank()" class="btn btn-secondary w-100 fw-bold text-white h-100">
-                        <i class="fa fa-file me-2"></i> Blank Form
-                    </button>
-                </div>
-                <?php if (count($_SESSION['vaping_print_queue']) > 0): ?>
-                    <div class="col-12">
-                        <form method="POST" class="m-0">
-                            <button type="submit" name="clear_queue" class="btn btn-danger w-100 fw-bold"
-                                onclick="return confirm('Clear all items from print queue?')">
-                                <i class="fa fa-trash me-2"></i> Clear Queue
-                            </button>
-                        </form>
-                    </div>
-                <?php endif; ?>
+            <!-- UPDATED BUTTON SECTION (matching CCTV) -->
+            <div class="d-flex gap-2 flex-wrap mb-2">
+                <button onclick="printQueue()" class="btn btn-success flex-grow-1 fw-bold" <?php echo count($_SESSION['vaping_print_queue']) == 0 ? 'disabled' : ''; ?>>
+                    <i class="fa fa-print me-2"></i> Print Queue (<?php echo count($_SESSION['vaping_print_queue']); ?>)
+                </button>
+                <button onclick="printBlank()" class="btn btn-info fw-bold text-white flex-grow-1">
+                    <i class="fa fa-file me-2"></i> Blank Form
+                </button>
             </div>
+
+            <?php if (count($_SESSION['vaping_print_queue']) > 0): ?>
+                <form method="POST" class="m-0 w-100 mt-2">
+                    <button type="submit" name="clear_queue" class="btn btn-danger fw-bold w-100 py-2"
+                        onclick="return confirm('Clear all items from print queue?')">
+                        <i class="fa fa-trash me-2"></i> Clear Queue
+                    </button>
+                </form>
+            <?php endif; ?>
+
         </div>
 
         <div class="right-panel">
@@ -960,14 +1128,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             </div>
 
             <div class="hcc-form" id="paper-preview">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                <div class="new-header-wrapper">
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-title">
-                    <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                    <div class="form-title-text">
+                <div class="division-header">
+                    <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                    <div class="division-title">
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
                         <h3>VAPING INCIDENT REPORT</h3>
                     </div>
@@ -996,9 +1174,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     <tr>
                         <td>
                             <div class="desc-content">
-                                <strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                    style="font-size: 8pt; font-style: italic;">(What happened, person involved,
-                                    specific dates/events)</span>
+                                <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                                    <strong>DESCRIPTION OF INCIDENT:</strong>
+                                    <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                                </div>
                                 <div class="desc-box"><span id="out_desc"></span></div>
                                 <div class="image-section" id="out_images_container"></div>
                             </div>
@@ -1081,19 +1260,40 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             foreach ($_SESSION['vaping_print_queue'] as $p):
                 $t = strtotime($p['time']);
                 $print_time = date("h:i A", $t);
+                $print_sizes = [];
+                if (!empty($p['image_size'])) {
+                    $decoded_sizes = json_decode($p['image_size'], true);
+                    if (is_array($decoded_sizes)) {
+                        $print_sizes = $decoded_sizes;
+                    } else {
+                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                    }
+                }
                 ?>
                 <div class="hcc-form">
-                    <div class="header-layout">
-                        <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                        <img src="header_hcc.png" alt="Header" class="header-banner">
+                    <div class="new-header-wrapper">
+                        <div class="fading-bar"></div>
+                        <div class="header-content">
+                            <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                            <div class="text-content">
+                                <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                <div class="divider-line"></div>
+                                <div class="details">
+                                    Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                    www.holycrosscollegesinc.com
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-title">
-                        <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                        <div class="form-title-text">
+
+                    <div class="division-header">
+                        <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                        <div class="division-title">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
                             <h3>VAPING INCIDENT REPORT</h3>
                         </div>
                     </div>
+
                     <table class="form-table">
                         <tr>
                             <td class="label-cell">CASE</td>
@@ -1112,18 +1312,30 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                             <td class="input-cell"><?php echo $print_time; ?></td>
                         </tr>
                     </table>
+
                     <table class="desc-table">
                         <tr>
                             <td>
                                 <div class="desc-content">
-                                    <strong>DESCRIPTION OF INCIDENT:</strong>
+                                    <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                                        <strong>DESCRIPTION OF INCIDENT:</strong>
+                                        <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                                    </div>
                                     <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
                                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
-                                        <div class="image-section" style="display:block;">
-                                            <?php foreach ($p['image_paths'] as $path): ?>                 <?php if (file_exists($path)): ?><img
-                                                        src="<?php echo $path; ?>" class="paper-preview-img"
-                                                        alt="Evidence"><?php endif; ?><?php endforeach; ?>
-                                        </div><?php endif; ?>
+                                        <div class="image-section" style="display:flex!important;">
+                                            <?php foreach ($p['image_paths'] as $idx => $path): ?>
+                                                <?php 
+                                                $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 48;
+                                                if (file_exists($path)): 
+                                                ?>
+                                                    <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                                        <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
+                                                    </div>
+                                                <?php endif; ?>
+                                            <?php endforeach; ?>
+                                        </div>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -1200,17 +1412,29 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
     <div id="print-blank-area">
         <div class="hcc-form">
-            <div class="header-layout">
-                <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                <img src="header_hcc.png" alt="Header" class="header-banner">
+            <div class="new-header-wrapper">
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-title">
-                <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                <div class="form-title-text">
+
+            <div class="division-header">
+                <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                <div class="division-title">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
                     <h3>VAPING INCIDENT REPORT</h3>
                 </div>
             </div>
+
             <table class="form-table">
                 <tr>
                     <td class="label-cell">CASE</td>
@@ -1229,18 +1453,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     <td class="input-cell">&nbsp;</td>
                 </tr>
             </table>
+
             <table class="desc-table">
                 <tr>
                     <td>
                         <div class="desc-content">
-                            <strong>DESCRIPTION OF INCIDENT:</strong> <span
-                                style="font-size: 8pt; font-style: italic;">(What happened, person involved, specific
-                                dates/events)</span>
+                            <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                                <strong>DESCRIPTION OF INCIDENT:</strong>
+                                <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                            </div>
                             <div class="desc-box"></div>
                         </div>
                     </td>
                 </tr>
             </table>
+
             <table class="signatures-table">
                 <tr>
                     <td>
@@ -1259,6 +1486,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     </td>
                 </tr>
             </table>
+
             <div class="form-footer">
                 <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
                     the office of:</div>
@@ -1272,6 +1500,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                         <td>Others (Specify)</td>
                     </tr>
                 </table>
+
                 <div class="officer-section">
                     <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
                     <div class="officer-container">
@@ -1285,6 +1514,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                         </div>
                     </div>
                 </div>
+
                 <div class="noted-section" style="margin-top: 30px;">
                     <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
                     <div style="text-align: left;">
@@ -1341,7 +1571,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                                 'date' => $row['incident_date'],
                                 'time' => $row['incident_time'],
                                 'desc' => $row['description'],
-                                'images' => json_decode($row['image_paths'], true)
+                                'images' => json_decode($row['image_paths'], true),
+                                'image_size' => $row['image_size']
                             ];
                             $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
                             ?>
@@ -1421,10 +1652,38 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
         function printBlank() { document.body.classList.add('print-blank'); window.print(); }
 
-        // --- GLOBAL VARIABLES ---
-        let loadedImages = []; // Stores images from DB load
-        let isLoadedMode = false; // Flag to check if we are viewing a DB record
+        // --- TEXT AUTO-SHRINK FUNCTION ---
+        function autoFitAllTexts() {
+            const containers = document.querySelectorAll('.desc-content');
+            
+            containers.forEach(container => {
+                const textEl = container.querySelector('.desc-box');
+                const imgEl = container.querySelector('.image-section');
+                
+                if (!textEl) return;
+                
+                // Reset to default font size to measure accurately
+                textEl.style.fontSize = '10pt';
+                
+                const availableHeight = container.clientHeight; 
+                if (availableHeight === 0) return;
+                
+                let imgHeight = 0;
+                if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
+                    imgHeight = imgEl.offsetHeight;
+                }
+                
+                let currentSize = 10;
+                const minSize = 7;
+                
+                while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
+                    currentSize -= 0.5;
+                    textEl.style.fontSize = currentSize + 'pt';
+                }
+            });
+        }
 
+        // --- TEXT UPDATE ONLY ---
         function updatePreview() {
             document.getElementById('out_case').innerText = document.getElementById('in_case').value.toUpperCase();
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
@@ -1441,110 +1700,170 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             }
             document.getElementById('out_desc').innerText = document.getElementById('in_desc').value;
 
-            // Image Preview Logic (Only update from file input if NOT in Loaded Mode, or if user added files)
-            // But simplify: If file input has files, show them. Else if loadedImages has items, show them.
-            const paperImageContainer = document.getElementById('out_images_container');
-            const fileInput = document.getElementById('in_images');
-
-            if (fileInput.files.length > 0) {
-                // User uploaded new files, show those
-                paperImageContainer.innerHTML = '';
-                paperImageContainer.style.display = 'block';
-                [...fileInput.files].forEach(file => {
-                    let reader = new FileReader();
-                    reader.onload = function (e) {
-                        let img = document.createElement('img');
-                        img.src = e.target.result;
-                        img.className = 'paper-preview-img';
-                        paperImageContainer.appendChild(img);
-                    }
-                    reader.readAsDataURL(file);
-                });
-            } else if (loadedImages.length > 0) {
-                // Show loaded images from DB
-                paperImageContainer.innerHTML = '';
-                paperImageContainer.style.display = 'block';
-                loadedImages.forEach(src => {
-                    let img = document.createElement('img');
-                    img.src = src;
-                    img.className = 'paper-preview-img';
-                    paperImageContainer.appendChild(img);
-                });
-            } else {
-                // No images
-                paperImageContainer.innerHTML = '';
-                paperImageContainer.style.display = 'none';
-            }
+            autoFitAllTexts();
         }
 
-        // --- NEW: Load Data to Preview ---
-        function loadToPreview(data) {
-            // Fill inputs
-            document.getElementById('in_case').value = data.case;
-            document.getElementById('in_loc').value = data.loc;
-            document.getElementById('in_date').value = data.date;
-            document.getElementById('in_time').value = data.time;
-            document.getElementById('in_desc').value = data.desc;
+        // --- GLOBAL VARIABLES ---
+        let loadedImages = [];
+        let isLoadedMode = false;
 
-            // Handle Images
-            loadedImages = data.images || [];
-            isLoadedMode = true;
-
-            // Clear current file input since we loaded from DB
-            document.getElementById('in_images').value = "";
-            document.getElementById('form-image-previews').innerHTML = ""; // Clear mini previews
-
-            // Render mini previews for Loaded Images (Optional, for visual feedback on left)
-            const formPreviewContainer = document.getElementById('form-image-previews');
-            if (loadedImages.length > 0) {
-                loadedImages.forEach((src, index) => {
-                    let item = document.createElement('div');
-                    item.className = 'form-preview-item';
-                    item.innerHTML = `<img src="${src}"><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.5);color:white;font-size:10px;text-align:center;">Saved</div>`;
-                    formPreviewContainer.appendChild(item);
-                });
-            }
-
-            updatePreview();
-
-            // Scroll to top to see details
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // --- NEW: Reset Form ---
-        function resetForm() {
-            document.getElementById('reportForm').reset();
-            document.getElementById('in_images').value = "";
-            dt = new DataTransfer(); // Reset file list
-            loadedImages = [];
-            isLoadedMode = false;
-            document.getElementById('form-image-previews').innerHTML = "";
-            updatePreview();
-        }
-
-        // --- MULTIPLE IMAGE UPLOAD & PREVIEW LOGIC ---
+        // --- IMAGE UPDATE & RESIZE LOGIC ---
         const fileInput = document.getElementById('in_images');
+        const paperImageContainer = document.getElementById('out_images_container');
         const formPreviewContainer = document.getElementById('form-image-previews');
         let dt = new DataTransfer();
 
         fileInput.addEventListener('change', function () {
-            // If user adds files, we clear loaded images to avoid confusion or mix
             if (isLoadedMode) {
                 loadedImages = [];
                 isLoadedMode = false;
                 formPreviewContainer.innerHTML = '';
             }
-
             for (let file of this.files) {
                 dt.items.add(file);
             }
             this.files = dt.files;
+            
+            // Re-sync size array to match newly added items (default 48)
+            let currentSizes = [];
+            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
+            while(currentSizes.length < this.files.length) currentSizes.push(48);
+            document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
+
             renderFormPreviews();
-            updatePreview(); // Update paper preview
+            updateImagePreview(); 
         });
 
+        function updateImagePreview() {
+            paperImageContainer.innerHTML = '';
+
+            // Fetch current Array of Saved Sizes
+            let savedSizesVal = document.getElementById('in_img_size').value;
+            let sizeArray = [];
+            try {
+                sizeArray = JSON.parse(savedSizesVal);
+                if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
+            } catch(e) {
+                sizeArray = [parseInt(savedSizesVal) || 48];
+            }
+
+            function appendImage(src, index) {
+                let wrapper = document.createElement('div');
+                wrapper.className = 'resize-wrapper';
+                
+                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
+                wrapper.style.width = initialSize + '%';
+                
+                let img = document.createElement('img');
+                img.src = src;
+                img.className = 'paper-preview-img';
+                img.onload = function() { autoFitAllTexts(); };
+                
+                wrapper.appendChild(img);
+
+                // Inject 8 interaction handles
+                const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
+                handles.forEach(dir => {
+                    let handle = document.createElement('div');
+                    handle.className = `resize-handle resizer-${dir}`;
+                    wrapper.appendChild(handle);
+                });
+
+                paperImageContainer.appendChild(wrapper);
+
+                // Custom JavaScript Drag & Resize Logic
+                const resizers = wrapper.querySelectorAll('.resize-handle');
+                let original_width = 0;
+                let original_height = 0;
+                let original_mouse_x = 0;
+                let original_mouse_y = 0;
+
+                resizers.forEach(function(resizer) {
+                    resizer.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
+                        original_height = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('height').replace('px', ''));
+                        original_mouse_x = e.pageX;
+                        original_mouse_y = e.pageY;
+                        
+                        function resize(e) {
+                            let width = original_width;
+                            let height = original_height;
+                            let ratio = original_width / original_height;
+
+                            if (resizer.classList.contains('resizer-e')) {
+                                width = original_width + (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-w')) {
+                                width = original_width - (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-s')) {
+                                height = original_height + (e.pageY - original_mouse_y);
+                                width = height * ratio;
+                            } else if (resizer.classList.contains('resizer-n')) {
+                                height = original_height - (e.pageY - original_mouse_y);
+                                width = height * ratio;
+                            } else if (resizer.classList.contains('resizer-se')) {
+                                width = original_width + (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-sw')) {
+                                width = original_width - (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-ne')) {
+                                width = original_width + (e.pageX - original_mouse_x);
+                            } else if (resizer.classList.contains('resizer-nw')) {
+                                width = original_width - (e.pageX - original_mouse_x);
+                            }
+
+                            let percentWidth = (width / paperImageContainer.clientWidth) * 100;
+
+                            if(percentWidth > 100) percentWidth = 100;
+                            if(percentWidth < 10) percentWidth = 10;
+
+                            wrapper.style.width = percentWidth + '%';
+                        }
+                        
+                        function stopResize() {
+                            window.removeEventListener('mousemove', resize);
+                            window.removeEventListener('mouseup', stopResize);
+                            
+                            let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
+                            if(percent > 100) percent = 100;
+                            if(percent < 10) percent = 10;
+                            wrapper.style.width = percent + '%';
+                            
+                            let updatedSizes = [];
+                            document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
+                                updatedSizes.push(parseFloat(w.style.width) || 48);
+                            });
+                            document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
+                            
+                            autoFitAllTexts();
+                        }
+                        
+                        window.addEventListener('mousemove', resize);
+                        window.addEventListener('mouseup', stopResize);
+                    });
+                });
+            }
+
+            if (fileInput.files.length > 0) {
+                paperImageContainer.style.display = 'flex';
+                [...fileInput.files].forEach((file, index) => {
+                    let reader = new FileReader();
+                    reader.onload = function (e) {
+                        appendImage(e.target.result, index);
+                    }
+                    reader.readAsDataURL(file);
+                });
+            } else if (loadedImages.length > 0) {
+                paperImageContainer.style.display = 'flex';
+                loadedImages.forEach((src, index) => {
+                    appendImage(src, index);
+                });
+            } else {
+                paperImageContainer.style.display = 'none';
+            }
+        }
+
         function renderFormPreviews() {
-            // Form Previews (Mini with Delete)
             formPreviewContainer.innerHTML = '';
             [...dt.files].forEach((file, index) => {
                 let reader = new FileReader();
@@ -1561,12 +1880,73 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         function removeFile(index) {
             dt.items.remove(index);
             fileInput.files = dt.files;
+
+            try {
+                let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
+                if (Array.isArray(sizeArray)) {
+                    sizeArray.splice(index, 1);
+                    document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
+                }
+            } catch(e) {}
+
             renderFormPreviews();
-            updatePreview();
+            updateImagePreview();
         }
 
+        // --- Load Data to Preview ---
+        function loadToPreview(data) {
+            document.getElementById('in_case').value = data.case;
+            document.getElementById('in_loc').value = data.loc;
+            document.getElementById('in_date').value = data.date;
+            document.getElementById('in_time').value = data.time;
+            document.getElementById('in_desc').value = data.desc;
+
+            // Apply Saved Image Sizes
+            let savedSize = data.image_size || '[]';
+            if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
+            document.getElementById('in_img_size').value = savedSize;
+
+            loadedImages = data.images || [];
+            isLoadedMode = true;
+
+            document.getElementById('in_images').value = "";
+            document.getElementById('form-image-previews').innerHTML = "";
+
+            const formPreviewContainer = document.getElementById('form-image-previews');
+            if (loadedImages.length > 0) {
+                loadedImages.forEach((src, index) => {
+                    let item = document.createElement('div');
+                    item.className = 'form-preview-item';
+                    item.innerHTML = `<img src="${src}"><div style="position:absolute;bottom:0;width:100%;background:rgba(0,0,0,0.5);color:white;font-size:10px;text-align:center;">Saved</div>`;
+                    formPreviewContainer.appendChild(item);
+                });
+            }
+
+            updatePreview();
+            updateImagePreview();
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- Reset Form ---
+        function resetForm() {
+            document.getElementById('reportForm').reset();
+            document.getElementById('in_images').value = "";
+            document.getElementById('in_img_size').value = "[]";
+            dt = new DataTransfer();
+            loadedImages = [];
+            isLoadedMode = false;
+            document.getElementById('form-image-previews').innerHTML = "";
+
+            updatePreview();
+            updateImagePreview();
+            document.querySelectorAll('.desc-box').forEach(el => el.style.fontSize = '10pt');
+        }
+
+        // Initial update on page load
         document.addEventListener('DOMContentLoaded', function () {
             updatePreview();
+            updateImagePreview();
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => { new bootstrap.Alert(alert).close(); });

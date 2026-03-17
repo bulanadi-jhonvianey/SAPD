@@ -190,6 +190,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -250,35 +263,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-        }
+        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
+        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
 
         /* Theme Toggle */
         .btn-theme {
@@ -395,61 +385,128 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             margin-top: 10px;
         }
 
-        .header-layout {
+        /* --- NEW HEADER LAYOUT (Fading Bar Integration) --- */
+        .new-header-wrapper {
             position: relative;
-            width: 100%;
-            margin-bottom: 0px;
-            margin-top: 0px; 
-            min-height: 100px;  /* Increased to accommodate banner margin */
-        }
-
-        .logo-left {
-            width: 185px !important;
-            position: fixed !important; 
-            left: -5px !important;
-            top: 25px !important; 
-            z-index: 50 !important;
-        }
-
-        .header-banner {
-            width: calc(100% + 1in) !important;
-            height: 65px !important;
-            object-fit: fill;
-            display: block;
+            width: calc(100% + 1in);
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: 30px !important;   /* Increased from 0px to 30px */
-            max-width: none !important;
+            margin-top: -0.25in;
+            height: 1.5in;
+            margin-bottom: 10px;
         }
 
-        .form-title {
+        .fading-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px; 
+            background: 
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2; 
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.5in; 
+        }
+
+        .new-header-logo {
+            width: 140px;
+            height: auto;
+            margin-right: 5px; 
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
+        }
+
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, 
+                #002b7f 0%, 
+                #002b7f 18%, 
+                rgba(0, 43, 127, 0.25) 24%, 
+                rgba(0, 43, 127, 0.25) 75%, 
+                #002b7f 80%, 
+                #002b7f 100%
+            );
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center; 
+            margin-left: 220px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+
+        /* --- DIVISION TITLE DESIGN --- */
+        .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            margin: -5px 0 15px 0; 
-            color: black;
+            gap: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 60;
         }
 
-        .form-title-text {
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
             text-align: center;
+            margin-top: 5px;
         }
 
-        .form-title h2 {
-            font-family: "Bookman Old Style", "Bookman", "URW Bookman L", serif !important;
-            font-weight: 900 !important;
-            font-size: 20px !important;
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
+            font-weight: 900;
+            font-size: 16pt;
             margin: 0;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
 
-        .form-title h3 {
-            font-family: Arial, sans-serif;
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
             font-weight: bold;
-            font-size: 14px;
-            margin: 5px 0 0 0;
             text-decoration: underline;
+            font-size: 13pt;
+            margin: 2px 0 0 0;
             text-transform: uppercase;
         }
 
@@ -527,20 +584,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             text-transform: uppercase;
         }
 
-        /* Base print hide classes */
+        /* --- PRINT MEDIA QUERIES (Zero margin, full page) --- */
+        @page {
+            size: auto;
+            margin: 0;
+        }
+
         #print-area,
         #print-blank-area {
             display: none;
         }
 
         @media print {
-
-            @page {
-
-                size: auto;
-                margin: 0mm !important;
-            }
-
             body {
                 margin: 0 !important;
                 padding: 0 !important;
@@ -549,7 +604,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 print-color-adjust: exact !important;
             }
 
-            /* HIDE EVERYTHING EXCEPT THE FORM ITSELF */
             .navbar,
             .main-container,
             .bottom-panel,
@@ -559,105 +613,50 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 display: none !important;
             }
 
-            /* DISPLAY ACTIVE PRINT AREA AS NORMAL DOCUMENT FLOW */
             #print-area {
                 display: block !important;
-
+                position: absolute;
+                top: 0;
+                left: 0;
                 width: 100%;
+                height: 100%;
+            }
 
-                margin: 0 !important;
-                padding: 0 !important;
+            #print-area .hcc-form,
+            .print-blank #print-blank-area .hcc-form {
+                transform: none !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.25in 0.5in 0.5in 0.5in !important;
+                page-break-after: always !important;
             }
 
             .print-blank #print-area {
                 display: none !important;
             }
 
-            #print-blank-area {
-                display: none !important;
-            }
-
             .print-blank #print-blank-area {
                 display: block !important;
-
+                position: absolute;
+                top: 0;
+                left: 0;
                 width: 100%;
-
-                margin: 0 !important;
-                padding: 0 !important;
+                height: 100%;
             }
 
-            /* PRINT FORM CONTAINER */
-            #print-area .hcc-form,
-            #print-blank-area .hcc-form {
-                transform: none !important;
-                box-shadow: none !important;
-                margin: 0 auto !important;
-                padding: 0.25in 0.5in 0.5in 0.5in !important;
-                width: 100% !important;
-                max-width: 8.5in !important;
-                height: auto !important;
-                min-height: 10in !important;
-                page-break-after: always !important;
-                break-after: page !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                overflow: hidden !important;
-                box-sizing: border-box !important;
-                position: relative !important;
-            }
-
-            #print-area .header-layout,
-            #print-blank-area .header-layout {
-                margin-top: 0 !important;
-            }
-
-            #print-area .form-title,
-            #print-blank-area .form-title {
-                margin-top: -5px !important;
-                margin-bottom: 10px !important;
-            }
-
-            #print-area .hcc-form:last-of-type,
-            #print-blank-area .hcc-form:last-of-type {
-                page-break-after: auto !important;
-                break-after: auto !important;
-            }
-
-            /* Banner top margin increased to match screen */
-            #print-area .header-banner,
-            #print-blank-area .header-banner {
-                width: calc(100% + 1in) !important;
-                height: 65px !important;
-                object-fit: fill;
+            .new-header-wrapper {
+                margin-top: -0.25in !important;
                 margin-left: -0.5in !important;
                 margin-right: -0.5in !important;
-                margin-top: 30px !important;   /* Increased from 0px to 30px */
-                max-width: none !important;
+                padding-top: 0 !important;
             }
 
-            /* Logo remains fixed at top-left corner */
-            #print-area .logo-left,
-            #print-blank-area .logo-left {
-                width: 180px !important;
-                position: fixed !important;
-                left: -5px !important;
-                top: 25px !important;
-            }
-
-            #print-area .form-title h2,
-            #print-blank-area .form-title h2 {
-                font-family: "Bookman Old Style", "Bookman", "URW Bookman L", serif !important;
-                font-weight: 900 !important;
-                font-size: 20px !important;
-            }
-
-            @page {
-                @top-left { content: none !important; }
-                @top-center { content: none !important; }
-                @top-right { content: none !important; }
-                @bottom-left { content: none !important; }
-                @bottom-center { content: none !important; }
-                @bottom-right { content: none !important; }
+            .fading-bar, .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
             }
         }
 
@@ -722,38 +721,38 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 <input type="hidden" name="edit_id" id="in_edit_id" value="">
 
                 <input type="text" name="requestor_name" id="in_name" class="form-control" placeholder="Requestor Name"
-                    required oninput="updatePreview(true)">
+                    required oninput="updatePreview()">
                 <input type="text" name="level_section" id="in_lvl" class="form-control" placeholder="Level / Section"
-                    required oninput="updatePreview(true)">
+                    required oninput="updatePreview()">
 
                 <div class="row">
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Incident Date</label>
                         <input type="date" name="incident_date" id="in_date" class="form-control" required
-                            oninput="updatePreview(true)">
+                            oninput="updatePreview()">
                     </div>
                     <div class="col-6">
                         <label class="small text-secondary mb-1">Incident Time</label>
                         <input type="time" name="incident_time" id="in_time" class="form-control" required
-                            oninput="updatePreview(true)">
+                            oninput="updatePreview()">
                     </div>
                 </div>
 
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location of Incident"
-                    required oninput="updatePreview(true)">
+                    required oninput="updatePreview()">
                 <textarea name="reason" id="in_reason" class="form-control" rows="3" placeholder="Reason for Review"
-                    required oninput="updatePreview(true)"></textarea>
+                    required oninput="updatePreview()"></textarea>
                 <textarea name="evaluation" id="in_eval" class="form-control" rows="3"
-                    placeholder="Evaluation (Optional)" oninput="updatePreview(true)"></textarea>
+                    placeholder="Evaluation (Optional)" oninput="updatePreview()"></textarea>
 
                 <div class="row mt-2">
                     <div class="col-6">
                         <input type="text" name="assisted_by" id="in_assisted" class="form-control"
-                            placeholder="Assisted By" required oninput="updatePreview(true)">
+                            placeholder="Assisted By" required oninput="updatePreview()">
                     </div>
                     <div class="col-6">
                         <input type="text" name="reviewed_by" id="in_reviewed" class="form-control"
-                            placeholder="Reviewed By" required oninput="updatePreview(true)">
+                            placeholder="Reviewed By" required oninput="updatePreview()">
                     </div>
                 </div>
 
@@ -805,14 +804,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             </div>
 
             <div class="hcc-form">
-                <div class="header-layout">
-                    <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                    <img src="header_hcc.png" alt="Header" class="header-banner">
+                <div class="new-header-wrapper">
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="form-title">
-                    <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                    <div class="form-title-text">
+                <div class="division-header">
+                    <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                    <div class="division-title">
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
                         <h3>CCTV REVIEW FORM</h3>
                     </div>
@@ -928,6 +937,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                                 <td><?php echo date('m/d/Y', strtotime($row['created_at'])); ?></td>
                                 <td>
                                     <div class="d-flex gap-1 justify-content-center">
+                                        <!-- VIEW BUTTON (copied from vaping incident) -->
                                         <button type="button" class="btn btn-sm btn-info text-white" title="View"
                                             onclick="viewRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)">
                                             <i class="fa fa-eye"></i>
@@ -968,13 +978,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 $print_time = date("h:i A", $t);
                 ?>
                 <div class="hcc-form">
-                    <div class="header-layout">
-                        <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                        <img src="header_hcc.png" alt="Header" class="header-banner">
+                    <div class="new-header-wrapper">
+                        <div class="fading-bar"></div>
+                        <div class="header-content">
+                            <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                            <div class="text-content">
+                                <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                <div class="divider-line"></div>
+                                <div class="details">
+                                    Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                    www.holycrosscollegesinc.com
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="form-title">
-                        <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                        <div class="form-title-text">
+
+                    <div class="division-header">
+                        <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                        <div class="division-title">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
                             <h3>CCTV REVIEW FORM</h3>
                         </div>
@@ -1045,9 +1066,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             endforeach;
         else: ?>
             <div class="hcc-form">
-                <div class="form-title">
-                    <h2>NO ITEMS IN PRINT QUEUE</h2>
-                    <h3>Add forms to queue first</h3>
+                <div class="form-title" style="margin-top: 50px;">
+                    <div class="form-title-text">
+                        <h2>NO ITEMS IN PRINT QUEUE</h2>
+                        <h3>Add forms to queue first</h3>
+                    </div>
                 </div>
             </div>
         <?php endif; ?>
@@ -1055,13 +1078,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
     <div id="print-blank-area">
         <div class="hcc-form">
-            <div class="header-layout">
-                <img src="background-hcc-logo.png" alt="Logo" class="logo-left">
-                <img src="header_hcc.png" alt="Header" class="header-banner">
+            <div class="new-header-wrapper">
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="form-title">
-                <img src="background.png" alt="SAPD Logo" style="width: 45px; height: auto;">
-                <div class="form-title-text">
+
+            <div class="division-header">
+                <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                <div class="division-title">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
                     <h3>CCTV REVIEW FORM</h3>
                 </div>
@@ -1160,23 +1194,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         }
 
         // --- PREVIEW LOGIC ---
-        let isViewing = false;
-
-        function updatePreview(fromInput = false) {
-            // If the user starts typing in the new request form, clear out the saved view.
-            if (fromInput && isViewing) {
-                clearView();
-            }
-
-            if (isViewing) return; // Prevent live-typing updates while viewing a saved record
-
+        function updatePreview() {
             document.getElementById('out_name').innerText = document.getElementById('in_name').value;
             document.getElementById('out_lvl').innerText = document.getElementById('in_lvl').value.toUpperCase();
             document.getElementById('out_loc').innerText = document.getElementById('in_loc').value.toUpperCase();
 
             const dateVal = document.getElementById('in_date').value;
-
             document.getElementById('out_date').innerText = dateVal || '';
+
             let timeVal = document.getElementById('in_time').value;
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
@@ -1194,59 +1219,33 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             document.getElementById('out_reviewed').innerText = document.getElementById('in_reviewed').value;
         }
 
-        // --- VIEW RECORD LOGIC ---
+        // --- VIEW RECORD (copied from vaping incident) ---
         function viewRecord(data) {
-            isViewing = true;
+            // Fill form inputs with record data
+            document.getElementById('in_name').value = data.requestor_name;
+            document.getElementById('in_lvl').value = data.level_section;
+            document.getElementById('in_date').value = data.incident_date;
+            document.getElementById('in_time').value = data.incident_time;
+            document.getElementById('in_loc').value = data.location;
+            document.getElementById('in_reason').value = data.reason;
+            document.getElementById('in_eval').value = data.evaluation;
+            document.getElementById('in_assisted').value = data.assisted_by;
+            document.getElementById('in_reviewed').value = data.reviewed_by;
 
-            // Update Panel Header 
-            document.getElementById('preview-header').innerHTML = `
-                <div class="panel-title w-100 d-flex justify-content-between align-items-center text-info">
-                    <span><i class="fa fa-eye"></i> VIEWING RECORD #${data.id}</span>
-                    <button class="btn btn-sm btn-danger" onclick="clearView()">Close View</button>
-                </div>
-            `;
+            // Clear edit_id and ensure add mode
+            document.getElementById('in_edit_id').value = '';
+            document.getElementById('add_btn_group').style.display = 'block';
+            document.getElementById('edit_btn_group').style.display = 'none';
+            document.getElementById('form-panel-title').innerHTML = `<i class="fa fa-pen-to-square"></i> NEW REQUEST`;
 
-            // Inject Database Data into Preview
-            document.getElementById('out_name').innerText = data.requestor_name;
-            document.getElementById('out_lvl').innerText = data.level_section.toUpperCase();
-            document.getElementById('out_loc').innerText = data.location.toUpperCase();
-            document.getElementById('out_date').innerText = data.incident_date;
+            // Update preview
+            updatePreview();
 
-            let timeVal = data.incident_time;
-            if (timeVal) {
-                let [h, m] = timeVal.split(':');
-                let ampm = h >= 12 ? 'PM' : 'AM';
-                h = h % 12;
-                h = h ? h : 12;
-                document.getElementById('out_time').innerText = `${h}:${m} ${ampm}`;
-            } else {
-                document.getElementById('out_time').innerText = '';
-            }
-
-            document.getElementById('out_reason').innerText = data.reason;
-            document.getElementById('out_eval').innerText = data.evaluation;
-            document.getElementById('out_assisted').innerText = data.assisted_by.toUpperCase();
-            document.getElementById('out_reviewed').innerText = data.reviewed_by.toUpperCase();
-
-            // Scroll up to view smoothly
+            // Scroll to preview
             document.querySelector('.right-panel').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function clearView() {
-            isViewing = false;
-
-            // Reset Panel Header
-            document.getElementById('preview-header').innerHTML = `
-                <div class="panel-title w-100 d-flex justify-content-between align-items-center">
-                    <span><i class="fa fa-eye"></i> DOCUMENT PREVIEW</span>
-                </div>
-            `;
-
-            // Immediately run updatePreview to re-fetch whatever is typed in the inputs
-            updatePreview();
-        }
-
-        // --- NEW EDIT RECORD LOGIC ---
+        // --- EDIT RECORD LOGIC ---
         function editRecord(data) {
             // Scroll to form
             document.querySelector('.left-panel').scrollIntoView({ behavior: 'smooth' });
@@ -1270,8 +1269,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             document.getElementById('add_btn_group').style.display = 'none';
             document.getElementById('edit_btn_group').style.display = 'block';
 
-            // Stop 'View' mode if it's currently on, and force the preview to match the newly filled form
-            clearView();
+            // Update preview
+            updatePreview();
         }
 
         function cancelEdit() {
