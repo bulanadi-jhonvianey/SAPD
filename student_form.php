@@ -1,5 +1,5 @@
 <?php
-// --- student_and_employee_form.php ---
+// --- student_form.php ---
 ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -28,7 +28,7 @@ $conn->select_db($dbname);
 // Table Setup
 $table_sql = "CREATE TABLE IF NOT EXISTS parking_applications (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            applicant_type VARCHAR(50) DEFAULT 'EMPLOYEE',
+            applicant_type VARCHAR(50) DEFAULT 'STUDENT',
             applicant_name VARCHAR(255), department VARCHAR(100), address TEXT,
             contact_number VARCHAR(50), license_no VARCHAR(50), email VARCHAR(100), fb_account VARCHAR(100),
             vehicle_type VARCHAR(50), vehicle_brand VARCHAR(50), vehicle_color VARCHAR(50), or_no VARCHAR(50), cr_no VARCHAR(50),
@@ -138,7 +138,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])
     $sql = "INSERT INTO parking_applications (applicant_type, applicant_name, department, address, contact_number, license_no, email, fb_account, vehicle_type, vehicle_brand, vehicle_color, or_no, cr_no, emerg_name, emerg_address, emerg_relation, emerg_contact, checklist_data, secondary_vehicles, violation_data, image_paths) VALUES ('{$d['applicant_type']}', '{$d['applicant_name']}', '{$d['department']}', '{$d['address']}', '{$d['contact_number']}', '{$d['license_no']}', '{$d['email']}', '{$d['fb_account']}', '{$d['vehicle_type']}', '{$d['vehicle_brand']}', '{$d['vehicle_color']}', '{$d['or_no']}', '{$d['cr_no']}', '{$d['emerg_name']}', '{$d['emerg_address']}', '{$d['emerg_relation']}', '{$d['emerg_contact']}', '$checklist_json', '$sec_vehicles_json', '$violation_json', '$image_paths_json')";
 
     if ($conn->query($sql)) {
-        $_SESSION['parking_print_queue'][] = array_merge($d, $checklist, ['secondary_vehicles' => $sec_vehicles_json, 'violation_data' => $violation_json, 'image_paths' => $uploaded_files]);
+        // Capture the Auto-Increment ID generated for this application
+        $inserted_id = $conn->insert_id;
+        
+        // Pass the new ID to the session queue to be printed
+        $_SESSION['parking_print_queue'][] = array_merge(['id' => $inserted_id], $d, $checklist, ['secondary_vehicles' => $sec_vehicles_json, 'violation_data' => $violation_json, 'image_paths' => $uploaded_files]);
+        
         header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
         exit();
     } else {
@@ -157,16 +162,16 @@ if (isset($_POST['clear_queue'])) {
     exit();
 }
 
-// --- SEARCH LOGIC ---
+// --- SEARCH LOGIC (FILTERED TO STUDENT) ---
 $search_term = "";
-$where_clause = "";
+$where_clause = "WHERE applicant_type='STUDENT'";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search_term = $conn->real_escape_string($_GET['search']);
-    $where_clause = "WHERE applicant_name LIKE '%$search_term%' OR department LIKE '%$search_term%'";
+    $where_clause .= " AND (applicant_name LIKE '%$search_term%' OR department LIKE '%$search_term%')";
 }
 
 $recent_reports = $conn->query("SELECT * FROM parking_applications $where_clause ORDER BY id DESC LIMIT 10");
-$total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications")->fetch_assoc()['total'];
+$total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications WHERE applicant_type='STUDENT'")->fetch_assoc()['total'];
 ?>
 
 <!DOCTYPE html>
@@ -175,12 +180,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Employee & Student Parking</title>
+    <title>Student Parking</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
+        /* --- OLD ENGLISH TEXT MT FONT --- */
+        @font-face {
+            font-family: "Old English Text MT";
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
+            src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+            font-weight: normal;
+            font-style: normal;
+        }
+
         /* --- THEME VARIABLES --- */
         :root {
             --bg-body: #0a1128;
@@ -234,35 +252,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             filter: brightness(110%);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-        }
+        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
+        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
 
         .btn-theme {
             background: var(--input-bg);
@@ -414,6 +409,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         .form-control::placeholder {
             color: rgba(128, 128, 128, 0.7);
         }
+        
+        /* Remove original readonly gray styling */
+        input[readonly].form-control {
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            opacity: 0.8;
+            cursor: not-allowed;
+        }
 
         .panel-header {
             display: flex;
@@ -454,11 +457,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         /* --- FORM DESIGN (SCREEN & PRINT SHARED) --- */
         .hcc-form {
             width: 8.5in;
-            height: 13in;
-            /* Legal/Folio size */
+            height: 13in; /* Legal/Folio size */
             background: white;
             color: black;
-            padding: 0.3in 0.5in;
+            padding: 0.35in 0.5in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -466,43 +468,116 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             overflow: hidden;
         }
 
-        /* HEADER LAYOUT FIX */
-        .header-layout {
+        /* --- NEW HEADER LAYOUT (Fading Bar Integration) --- */
+        .new-header-wrapper {
             position: relative;
-            width: 100%;
-            height: auto;
+            width: calc(100% + 1in);
+            margin-left: -0.5in;
+            margin-right: -0.5in;
+            margin-top: -0.15in;
+            height: 1.5in;
             margin-bottom: 10px;
-            display: block;
         }
 
-        .header-banner {
-            width: 100%;
-            height: auto;
-            display: block;
-            position: relative;
-            z-index: 1;
-        }
-
-        .logo-left {
-            width: 140px;
+        .fading-bar {
             position: absolute;
-            top: 5px;
-            left: 10px;
-            z-index: 10;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px; 
+            background: 
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        .form-title {
+        .header-content {
+            position: relative;
+            z-index: 2; 
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.5in; 
+        }
+
+        .new-header-logo {
+            width: 140px;
+            height: auto;
+            margin-right: 5px; 
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            margin: 5px 0 5px 0;
-            color: black;
-            text-align: center;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
         }
 
-        .form-title h2 {
-            font-family: "Times New Roman", Times, serif;
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, 
+                #002b7f 0%, 
+                #002b7f 18%, 
+                rgba(0, 43, 127, 0.25) 24%, 
+                rgba(0, 43, 127, 0.25) 75%, 
+                #002b7f 80%, 
+                #002b7f 100%
+            );
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center; 
+            margin-left: 220px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+
+        /* --- DIVISION TITLE DESIGN --- */
+        .division-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 60;
+        }
+
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
             font-weight: 900;
             font-size: 14pt;
             margin: 0;
@@ -510,10 +585,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             letter-spacing: 0.5px;
         }
 
-        .form-title h3 {
-            font-family: Arial, sans-serif;
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
             font-weight: bold;
-            font-size: 10pt;
+            font-size: 11pt;
             margin: 2px 0 0 0;
             text-transform: uppercase;
         }
@@ -521,7 +596,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         .employee-title {
             font-family: Arial, sans-serif;
             font-weight: 900;
-            font-size: 20pt;
+            font-size: 18pt;
             text-transform: uppercase;
             letter-spacing: 1px;
             margin: 5px 0 0 0;
@@ -560,25 +635,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             display: flex;
             justify-content: space-between;
             margin-top: 10px;
-            margin-bottom: 2px;
+            margin-bottom: 8px;
             font-weight: bold;
             font-family: Arial, sans-serif;
         }
 
+        /* Adjust Table cell spacing and heights to expand the form content evenly */
         .data-grid {
             width: 100%;
             border-collapse: collapse;
             font-size: 9pt;
             border: 1px solid black;
-            /* CHANGED: Added margin-top to lower table slightly */
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
         .data-grid td {
             border: 1px solid black;
-            padding: 6px 5px;
+            padding: 8px 5px;
             vertical-align: middle;
-            height: 20px;
+            height: 32px;
             color: black;
             font-family: Arial, sans-serif;
         }
@@ -592,7 +667,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             color: black;
         }
 
-        /* Font fixed: Calibri + Mix Case */
         .value {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-weight: bold;
@@ -600,7 +674,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             font-size: 11pt;
             width: 32%;
             text-transform: none;
-            /* Mix Case */
         }
 
         .emerg-header {
@@ -610,8 +683,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             border: 1px solid black;
             border-bottom: none;
             font-size: 9pt;
-            padding: 2px;
-            margin-top: 5px;
+            padding: 4px;
+            margin-top: 15px;
             font-family: Arial, sans-serif;
         }
 
@@ -625,7 +698,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         .emerg-table td {
             border: 1px solid black;
-            padding: 6px 5px;
+            padding: 10px 5px;
             vertical-align: top;
             color: black;
             font-family: Arial, sans-serif;
@@ -638,7 +711,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             width: 60px;
         }
 
-        /* Font fixed: Calibri + Mix Case */
         .emerg-val {
             font-family: 'Calibri', 'Arial', sans-serif;
             font-weight: bold;
@@ -646,7 +718,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             display: inline-block;
             width: calc(100% - 70px);
             text-transform: none;
-            /* Mix Case */
             font-size: 11pt;
         }
 
@@ -654,7 +725,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             width: 100%;
             border-collapse: collapse;
             border: 1px solid black;
-            margin-top: 5px;
+            margin-top: 15px;
             font-size: 8pt;
             text-align: center;
         }
@@ -663,18 +734,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             border: 1px solid black;
             background: white;
             font-weight: bold;
-            padding: 4px;
+            padding: 6px;
             text-transform: uppercase;
             vertical-align: middle;
-            line-height: 1.1;
-            height: 25px;
+            line-height: 1.2;
+            height: 30px;
             color: black;
             font-family: Arial, sans-serif;
         }
 
         .mv-table td {
             border: 1px solid black;
-            height: 22px;
+            height: 30px;
             color: black;
             font-family: "Courier New", monospace;
             font-weight: bold;
@@ -684,22 +755,23 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         .docs-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px;
+            margin-top: 15px;
         }
 
         .docs-table td {
             vertical-align: top;
             color: black;
             font-family: Arial, sans-serif;
+            padding-bottom: 10px;
         }
 
         .checklist {
             font-size: 9pt;
-            line-height: 1.3;
+            line-height: 1.4;
         }
 
         .mb-1 {
-            margin-bottom: 2px;
+            margin-bottom: 4px;
         }
 
         .id-cell {
@@ -723,7 +795,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         .sig-table {
             width: 100%;
-            margin-top: 10px;
+            margin-top: 30px;
             font-size: 10pt;
             font-family: Arial, sans-serif;
             border-collapse: collapse;
@@ -738,10 +810,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         .violation-table th,
         .violation-table td {
             border: 1px solid black;
-            padding: 4px;
+            padding: 6px;
             text-align: center;
             font-family: Arial, sans-serif;
-            font-size: 8pt;
+            font-size: 9pt;
         }
 
         .violation-table th {
@@ -754,23 +826,25 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             font-family: "Courier New", monospace;
             font-weight: bold;
             color: black;
-            height: 20px;
+            height: 25px; 
         }
 
+        /* WAIVER SPACING ADJUSTMENTS (UPDATED) */
         .waiver-text {
-            font-size: 9pt;
+            font-size: 15px; /* Updated to 15px */
             text-align: justify;
-            margin-top: 10px;
-            line-height: 1.2;
+            margin-top: 5px; 
+            line-height: 1; /* Removed spacing */
         }
 
         .waiver-text ol {
-            padding-left: 20px;
-            margin-top: 5px;
+            padding-left: 25px;
+            margin-top: 0px; /* Removed spacing */
+            margin-bottom: 0px; /* Removed spacing */
         }
 
         .waiver-text li {
-            margin-bottom: 2px;
+            margin-bottom: 0px; /* Removed spacing */
         }
 
         .table-custom {
@@ -800,7 +874,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         }
 
         @media screen {
-
             #print-area,
             #print-blank-area {
                 display: none !important;
@@ -813,8 +886,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         /* --- PRINT SETTINGS --- */
         @media print {
             @page {
-                size: 8.5in 13in;
-                margin: 0;
+                size: auto; 
+                margin: 0; 
             }
 
             body {
@@ -822,7 +895,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 color: black !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                zoom: 100%;
             }
 
             .navbar,
@@ -852,12 +924,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
             .hcc-form {
                 width: 100% !important;
-                height: 100vh !important;
-                margin: 0 !important;
-                padding: 0.4in !important;
+                height: auto !important; 
+                min-height: 100% !important;
+                margin: 0 auto !important;
+                padding: 0.25in 0.4in !important; /* Slightly reduced padding to allow 11pt text */
                 box-shadow: none !important;
                 transform: none !important;
                 page-break-after: always !important;
+                page-break-inside: avoid !important;
                 overflow: hidden !important;
                 display: block !important;
                 position: relative !important;
@@ -868,28 +942,58 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             .hcc-form:last-child {
                 page-break-after: auto !important;
             }
-
-            .header-layout {
-                margin-top: 0 !important;
-                margin-bottom: 10px !important;
+            
+            .new-header-wrapper {
+                margin-top: -0.15in !important;
+                margin-left: -0.4in !important; 
+                margin-right: -0.4in !important; 
+                padding-top: 0 !important;
             }
 
-            .header-banner {
-                width: 100% !important;
+            /* --- OVERRIDE FONT SIZES FOR PRINTOUT --- */
+            .data-grid td, .label, .value, 
+            .emerg-table td, .emerg-label, .emerg-val,
+            .mv-table th, .mv-table td, 
+            .docs-table td, .checklist, 
+            .sig-table td, .sig-table div,
+            .violation-table th, .violation-table td, 
+            .details, .status-checkboxes, .file-info {
+                font-size: 11pt !important;
             }
 
-            .logo-left {
-                width: 120px !important;
-                top: 5px !important;
-                left: 0 !important;
+            /* Force rules to be 15px and tight spacing in print too */
+            .waiver-text, .waiver-text li, .waiver-text p {
+                font-size: 15px !important;
+                line-height: 1 !important;
+                margin-bottom: 0 !important;
             }
 
-            .form-title h2 {
-                font-size: 13pt !important;
-            }
+            /* Prevent the large titles from breaking layout but keep them distinct */
+            .new-header-title { font-size: 28pt !important; }
+            .division-title h2 { font-size: 14pt !important; }
+            .division-title h3 { font-size: 11pt !important; }
+            .employee-title { font-size: 16pt !important; }
+            
+            /* Spacing adjustments specifically required to fit the new 11pt text inside the fixed paper size */
+            .division-header { margin-bottom: 5px !important; }
+            .violation-table { margin-top: 10px !important; }
+            
+            .data-grid td { height: 25px !important; padding: 4px 5px !important; }
+            .violation-table td { height: 20px !important; padding: 4px !important; }
+            
+            .emerg-header { margin-top: 5px !important; padding: 2px !important; }
+            .mv-table { margin-top: 5px !important; }
+            .docs-table { margin-top: 5px !important; }
+            .sig-table { margin-top: 10px !important; }
+            .sig-table td { padding-bottom: 2px !important; }
 
-            .employee-title {
-                font-size: 18pt !important;
+            .waiver-text { 
+                margin-top: 5px !important; 
+            }
+            
+            .fading-bar, .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
             }
 
             * {
@@ -905,7 +1009,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i> Back</a>
-            <h4 class="m-0 fw-bold text-white">Student & Employee Parking</h4>
+            <h4 class="m-0 fw-bold text-white">Student Parking</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">
             <button class="btn btn-theme rounded-circle" onclick="toggleTheme()" id="themeBtn">
@@ -938,10 +1042,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 </div>
 
                 <label class="small text-secondary fw-bold mb-1">APPLICATION TYPE</label>
-                <select name="applicant_type" id="in_type" class="form-select" onchange="updatePreview()">
-                    <option value="EMPLOYEE">EMPLOYEE</option>
-                    <option value="STUDENT">STUDENT</option>
-                </select>
+                <input type="text" name="applicant_type" id="in_type" class="form-control fw-bold" value="STUDENT" readonly>
 
                 <label class="small text-secondary fw-bold mb-1">APPLICANT DETAILS</label>
                 <input type="text" name="applicant_name" id="in_name" class="form-control"
@@ -1171,16 +1272,34 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             <div class="preview-track">
                 <div class="form-slide">
                     <div class="hcc-form">
-                        <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                                src="header_hcc.png" alt="Header" class="header-banner"></div>
-                        <div class="form-title">
-                            <h2>SAFETY AND PROTECTION DIVISION</h2>
-                            <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
-                            <h1 class="employee-title" id="out_type_preview">EMPLOYEE</h1>
-                            <div class="status-checkboxes"><span class="checkbox-box" id="view_chk_approved"></span>
-                                Approved &nbsp;&nbsp;&nbsp; <span class="checkbox-box" id="view_chk_disapproved"></span>
-                                Disapproved</div>
+                        
+                        <div class="new-header-wrapper">
+                            <div class="fading-bar"></div>
+                            <div class="header-content">
+                                <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                                <div class="text-content">
+                                    <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                    <div class="divider-line"></div>
+                                    <div class="details">
+                                        Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                        www.holycrosscollegesinc.com
+                                    </div>
+                                </div>
+                            </div>
                         </div>
+
+                        <div class="division-header">
+                            <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                            <div class="division-title">
+                                <h2>SAFETY AND PROTECTION DIVISION</h2>
+                                <h3>APPLICATION FOR STUDENTS VEHICLE PARKING SPACE (SY 2024-2025)</h3>
+                                <h1 class="employee-title" id="out_type_preview">STUDENT</h1>
+                                <div class="status-checkboxes"><span class="checkbox-box" id="view_chk_approved"></span>
+                                    Approved &nbsp;&nbsp;&nbsp; <span class="checkbox-box" id="view_chk_disapproved"></span>
+                                    Disapproved</div>
+                            </div>
+                        </div>
+
                         <div class="file-info"><span>File Application # ____________</span><span>Date: <span
                                     id="out_date"
                                     style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
@@ -1318,7 +1437,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                                             id="out_sig_name"></div>
                                     </div>
                                     <div style="margin-bottom: 30px; font-size: 10pt;">Signature over printed name of
-                                        <span id="out_sig_preview">employee</span>
+                                        <span id="out_sig_preview">student</span>
                                     </div>
                                     <div style="margin-bottom: 15px; font-weight: bold;">Approved by:</div>
                                     <div style="font-weight:bold; text-decoration: underline; font-size: 11pt;">PAUL
@@ -1332,10 +1451,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
                 <div class="form-slide">
                     <div class="hcc-form">
-                        <div class="header-layout"><img src="background-hcc-logo.png" alt="Logo" class="logo-left"><img
-                                src="header_hcc.png" alt="Header" class="header-banner"></div>
+                        
+                        <div class="new-header-wrapper">
+                            <div class="fading-bar"></div>
+                            <div class="header-content">
+                                <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                                <div class="text-content">
+                                    <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                    <div class="divider-line"></div>
+                                    <div class="details">
+                                        Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                        www.holycrosscollegesinc.com
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <table class="violation-table"
-                            style="width:100%; border-collapse:collapse; margin-top:50px; font-size:9pt;">
+                            style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                             <thead>
                                 <tr>
                                     <th>Date</th>
@@ -1359,7 +1492,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                                 <?php endfor; ?>
                             </tbody>
                         </table>
-                        <div style="text-align:center; margin-top:20px; font-family:Arial, sans-serif;">
+                        <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                             <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga
                                 Patakaran ng Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
                             <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
@@ -1367,56 +1500,31 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <div class="waiver-text">
                             <ol>
                                 <li>Ang Gate 2 ay para sa entrance at Gate 1 ay para sa exit.</li>
-                                <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)
-                                </li>
-                                <li>Bawal ipahiram ng empleyado ang kanilang sasakyan sa mga estudyante o kapwa
-                                    empleyado na walang parking permit.</li>
-                                <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay
-                                    nagkatapos ng trabaho ay dapat wala ang sasakyan sa parking. Hindi pwedeng iwanan
-                                    ang sasakyan sa eskwelahan kung wala nang trabaho.</li>
-                                <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhin paupuin ang mga tumatawid sa
-                                    daanan.</li>
-                                <li>Siguraduhin magpark sa designated parking slots para sa mga empleyado.</li>
-                                <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.
-                                </li>
-                                <li>Para sa mga 4-wheels, ang parking permit ay dapat nakadikit sa kaliwang bahagi ng
-                                    windshield. Samantalang sa mga single na motorsiklo at may sidecar ay nakalagay sa
-                                    company ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan.
-                                </li>
+                                <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)</li>
+                                <li>Bawal ipahiram ng estudyante ang kanilang motorsiklo sa kapwa estudyante na walang parking permit.</li>
+                                <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay pagkatapos ng klase ay dapat wala na ang motor sa parking. Hindi pwedeng iwanan ang sasakyan sa eskwelahan kung wala nang klase.</li>
+                                <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhing paunahin ang mga tumatawid sa daanan.</li>
+                                <li>Siguraduhing magpark sa designated parking slots para sa mga estudyante.</li>
+                                <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.</li>
+                                <li>Para sa mga single na motorsiklo at motorsiklong mayroong sidecar, ang parking permit ay dapat nakalagay sa school ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan at ipagbibigay alam ang inyong violation sa inyong mga department heads. Kailangan ay nakikita ang parking permit pagpasok ng eskwelahan. Ang parking permit na nakatago sa jacket, uniform o suot na damit ay hindi pahihintulutang magpark sa loob ng eskwelahan.</li>
                                 <li>Ang mga motorsiklo ay dapat may side mirror (left and right)</li>
                                 <li>Sundin ang 15-20 kph speed limit sa loob ng eskwelahan.</li>
-                                <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency
-                                    lang maaring gamitin.</li>
+                                <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency lang maaring gamitin.</li>
                                 <li>Ang headlight, flashers, stoplight ay dapat gumagana.</li>
-                                <li>Ang empleyado na walang driver's license ay di maaring magpark sa loob ng
-                                    eskwelahan. Ang empleyado na student lang ang lisensya ay bibigyan ng dalawang buwan
-                                    para makakuha ng non-pro/professional license. Kung hindi makakakuha ay matatangalan
-                                    ng pribilehiyo na magpark.</li>
-                                <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhin wag mag iwan
-                                    ng mga mahahalagang bagay at laging i-lock ang mga sasakyan pag ito ay iiwanan sa
-                                    parking.</li>
-                                <li>Para sa may mga single na motorsiklo, laging isuot ang helmet pag papasok at
-                                    paglabas ng eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron
-                                    ding suot na helmet. Ang may ari ng motor ang mabibigyan ng violation kung hahayaan
-                                    nya na walang helmet ang naka-angkas sa kanya.</li>
-                                <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking
-                                    space sa loob ng eskwelahan ay sa labas na ng school magpapark.</li>
-                                <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng
-                                    pribilehiyo na magpark sa loob ng eskwelahan. Bibigyan din ng kopya ng inyong
-                                    violation ang HR. (With accordance to Admin and Faculty Handbook Chapter 8
-                                    Violations and Sanctions Section D. 4.)</li>
-                                <li>Ang mga empleyado na ma-aapprove ang parking application ay isasali sa GC(Group Chat
-                                    ng employees parking)</li>
-                                <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa
-                                    patakaran ng parking.</li>
+                                <li>Ang estudyante na walang driver's license ay di maaring magpark sa loob ng eskwelahan. Ang estudyante na student lang ang lisensya ay bibigyan ng dalawang buwan para makakuha ng non-pro/professional license. Kung hindi makakakuha sa loob ng dalawang buwan ay matatangalan ng pribileheyo na magpark.</li>
+                                <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhing wag mag iwan ng mga mahahalagang bagay at laging ilock ang mga sasakyan pag ito ay iiwanan sa parking.</li>
+                                <li>Para sa may mga naka single na motorsiklo, laging isuot ang helmet pag papasok at paglabas ng eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron ding suot na helmet. Ang may ari ng motor ang mabibigyan ng violation kung hahayaan nya na walang helmet ang naka-angkas sa kanya.</li>
+                                <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking space sa loob ng eskwelahan ay sa labas na ng school magpapark.</li>
+                                <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng pribilehiyo na magpark sa loob ng eskwelahan.</li>
+                                <li>Ang mga estudyante na ma-aaprove ang parking application ay isasali sa GC(Group Chat ng employees parking)</li>
+                                <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa patakaran ng parking.</li>
                             </ol>
                         </div>
-                        <div style="margin-top:30px; font-size:10pt; font-family:Arial, sans-serif;">
-                            <p style="margin-left: 20px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross
-                                College.</p>
+                        <div style="margin-top:20px; font-size:10pt; font-family:Arial, sans-serif;">
+                            <p style="margin-left: 20px;">Ako ay sumasang ayon sa mga patakaran ng parking sa Holy Cross College.</p>
                             <div
                                 style="margin-top:40px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
-                                <span id="out_sig_fil_preview">Empleyado</span>
+                                Pangalan at lagda ng <span id="out_sig_fil_preview">Estudyante</span>
                             </div>
                         </div>
                     </div>
@@ -1490,21 +1598,39 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             <?php foreach ($_SESSION['parking_print_queue'] as $p): ?>
 
                 <div class="hcc-form">
-                    <div class="header-layout"><img src="background-hcc-logo.png" class="logo-left"><img src="header_hcc.png"
-                            class="header-banner"></div>
-                    <div class="form-title">
-                        <h2>SAFETY AND PROTECTION DIVISION</h2>
-                        <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
-                        <h1 class="employee-title"><?php echo strtoupper($p['applicant_type']); ?></h1>
-                        <div class="status-checkboxes">
-                            <span
-                                class="checkbox-box <?php echo isset($p['chk_approved']) && $p['chk_approved'] == '1' ? 'checked' : ''; ?>"></span>
-                            Approved &nbsp;&nbsp;&nbsp;
-                            <span
-                                class="checkbox-box <?php echo isset($p['chk_disapproved']) && $p['chk_disapproved'] == '1' ? 'checked' : ''; ?>"></span>
-                            Disapproved
+                    
+                    <div class="new-header-wrapper">
+                        <div class="fading-bar"></div>
+                        <div class="header-content">
+                            <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                            <div class="text-content">
+                                <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                <div class="divider-line"></div>
+                                <div class="details">
+                                    Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                    www.holycrosscollegesinc.com
+                                </div>
+                            </div>
                         </div>
                     </div>
+
+                    <div class="division-header">
+                        <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                        <div class="division-title">
+                            <h2>SAFETY AND PROTECTION DIVISION</h2>
+                            <h3>APPLICATION FOR STUDENTS VEHICLE PARKING SPACE (SY 2024-2025)</h3>
+                            <h1 class="employee-title"><?php echo strtoupper($p['applicant_type']); ?></h1>
+                            <div class="status-checkboxes">
+                                <span
+                                    class="checkbox-box <?php echo isset($p['chk_approved']) && $p['chk_approved'] == '1' ? 'checked' : ''; ?>"></span>
+                                Approved &nbsp;&nbsp;&nbsp;
+                                <span
+                                    class="checkbox-box <?php echo isset($p['chk_disapproved']) && $p['chk_disapproved'] == '1' ? 'checked' : ''; ?>"></span>
+                                Disapproved
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="file-info"><span>File Application # ____________</span><span>Date: <span
                                 style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
 
@@ -1650,10 +1776,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 </div>
 
                 <div class="hcc-form">
-                    <div class="header-layout"><img src="background-hcc-logo.png" class="logo-left"><img src="header_hcc.png"
-                            class="header-banner"></div>
+                    
+                    <div class="new-header-wrapper">
+                        <div class="fading-bar"></div>
+                        <div class="header-content">
+                            <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                            <div class="text-content">
+                                <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                                <div class="divider-line"></div>
+                                <div class="details">
+                                    Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                    www.holycrosscollegesinc.com
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <table class="violation-table"
-                        style="width:100%; border-collapse:collapse; margin-top:50px; font-size:9pt;">
+                        style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                         <thead>
                             <tr>
                                 <th>Date</th>
@@ -1677,7 +1817,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             ?>
                         </tbody>
                     </table>
-                    <div style="text-align:center; margin-top:20px; font-family:Arial, sans-serif;">
+                    <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                         <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                             Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
                         <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
@@ -1686,50 +1826,32 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <ol>
                             <li>Ang Gate 2 ay para sa entrance at Gate 1 ay para sa exit.</li>
                             <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)</li>
-                            <li>Bawal ipahiram ng empleyado ang kanilang sasakyan sa mga estudyante o kapwa empleyado na walang
-                                parking permit.</li>
-                            <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay nagkatapos
-                                ng trabaho ay dapat wala ang sasakyan sa parking. Hindi pwedeng iwanan ang sasakyan sa
-                                eskwelahan kung wala nang trabaho.</li>
-                            <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhin paupuin ang mga tumatawid sa daanan.</li>
-                            <li>Siguraduhin magpark sa designated parking slots para sa mga empleyado.</li>
+                            <li>Bawal ipahiram ng estudyante ang kanilang motorsiklo sa kapwa estudyante na walang parking permit.</li>
+                            <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay pagkatapos ng klase ay dapat wala na ang motor sa parking. Hindi pwedeng iwanan ang sasakyan sa eskwelahan kung wala nang klase.</li>
+                            <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhing paunahin ang mga tumatawid sa daanan.</li>
+                            <li>Siguraduhing magpark sa designated parking slots para sa mga estudyante.</li>
                             <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.</li>
-                            <li>Para sa mga 4-wheels, ang parking permit ay dapat nakadikit sa kaliwang bahagi ng windshield.
-                                Samantalang sa mga single na motorsiklo at may sidecar ay nakalagay sa company ID. Ang walang
-                                parking permit ay di makakapasok sa parking ng eskwelahan.</li>
+                            <li>Para sa mga single na motorsiklo at motorsiklong mayroong sidecar, ang parking permit ay dapat nakalagay sa school ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan at ipagbibigay alam ang inyong violation sa inyong mga department heads. Kailangan ay nakikita ang parking permit pagpasok ng eskwelahan. Ang parking permit na nakatago sa jacket, uniform o suot na damit ay hindi pahihintulutang magpark sa loob ng eskwelahan.</li>
                             <li>Ang mga motorsiklo ay dapat may side mirror (left and right)</li>
                             <li>Sundin ang 15-20 kph speed limit sa loob ng eskwelahan.</li>
-                            <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency lang
-                                maaring gamitin.</li>
+                            <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency lang maaring gamitin.</li>
                             <li>Ang headlight, flashers, stoplight ay dapat gumagana.</li>
-                            <li>Ang empleyado na walang driver's license ay di maaring magpark sa loob ng eskwelahan. Ang
-                                empleyado na student lang ang lisensya ay bibigyan ng dalawang buwan para makakuha ng
-                                non-pro/professional license. Kung hindi makakakuha ay matatangalan ng pribilehiyo na magpark.
-                            </li>
-                            <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhin wag mag iwan ng mga
-                                mahahalagang bagay at laging i-lock ang mga sasakyan pag ito ay iiwanan sa parking.</li>
-                            <li>Para sa may mga single na motorsiklo, laging isuot ang helmet pag papasok at paglabas ng
-                                eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron ding suot na helmet. Ang
-                                may ari ng motor ang mabibigyan ng violation kung hahayaan nya na walang helmet ang naka-angkas
-                                sa kanya.</li>
-                            <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking space sa loob
-                                ng eskwelahan ay sa labas na ng school magpapark.</li>
-                            <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng pribilehiyo na
-                                magpark sa loob ng eskwelahan. Bibigyan din ng kopya ng inyong violation ang HR. (With
-                                accordance to Admin and Faculty Handbook Chapter 8 Violations and Sanctions Section D. 4.)</li>
-                            <li>Ang mga empleyado na ma-aapprove ang parking application ay isasali sa GC(Group Chat ng
-                                employees parking)</li>
-                            <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa patakaran ng
-                                parking.</li>
+                            <li>Ang estudyante na walang driver's license ay di maaring magpark sa loob ng eskwelahan. Ang estudyante na student lang ang lisensya ay bibigyan ng dalawang buwan para makakuha ng non-pro/professional license. Kung hindi makakakuha sa loob ng dalawang buwan ay matatangalan ng pribileheyo na magpark.</li>
+                            <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhing wag mag iwan ng mga mahahalagang bagay at laging ilock ang mga sasakyan pag ito ay iiwanan sa parking.</li>
+                            <li>Para sa may mga naka single na motorsiklo, laging isuot ang helmet pag papasok at paglabas ng eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron ding suot na helmet. Ang may ari ng motor ang mabibigyan ng violation kung hahayaan nya na walang helmet ang naka-angkas sa kanya.</li>
+                            <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking space sa loob ng eskwelahan ay sa labas na ng school magpapark.</li>
+                            <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng pribilehiyo na magpark sa loob ng eskwelahan.</li>
+                            <li>Ang mga estudyante na ma-aaprove ang parking application ay isasali sa GC(Group Chat ng employees parking)</li>
+                            <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa patakaran ng parking.</li>
                         </ol>
                     </div>
-                    <div style="margin-top:30px; font-size:10pt; font-family:Arial, sans-serif;">
-                        <p style="margin-left: 20px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.
+                    <div style="margin-top:20px; font-size:10pt; font-family:Arial, sans-serif;">
+                        <p style="margin-left: 20px;">Ako ay sumasang ayon sa mga patakaran ng parking sa Holy Cross College.
                         </p>
                         <div
                             style="margin-top:40px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
-                            <span
-                                id="out_sig_fil_preview"><?php echo ($p['applicant_type'] == 'STUDENT') ? 'Estudyante' : 'Empleyado'; ?></span>
+                            Pangalan at lagda ng <span
+                                id="out_sig_fil_preview">Estudyante</span>
                         </div>
                     </div>
                 </div>
@@ -1739,18 +1861,38 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
     </div>
 
     <div id="print-blank-area">
+
         <div class="hcc-form">
-            <div class="header-layout"><img src="background-hcc-logo.png" class="logo-left"><img src="header_hcc.png"
-                    class="header-banner"></div>
-            <div class="form-title">
-                <h2>SAFETY AND PROTECTION DIVISION</h2>
-                <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
-                <h1 class="employee-title" id="out_type_blank">EMPLOYEE</h1>
-                <div class="status-checkboxes"><span class="checkbox-box"></span> Approved &nbsp;&nbsp;&nbsp; <span
-                        class="checkbox-box"></span> Disapproved</div>
+            
+            <div class="new-header-wrapper">
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <div class="division-header">
+                <img src="background.png" alt="SAPD Logo" class="sapd-logo">
+                <div class="division-title">
+                    <h2>SAFETY AND PROTECTION DIVISION</h2>
+                    <h3>APPLICATION FOR STUDENTS VEHICLE PARKING SPACE (SY 2024-2025)</h3>
+                    <h1 class="employee-title" id="out_type_blank">STUDENT</h1>
+                    <div class="status-checkboxes"><span class="checkbox-box"></span> Approved &nbsp;&nbsp;&nbsp; <span
+                            class="checkbox-box"></span> Disapproved</div>
+                </div>
+            </div>
+
             <div class="file-info"><span>File Application # ____________</span><span>Date: <span
                         style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
+            
             <table class="data-grid">
                 <tr>
                     <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span>
@@ -1875,7 +2017,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             style="border-top: 1px solid black; width: 300px; margin-bottom: 5px; margin-left: 0; margin-top: 20px;">
                         </div>
                         <div style="margin-bottom: 30px; font-size: 10pt;">Signature over printed name of <span
-                                id="out_sig_blank">employee</span></div>
+                                id="out_sig_blank">student</span></div>
                         <div style="margin-bottom: 15px; font-weight: bold;">Approved by:</div>
                         <div style="font-weight:bold; text-decoration: underline; font-size: 11pt;">PAUL JEFFREY T.
                             LANSANGAN, SO3</div>
@@ -1886,10 +2028,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         </div>
 
         <div class="hcc-form">
-            <div class="header-layout"><img src="background-hcc-logo.png" class="logo-left"><img src="header_hcc.png"
-                    class="header-banner"></div>
+            
+            <div class="new-header-wrapper">
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <table class="violation-table"
-                style="width:100%; border-collapse:collapse; margin-top:50px; font-size:9pt;">
+                style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                 <thead>
                     <tr>
                         <th>Date</th>
@@ -1902,15 +2058,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 </thead>
                 <tbody>
                     <tr>
-                        <td style="height:20px;"></td>
                         <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td style="height:20px;"></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -1918,15 +2066,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <td></td>
                     </tr>
                     <tr>
-                        <td style="height:20px;"></td>
                         <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td style="height:20px;"></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -1934,7 +2074,23 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <td></td>
                     </tr>
                     <tr>
-                        <td style="height:20px;"></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
                         <td></td>
                         <td></td>
                         <td></td>
@@ -1943,7 +2099,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                     </tr>
                 </tbody>
             </table>
-            <div style="text-align:center; margin-top:20px; font-family:Arial, sans-serif;">
+            <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                 <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                     Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
                 <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
@@ -1952,49 +2108,31 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 <ol>
                     <li>Ang Gate 2 ay para sa entrance at Gate 1 ay para sa exit.</li>
                     <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)</li>
-                    <li>Bawal ipahiram ng empleyado ang kanilang sasakyan sa mga estudyante o kapwa empleyado na walang
-                        parking permit.</li>
-                    <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay nagkatapos
-                        ng trabaho ay dapat wala ang sasakyan sa parking. Hindi pwedeng iwanan ang sasakyan sa
-                        eskwelahan kung wala nang trabaho.</li>
-                    <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhin paupuin ang mga tumatawid sa daanan.</li>
-                    <li>Siguraduhin magpark sa designated parking slots para sa mga empleyado.</li>
+                    <li>Bawal ipahiram ng estudyante ang kanilang motorsiklo sa kapwa estudyante na walang parking permit.</li>
+                    <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay pagkatapos ng klase ay dapat wala na ang motor sa parking. Hindi pwedeng iwanan ang sasakyan sa eskwelahan kung wala nang klase.</li>
+                    <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhing paunahin ang mga tumatawid sa daanan.</li>
+                    <li>Siguraduhing magpark sa designated parking slots para sa mga estudyante.</li>
                     <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.</li>
-                    <li>Para sa mga 4-wheels, ang parking permit ay dapat nakadikit sa kaliwang bahagi ng windshield.
-                        Samantalang sa mga single na motorsiklo at may sidecar ay nakalagay sa company ID. Ang walang
-                        parking permit ay di makakapasok sa parking ng eskwelahan.</li>
+                    <li>Para sa mga single na motorsiklo at motorsiklong mayroong sidecar, ang parking permit ay dapat nakalagay sa school ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan at ipagbibigay alam ang inyong violation sa inyong mga department heads. Kailangan ay nakikita ang parking permit pagpasok ng eskwelahan. Ang parking permit na nakatago sa jacket, uniform o suot na damit ay hindi pahihintulutang magpark sa loob ng eskwelahan.</li>
                     <li>Ang mga motorsiklo ay dapat may side mirror (left and right)</li>
                     <li>Sundin ang 15-20 kph speed limit sa loob ng eskwelahan.</li>
-                    <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency lang
-                        maaring gamitin.</li>
+                    <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency lang maaring gamitin.</li>
                     <li>Ang headlight, flashers, stoplight ay dapat gumagana.</li>
-                    <li>Ang empleyado na walang driver's license ay di maaring magpark sa loob ng eskwelahan. Ang
-                        empleyado na student lang ang lisensya ay bibigyan ng dalawang buwan para makakuha ng
-                        non-pro/professional license. Kung hindi makakakuha ay matatangalan ng pribilehiyo na magpark.
-                    </li>
-                    <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhin wag mag iwan ng mga
-                        mahahalagang bagay at laging i-lock ang mga sasakyan pag ito ay iiwanan sa parking.</li>
-                    <li>Para sa may mga single na motorsiklo, laging isuot ang helmet pag papasok at paglabas ng
-                        eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron ding suot na helmet. Ang
-                        may ari ng motor ang mabibigyan ng violation kung hahayaan nya na walang helmet ang naka-angkas
-                        sa kanya.</li>
-                    <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking space sa loob
-                        ng eskwelahan ay sa labas na ng school magpapark.</li>
-                    <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng pribilehiyo na
-                        magpark sa loob ng eskwelahan. Bibigyan din ng kopya ng inyong violation ang HR. (With
-                        accordance to Admin and Faculty Handbook Chapter 8 Violations and Sanctions Section D. 4.)</li>
-                    <li>Ang mga empleyado na ma-aapprove ang parking application ay isasali sa GC(Group Chat ng
-                        employees parking)</li>
-                    <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa patakaran ng
-                        parking.</li>
+                    <li>Ang estudyante na walang driver's license ay di maaring magpark sa loob ng eskwelahan. Ang estudyante na student lang ang lisensya ay bibigyan ng dalawang buwan para makakuha ng non-pro/professional license. Kung hindi makakakuha sa loob ng dalawang buwan ay matatangalan ng pribileheyo na magpark.</li>
+                    <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhing wag mag iwan ng mga mahahalagang bagay at laging ilock ang mga sasakyan pag ito ay iiwanan sa parking.</li>
+                    <li>Para sa may mga naka single na motorsiklo, laging isuot ang helmet pag papasok at paglabas ng eskwelahan. Kung meron backride na kasama, dapat ang backride ay meron ding suot na helmet. Ang may ari ng motor ang mabibigyan ng violation kung hahayaan nya na walang helmet ang naka-angkas sa kanya.</li>
+                    <li>1st come, first serve ang parking space. Nangangahulugan na pag wala nang parking space sa loob ng eskwelahan ay sa labas na ng school magpapark.</li>
+                    <li>Ang di susunod ng tatlong (3) beses sa ating mga patakaran ay matatangalan ng pribilehiyo na magpark sa loob ng eskwelahan.</li>
+                    <li>Ang mga estudyante na ma-aaprove ang parking application ay isasali sa GC(Group Chat ng employees parking)</li>
+                    <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa patakaran ng parking.</li>
                 </ol>
             </div>
-            <div style="margin-top:30px; font-size:10pt; font-family:Arial, sans-serif;">
-                <p style="margin-left: 20px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.
+            <div style="margin-top:20px; font-size:10pt; font-family:Arial, sans-serif;">
+                <p style="margin-left: 20px;">Ako ay sumasang ayon sa mga patakaran ng parking sa Holy Cross College.
                 </p>
                 <div
                     style="margin-top:40px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
-                    <span id="out_sig_fil_blank">Empleyado</span>
+                    Pangalan at lagda ng <span id="out_sig_fil_blank">Estudyante</span>
                 </div>
             </div>
         </div>
@@ -2068,7 +2206,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             const sigNameOut = document.getElementById('out_sig_name');
             if (nameInput && sigNameOut) sigNameOut.innerText = nameInput.value;
 
-            const type = document.getElementById('in_type').value;
+            // Locked to STUDENT type
+            const type = 'STUDENT';
             const previewHeader = document.getElementById('out_type_preview');
             const blankHeader = document.getElementById('out_type_blank');
             if (previewHeader) previewHeader.innerText = type;
@@ -2080,7 +2219,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             if (sigPreview) sigPreview.innerText = sigType;
             if (sigBlank) sigBlank.innerText = sigType;
 
-            const filipinoType = (type === 'STUDENT') ? 'Estudyante' : 'Empleyado';
+            const filipinoType = 'Estudyante';
             const sigFilPreview = document.getElementById('out_sig_fil_preview');
             const sigFilBlank = document.getElementById('out_sig_fil_blank');
             if (sigFilPreview) sigFilPreview.innerText = filipinoType;
@@ -2088,7 +2227,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         }
 
         function loadData(data) {
-            document.getElementById('in_type').value = data.applicant_type || 'EMPLOYEE';
             document.getElementById('in_name').value = data.applicant_name;
             document.getElementById('in_dept').value = data.department;
             document.getElementById('in_cel').value = data.contact_number;
@@ -2184,6 +2322,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         function resetForm() {
             document.getElementById('appForm').reset();
+            // keep the readonly value intact
+            document.getElementById('in_type').value = 'STUDENT';
             document.querySelectorAll('.checkbox-box.checked').forEach(el => el.classList.remove('checked'));
             new bootstrap.Collapse(document.getElementById('secVehiclesCollapse'), { toggle: false }).hide();
             new bootstrap.Collapse(document.getElementById('violationCollapse'), { toggle: false }).hide();

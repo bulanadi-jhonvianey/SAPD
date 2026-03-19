@@ -53,7 +53,8 @@ if (!isset($_SESSION['current_officer'])) {
 }
 
 // --- CONSTANTS ---
-$MAX_LOG_ROWS = 16; // Max rows per page
+// Reduced from 40 to 37 to remove 3 rows at the bottom
+$MAX_LOG_ROWS = 37; 
 $current_page = $_SESSION['current_page'];
 
 // Ensure current page exists
@@ -145,7 +146,16 @@ if (isset($_GET['delete_id'])) {
 if (isset($_GET['success']))
     $success_msg = "Entry added to log!";
 
-$recent_logs = $conn->query("SELECT * FROM violator_logs ORDER BY id DESC LIMIT 10");
+// --- SEARCH LOGIC ---
+$search_term = "";
+$where_clause = "";
+if (isset($_GET['search']) && !empty($_GET['search'])) {
+    $search_term = $conn->real_escape_string($_GET['search']);
+    $where_clause = "WHERE student_name LIKE '%$search_term%' OR location LIKE '%$search_term%' OR violation LIKE '%$search_term%'";
+}
+
+// Fetch Records with Search Integration
+$recent_logs = $conn->query("SELECT * FROM violator_logs $where_clause ORDER BY id DESC LIMIT 10");
 $total_count = $conn->query("SELECT COUNT(*) as total FROM violator_logs")->fetch_assoc()['total'];
 
 // Calculate queue stats
@@ -238,40 +248,13 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             filter: brightness(110%);
         }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-        }
-
-        .btn-purple {
-            background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%);
-            color: white;
-        }
+        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
+        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
+        .btn-purple { background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%); color: white; }
 
         .btn-theme {
             background: var(--input-bg);
@@ -285,11 +268,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             justify-content: center;
         }
 
-        .btn-theme:hover {
-            background: var(--accent);
-            color: white;
-            border-color: var(--accent);
-        }
+        .btn-theme:hover { background: var(--accent); color: white; border-color: var(--accent); }
 
         /* --- LAYOUT --- */
         .main-container {
@@ -299,9 +278,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             align-items: stretch;
         }
 
-        .left-panel,
-        .right-panel,
-        .bottom-panel {
+        .left-panel, .right-panel, .bottom-panel {
             background: var(--panel-bg);
             padding: 25px;
             border-radius: 10px;
@@ -324,15 +301,12 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             justify-content: flex-start;
             position: relative;
             background-color: var(--panel-bg);
-            overflow: hidden;
+            overflow: visible; 
         }
 
-        .bottom-panel {
-            margin: 20px;
-        }
+        .bottom-panel { margin: 20px; }
 
-        .form-control,
-        .form-select {
+        .form-control, .form-select {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text-main);
@@ -340,8 +314,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             padding: 12px;
         }
 
-        .form-control:focus,
-        .form-select:focus {
+        .form-control:focus, .form-select:focus {
             background-color: var(--input-bg);
             border-color: var(--accent);
             color: var(--text-main);
@@ -365,69 +338,134 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             gap: 10px;
         }
 
-        .badge-queue {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
+        .badge-queue { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; padding: 5px 10px; border-radius: 4px; }
+        .badge-page { background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.9rem; }
+
+        .page-tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
+        .page-tab { padding: 8px 15px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; text-decoration: none; color: var(--text-main); }
+        .page-tab:hover { background: var(--accent); color: white; text-decoration: none; }
+        .page-tab.active { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; border-color: #224abe; }
+
+        /* ========== HEADER STYLES ========== */
+        .new-header-wrapper {
+            position: relative;
+            width: calc(100% + 1in);
+            margin-left: -0.5in;
+            margin-right: -0.5in;
+            margin-top: 0.2in; 
+            height: 1.5in;
+            margin-bottom: 10px;
         }
 
-        .badge-page {
-            background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.9rem;
+        .fading-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px; 
+            background: 
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        .page-indicator {
-            background: var(--input-bg);
-            padding: 10px 15px;
-            border-radius: 8px;
-            border: 1px solid var(--border);
-            margin-bottom: 15px;
+        .header-content {
+            position: relative;
+            z-index: 2; 
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            height: 100%;
+            padding: 0 0.5in; 
         }
 
-        .page-tabs {
+        .new-header-logo { width: 165px; height: auto; margin-right: 5px; flex-shrink: 0; object-fit: contain; }
+
+        .text-content {
+            flex-grow: 1;
             display: flex;
-            gap: 5px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
         }
 
-        .page-tab {
-            padding: 8px 15px;
-            background: var(--input-bg);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 0.9rem;
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
         }
 
-        .page-tab:hover {
-            background: var(--accent);
-            color: white;
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, #002b7f 0%, #002b7f 18%, rgba(0, 43, 127, 0.25) 24%, rgba(0, 43, 127, 0.25) 75%, #002b7f 80%, #002b7f 100%);
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
-        .page-tab.active {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            border-color: #224abe;
+        .details { text-align: center; margin-left: 30px; color: #000000; font-size: 9pt; line-height: 1.2; font-family: Arial, sans-serif; }
+
+        /* Form Sub-Header (SAPD) */
+        .division-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; position: relative; z-index: 60; }
+        .sapd-logo { width: 45px; height: auto; object-fit: contain; }
+        .division-title { text-align: center; margin-top: 5px; }
+        .division-title h2 { font-family: "Bookman Old Style", "Times New Roman", serif; font-weight: 900; font-size: 18px; margin: 0; text-transform: uppercase; }
+        .division-title h3 { font-family: "Arial", sans-serif; font-weight: bold; text-decoration: underline; font-size: 14px; margin: 2px 0 0 0; text-transform: uppercase; }
+
+        /* Sheet Top Row for Safety Officer */
+        .sheet-top-row {
+            display: flex;
+            justify-content: flex-start;
+            padding-bottom: 5px;
+            font-weight: bold;
+            font-size: 10pt;
+            z-index: 60;
+            position: relative;
         }
 
-        /* --- PRINT AREA CONTAINERS --- */
+        /* --- TABLE (PORTRAIT) --- */
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            table-layout: fixed;
+            margin-top: 5px;
+        }
+
+        .log-table th, .log-table td {
+            border: 1px solid black;
+            padding: 4px 6px;
+            font-size: 9pt;
+            height: 24px;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+        .log-table th { font-weight: bold; text-align: center; background: white; border-bottom: 2px solid black; font-family: Arial, sans-serif; }
+        .col-date { width: 12%; text-align: center; }
+        .col-name { width: 28%; }
+        .col-loc { width: 18%; text-align: center; }
+        .col-viol { width: 28%; }
+        .col-time { width: 14%; text-align: center; }
+
+        /* --- PRINT AREA CONTAINER (PORTRAIT LEGAL) --- */
         .print-area-container {
-            width: 11in;
-            height: 8.5in;
+            width: 8.5in !important;
+            height: 14in !important;
+            min-height: 14in !important;
+            flex-shrink: 0 !important;
             background: white;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-            padding: 0.5in;
+            padding: 0.3in 0.5in 0.3in 0.5in;
             position: relative;
-            transform: scale(0.75);
+            transform: scale(0.60);
             transform-origin: top center;
             display: flex;
             flex-direction: column;
@@ -435,382 +473,73 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             box-sizing: border-box;
             overflow: hidden;
             margin: 0 auto;
+            margin-bottom: -5.5in;
         }
 
-        #print-area,
-        #print-blank-area {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
+        #print-area, #print-blank-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
+        #print-blank-area { display: none; }
 
-        #print-blank-area {
-            display: none;
-        }
+        .sheet-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 10px; padding-bottom: 10px; font-size: 10pt; }
+        .officer-line { border-bottom: 1px solid black; min-width: 250px; display: inline-block; }
 
-        /* --- NEW HEADER LAYOUT (FROM GUIDANCE FORM) --- */
-        .new-header-wrapper {
-            position: relative;
-            width: calc(100% + 1in);
-            margin-left: -0.5in;
-            margin-right: -0.5in;
-            margin-top: -0.4in;
-            padding-top: 5px;
-            margin-bottom: 5px;
-        }
-
-        .new-header-logo {
-            position: fixed;
-            left: 5px;
-            top: -1px;
-            width: 180px;
-            height: auto;
-            z-index: 10;
-        }
-
-        .new-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-left: 1.6in;
-            padding-right: 0.5in;
-            padding-bottom: 5px;
-            min-height: 45px;
-        }
-
-        .new-header-title {
-            font-family: "Old English Text MT", serif;
-            font-size: 26pt;
-            color: #002060;
-            margin: 0;
-            line-height: 0.9;
-            white-space: nowrap;
-        }
-
-        .new-header-address {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 8pt;
-            color: #002060;
-            margin: 0;
-            padding-bottom: 2px;
-            white-space: nowrap;
-        }
-
-        .new-header-bar {
-            background-color: #FFB800;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 0.5in;
-            width: 100%;
-            position: relative;
-            z-index: 1;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .new-header-url {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 9pt;
-            font-weight: bold;
-            color: #002060;
-            margin: 0;
-        }
-
-        /* Form Sub-Header (SAPD) - Keep existing */
-        .division-header {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 15px;
-            margin-bottom: 20px;
-            position: relative;
-            z-index: 60;
-        }
-
-        .sapd-logo {
-            width: 45px;
-            height: auto;
-            object-fit: contain;
-        }
-
-        .division-title {
-            text-align: center;
-            margin-top: 5px;
-        }
-
-        .division-title h2 {
-            font-family: "Bookman Old Style", "Times New Roman", serif;
-            font-weight: 900;
-            font-size: 18px;
-            margin: 0;
-            text-transform: uppercase;
-        }
-
-        .division-title h3 {
-            font-family: "Arial", sans-serif;
-            font-weight: bold;
-            text-decoration: underline;
-            font-size: 14px;
-            margin: 2px 0 0 0;
-            text-transform: uppercase;
-        }
-
-        /* --- TABLE --- */
-        .log-table {
-            width: 100%;
-            border-collapse: collapse;
-            border: 2px solid black;
-            table-layout: fixed;
-            margin-top: 10px;
-        }
-
-        .log-table th,
-        .log-table td {
-            border: 1px solid black;
-            padding: 4px 8px;
-            font-size: 10pt;
-            height: 28px;
-            overflow: hidden;
-            white-space: nowrap;
-        }
-
-        .log-table th {
-            font-weight: bold;
-            text-align: center;
-            background: white;
-            border-bottom: 2px solid black;
-            font-family: Arial, sans-serif;
-        }
-
-        .col-date {
-            width: 12%;
-            text-align: center;
-        }
-
-        .col-name {
-            width: 30%;
-        }
-
-        .col-loc {
-            width: 20%;
-            text-align: center;
-        }
-
-        .col-viol {
-            width: 25%;
-        }
-
-        .col-time {
-            width: 13%;
-            text-align: center;
-        }
-
-        .sheet-footer {
-            margin-top: auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-top: 10px;
-            font-weight: bold;
-            font-size: 10pt;
-        }
-
-        .officer-line {
-            border-bottom: 1px solid black;
-            min-width: 300px;
-            display: inline-block;
-        }
-
-        /* --- PRINT MEDIA --- */
+        /* --- PRINT MEDIA (PORTRAIT LEGAL) --- */
         @media print {
             @page {
-                size: 11in 8.5in landscape;
+                size: 8.5in 14in portrait;
                 margin: 0;
             }
 
-            .navbar,
-            .left-panel,
-            .bottom-panel,
-            .panel-header,
-            .btn,
-            .d-print-none,
-            #resetBtn,
-            form,
-            .page-tabs,
-            .page-indicator {
+            .navbar, .left-panel, .bottom-panel, .panel-header, .btn, .d-print-none, #resetBtn, form, .page-tabs, .page-indicator {
                 display: none !important;
             }
 
-            body {
-                background: white !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                overflow: visible !important;
-            }
-
-            .main-container {
-                display: block !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-            }
-
-            .right-panel {
-                display: block !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-                background: white !important;
-                flex: none !important;
-                overflow: visible !important;
-            }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+            .main-container { display: block !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: auto !important; }
+            .right-panel { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: white !important; flex: none !important; overflow: visible !important; }
 
             .print-area-container {
                 transform: none !important;
                 width: 100% !important;
-                height: 100vh !important;
+                height: 14in !important;
+                min-height: 14in !important;
                 box-shadow: none !important;
-                padding: 0.5in !important;
+                padding: 0.3in 0.5in 0.3in 0.5in !important;
                 margin: 0 !important;
                 border: none !important;
                 display: block !important;
                 page-break-after: always;
             }
 
-            .print-area-container:last-child {
-                page-break-after: avoid;
-            }
-
-            /* New header adjustments for print */
-            .new-header-wrapper {
-                margin-top: -0.6in !important;
-                margin-left: -0.5in !important;
-                margin-right: -0.5in !important;
-                padding-top: 0.4in !important;
-            }
-
-            .new-header-logo {
-                position: absolute !important;
-                top: 0.2in !important;
-                left: 0.1in !important;
-                width: 180px !important;
-            }
-
-            .new-header-title,
-            .new-header-address,
-            .new-header-url {
-                color: #002060 !important;
-            }
+            .print-area-container:last-child { page-break-after: avoid; }
+            
+            /* Ensures printed header is also pushed down 0.2in */
+            .new-header-wrapper { margin-top: 0.2in !important; margin-left: -0.5in !important; margin-right: -0.5in !important; padding-top: 0 !important; }
+            
+            .fading-bar, .divider-line { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+            .new-header-logo { width: 165px; }
+            .new-header-title, .divider-line, .details { color: #002b7f !important; }
         }
 
         /* TABLES (Dashboard) */
-        .table-custom {
-            color: var(--text-main);
-            --bs-table-bg: transparent;
-            --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
-            --bs-table-hover-bg: var(--input-bg);
-        }
+        .table-custom { color: var(--text-main); --bs-table-bg: transparent; --bs-table-striped-bg: rgba(255, 255, 255, 0.03); --bs-table-hover-bg: var(--input-bg); }
+        body.light-mode .table-custom { --bs-table-striped-bg: rgba(0, 0, 0, 0.02); }
+        .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
+        .table-custom td { color: #ffffff !important; border-color: var(--border); }
+        body.light-mode .table-custom td { color: #212529 !important; }
+        .table-custom tbody tr:hover { background-color: var(--input-bg); }
+        .text-center.py-4 { color: var(--text-main); opacity: 0.7; }
+        .badge.bg-dark { background-color: var(--input-bg) !important; color: var(--text-main); border: 1px solid var(--border); }
 
-        body.light-mode .table-custom {
-            --bs-table-striped-bg: rgba(0, 0, 0, 0.02);
-        }
-
-        .table-custom th {
-            background-color: var(--input-bg);
-            color: var(--accent);
-            border-color: var(--border);
-        }
-
-        .table-custom td {
-            color: #ffffff !important;
-            border-color: var(--border);
-        }
-
-        body.light-mode .table-custom td {
-            color: #212529 !important;
-        }
-
-        .table-custom tbody tr:hover {
-            background-color: var(--input-bg);
-        }
-
-        .text-center.py-4 {
-            color: var(--text-main);
-            opacity: 0.7;
-        }
-
-        .badge.bg-dark {
-            background-color: var(--input-bg) !important;
-            color: var(--text-main);
-            border: 1px solid var(--border);
-        }
-
-        input[type="date"],
-        input[type="time"] {
-            position: relative;
-            z-index: 1;
-        }
-
-        .time-date-label {
-            color: #000 !important;
-            font-weight: bold;
-            margin-bottom: 5px;
-            display: block;
-        }
-
-        .form-control::placeholder {
-            color: #000 !important;
-            opacity: 1;
-        }
-
-        body:not(.light-mode) .form-control::placeholder {
-            color: #fff !important;
-        }
-
-        body:not(.light-mode) .time-date-label {
-            color: #fff !important;
-        }
-
-        .time-input,
-        .date-input {
-            background-color: var(--input-bg) !important;
-            color: #000 !important;
-            border: 1px solid var(--border) !important;
-            padding: 12px !important;
-            margin-bottom: 10px !important;
-        }
-
-        body:not(.light-mode) .time-input,
-        body:not(.light-mode) .date-input {
-            color: #fff !important;
-        }
-
-        body:not(.light-mode) .time-input::placeholder,
-        body:not(.light-mode) .date-input::placeholder {
-            color: #ccc !important;
-        }
-
-        .btn-new-sheet {
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% {
-                box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7);
-            }
-            70% {
-                box-shadow: 0 0 0 10px rgba(111, 66, 193, 0);
-            }
-            100% {
-                box-shadow: 0 0 0 0 rgba(111, 66, 193, 0);
-            }
-        }
+        input[type="date"], input[type="time"] { position: relative; z-index: 1; }
+        .time-date-label { color: #000 !important; font-weight: bold; margin-bottom: 5px; display: block; }
+        .form-control::placeholder { color: #000 !important; opacity: 1; }
+        body:not(.light-mode) .form-control::placeholder { color: #fff !important; }
+        body:not(.light-mode) .time-date-label { color: #fff !important; }
+        .time-input, .date-input { background-color: var(--input-bg) !important; color: #000 !important; border: 1px solid var(--border) !important; padding: 12px !important; margin-bottom: 10px !important; }
+        body:not(.light-mode) .time-input, body:not(.light-mode) .date-input { color: #fff !important; }
+        body:not(.light-mode) .time-input::placeholder, body:not(.light-mode) .date-input::placeholder { color: #ccc !important; }
+        .btn-new-sheet { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(111, 66, 193, 0); } 100% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0); } }
     </style>
 </head>
 
@@ -849,7 +578,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     <?php echo $error_msg; ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
             <?php endif; ?>
 
-            <!-- Page Tabs Navigation -->
             <div class="page-tabs">
                 <?php for ($i = 0; $i < $total_pages; $i++): ?>
                     <a href="?page=<?php echo $i; ?>" class="page-tab <?php echo $i == $current_page ? 'active' : ''; ?>">
@@ -906,7 +634,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             <hr class="border-secondary my-4">
 
             <div class="row g-2">
-                <!-- NEW SHEET BUTTON (Only shows when current page is full) -->
                 <?php if ($is_page_full): ?>
                     <div class="col-12 mb-2">
                         <form method="POST" class="m-0">
@@ -917,7 +644,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     </div>
                 <?php endif; ?>
                 
-                <!-- Print Queue button - SHOW COUNT ONLY WHEN > 0 -->
                 <div class="col-6">
                     <button onclick="printQueue()" class="btn btn-success w-100 fw-bold py-3" <?php echo $total_queue_items == 0 ? 'disabled' : ''; ?>>
                         <i class="fa fa-print me-2"></i> Print Queue 
@@ -948,23 +674,23 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
         <div class="right-panel">
             <div class="panel-header w-100 border-bottom pb-3 mb-4" style="border-color: var(--border)!important;">
-                <div class="panel-title"><i class="fa fa-eye"></i> DOCUMENT PREVIEW</div>
+                <div class="panel-title"><i class="fa fa-eye"></i> PORTRAIT LEGAL PREVIEW (8.5" x 14")</div>
                 <div class="badge-page">Page <?php echo $current_page + 1; ?></div>
             </div>
 
-            <!-- Print Queue Preview -->
             <div class="print-area-container" id="print-area">
-                <!-- NEW HEADER (replaces old header-layout) -->
                 <div class="new-header-wrapper">
-                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                    
-                    <div class="new-header-top">
-                        <div class="new-header-title">Holy Cross College</div>
-                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                    </div>
-                    
-                    <div class="new-header-bar">
-                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -974,6 +700,12 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
                         <h3>VIOLATOR'S REPORT</h3>
                     </div>
+                </div>
+
+                <div class="sheet-top-row">
+                    SAFETY OFFICER: <span class="officer-line" style="text-align: center; padding: 0 10px;">
+                        <span id="p_officer"><?php echo strtoupper($_SESSION['current_officer']); ?></span>
+                    </span>
                 </div>
 
                 <table class="log-table">
@@ -1008,14 +740,14 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
                         <tr id="preview-row" style="color: #000000; display: none;">
                             <td class="col-date" id="p_date"></td>
-                            <td class="col-name" id="p_name"></td>
+                            <td class="col-name" id="p_name" style="text-align: left; padding-left: 10px;"></td>
                             <td class="col-loc" id="p_loc"></td>
-                            <td class="col-viol" id="p_viol"></td>
+                            <td class="col-viol" id="p_viol" style="text-align: left; padding-left: 10px;"></td>
                             <td class="col-time" id="p_time"></td>
                         </tr>
 
                         <?php
-                        // Dynamically fill remaining rows
+                        // Dynamically fill remaining rows up to MAX limit
                         for ($i = 0; $i < ($MAX_LOG_ROWS - $items_count); $i++):
                             ?>
                             <tr>
@@ -1030,28 +762,26 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 </table>
 
                 <div class="sheet-footer">
-                    <div class="left">
-                        SAFETY OFFICER: <span class="officer-line" style="text-align: center; padding: 0 10px;">
-                            <span id="p_officer"><?php echo strtoupper($_SESSION['current_officer']); ?></span>
-                        </span>
+                    <div class="left" style="margin-top: 15px; font-weight: bold;">
+                        PAUL JEFFREY T. LANSANGAN, SO3
                     </div>
                     <div class="right"></div>
                 </div>
             </div>
 
-            <!-- Blank Form Preview (Hidden by default) -->
             <div class="print-area-container" id="print-blank-area">
-                <!-- NEW HEADER (same as above) -->
                 <div class="new-header-wrapper">
-                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                    
-                    <div class="new-header-top">
-                        <div class="new-header-title">Holy Cross College</div>
-                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                    </div>
-                    
-                    <div class="new-header-bar">
-                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1061,6 +791,12 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         <h2>SAFETY AND PROTECTION DIVISION</h2>
                         <h3>VIOLATOR'S REPORT</h3>
                     </div>
+                </div>
+
+                <div class="sheet-top-row">
+                    SAFETY OFFICER: <span class="officer-line" style="width: 250px;">
+                        &nbsp;
+                    </span>
                 </div>
 
                 <table class="log-table">
@@ -1087,10 +823,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 </table>
 
                 <div class="sheet-footer">
-                    <div class="left">
-                        SAFETY OFFICER: <span class="officer-line" style="text-align: center; padding: 0 10px;">
-                            &nbsp;
-                        </span>
+                    <div class="left" style="margin-top: 15px; font-weight: bold;">
+                        PAUL JEFFREY T. LANSANGAN, SO3
                     </div>
                     <div class="right"></div>
                 </div>
@@ -1099,10 +833,20 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         </div>
     </div>
 
-    <div class="bottom-panel">
+    <div class="bottom-panel mx-4 mt-2">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT LOGS</h5>
-            <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
+            <div class="d-flex align-items-center gap-3">
+                <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
+                
+                <form method="GET" class="d-flex gap-0" style="width: 300px;">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search Name/Location..." value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
+                        <?php if ($search_term): ?><a href="?" class="btn btn-secondary"><i class="fa fa-times"></i></a><?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
 
         <div class="table-responsive">
@@ -1151,8 +895,11 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="6" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records
-                                found.</td>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fa fa-database fa-2x mb-3"></i><br>
+                                No records found. 
+                                <?php echo $search_term ? 'Try a different search.' : ''; ?>
+                            </td>
                         </tr>
                     <?php endif; ?>
                 </tbody>

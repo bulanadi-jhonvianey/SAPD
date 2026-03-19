@@ -314,6 +314,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             flex-direction: column;
         }
 
+        /* Force left panel labels and secondary text to white (dark mode) */
+        .left-panel label,
+        .left-panel .text-secondary {
+            color: #ffffff !important;
+        }
+
         .right-panel {
             flex: 2;
             display: flex;
@@ -332,7 +338,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         .form-control {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
-            color: var(--text-main);
+            color: var(--text-main); /* white in dark mode, dark in light */
             margin-bottom: 10px;
             padding: 12px;
         }
@@ -342,6 +348,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             border-color: var(--accent);
             color: var(--text-main);
             box-shadow: none;
+        }
+
+        /* Placeholder text color matches input text */
+        .form-control::placeholder {
+            color: var(--text-main);
+            opacity: 1;
+        }
+        .form-control:-ms-input-placeholder {
+            color: var(--text-main);
+        }
+        .form-control::-ms-input-placeholder {
+            color: var(--text-main);
         }
 
         .panel-header {
@@ -368,20 +386,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             border-radius: 4px;
         }
 
-        /* --- CCTV FORM PAPER DESIGN --- */
+        /* --- CCTV FORM PAPER DESIGN (LEGAL SIZE) --- */
         .hcc-form {
             width: 8.5in;
-            height: 11in;
+            height: 14in; /* Legal size */
             background: white;
             color: black;
-            padding: 0.25in 0.5in 0.5in 0.5in; 
+            padding: 0.35in 0.5in 0.5in 0.5in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
             box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
             transform: scale(0.65);
             transform-origin: top center;
-            margin-bottom: -3.8in;
+            margin-bottom: -4.5in;
             margin-top: 10px;
         }
 
@@ -391,7 +409,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             width: calc(100% + 1in);
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: -0.25in;
+            margin-top: -0.15in;
             height: 1.5in;
             margin-bottom: 10px;
         }
@@ -538,10 +556,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             color: black;
         }
 
+        /* Evaluation box with 9‑line height */
         .eval-box {
             border: 2px solid black;
             margin-top: 5px;
-            min-height: 180px;
+            min-height: 260px;
             width: 100%;
             background-image: linear-gradient(black 1px, transparent 1px);
             background-size: 100% 2em;
@@ -630,7 +649,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 width: 100% !important;
                 height: 100% !important;
                 min-height: 100vh !important;
-                padding: 0.25in 0.5in 0.5in 0.5in !important;
+                padding: 0.35in 0.5in 0.5in 0.5in !important;
                 page-break-after: always !important;
             }
 
@@ -648,7 +667,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             }
 
             .new-header-wrapper {
-                margin-top: -0.25in !important;
+                margin-top: -0.15in !important;
                 margin-left: -0.5in !important;
                 margin-right: -0.5in !important;
                 padding-top: 0 !important;
@@ -756,9 +775,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                     </div>
                 </div>
 
-                <div id="add_btn_group">
-                    <button type="submit" name="submit_request" class="btn btn-primary w-100 fw-bold py-3 mt-2">
+                <div id="add_btn_group" class="d-flex gap-2">
+                    <button type="submit" name="submit_request" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE
+                    </button>
+                    <!-- Reset button (matches Guidance Referral) -->
+                    <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"
+                        title="Clear form to start new">
+                        <i class="fa fa-rotate-right"></i>
                     </button>
                 </div>
 
@@ -1234,7 +1258,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
             // Clear edit_id and ensure add mode
             document.getElementById('in_edit_id').value = '';
-            document.getElementById('add_btn_group').style.display = 'block';
+            document.getElementById('add_btn_group').style.display = 'flex'; // make visible (flex)
             document.getElementById('edit_btn_group').style.display = 'none';
             document.getElementById('form-panel-title').innerHTML = `<i class="fa fa-pen-to-square"></i> NEW REQUEST`;
 
@@ -1282,10 +1306,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             document.getElementById('in_edit_id').value = '';
 
             // Swap Buttons Back
-            document.getElementById('add_btn_group').style.display = 'block';
+            document.getElementById('add_btn_group').style.display = 'flex';
             document.getElementById('edit_btn_group').style.display = 'none';
 
             // Clear Preview
+            updatePreview();
+        }
+
+        // --- NEW RESET FUNCTION (matches Guidance Referral) ---
+        function resetForm() {
+            document.getElementById('requestForm').reset();
+            document.getElementById('in_edit_id').value = '';
+
+            // Ensure add mode is active
+            document.getElementById('add_btn_group').style.display = 'flex';
+            document.getElementById('edit_btn_group').style.display = 'none';
+            document.getElementById('form-panel-title').innerHTML = `<i class="fa fa-pen-to-square"></i> NEW REQUEST`;
+
+            // Clear preview
             updatePreview();
         }
 

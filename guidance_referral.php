@@ -427,13 +427,102 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             padding: 0;
         }
 
+        /* ========== NEW HEADER STYLES (from facilities_and_inspection) ========== */
+        .new-header-wrapper {
+            position: relative;
+            width: calc(100% + 0.5in);
+            margin-left: -0.25in;
+            margin-right: -0.25in;
+            margin-top: -0.25in;
+            height: 1.5in;
+            margin-bottom: 10px;
+        }
+
+        .fading-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px; 
+            background: 
+                /* 1. Dark gold lower line (5px) - stays solid almost completely to the edge (95%) */
+                linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
+                /* 2. Main yellow bar - moved fade to the left (30% -> 55%) so it doesn't hit the text */
+                linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2; 
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.25in; 
+        }
+
+        .new-header-logo {
+            width: 165px;
+            height: auto;
+            margin-right: 5px; 
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end; 
+            height: 100px; 
+            padding-bottom: 5px;
+        }
+
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, 
+                #002b7f 0%, 
+                #002b7f 18%, 
+                rgba(0, 43, 127, 0.25) 24%, 
+                rgba(0, 43, 127, 0.25) 75%, 
+                #002b7f 80%, 
+                #002b7f 100%
+            );
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center;
+            margin-left: 30px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+        /* ========== END NEW HEADER STYLES ========== */
+
         /* --- PAPER FORM DESIGN (Guidance Style) --- */
         .hcc-form {
             width: 8.5in;
             height: 14in; 
             background: white;
             color: black;
-            padding: 0.6in 0.3in 0.3in 0.3in;
+            padding: 0.5in 0.3in 0.3in 0.3in; /* Adjusted top padding for new header */
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -445,75 +534,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             display: flex;
             flex-direction: column;
             overflow: hidden; 
-        }
-
-        /* --- HEADER LAYOUT (EDGE-TO-EDGE) --- */
-        .new-header-wrapper {
-            position: relative;
-            margin-left: -0.3in; 
-            margin-right: -0.3in; 
-            margin-top: -0.6in;
-            padding-top: 0.4in;
-            margin-bottom: 5px;        
-        }
-
-        .new-header-logo {
-            position: fixed; 
-            left: -6px;                
-            top: 0.2in;
-            width: 184px;                
-            height: auto;
-            z-index: 10;
-        }
-
-        .new-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            padding-left: 1.5in; 
-            padding-right: 0.5in;
-            padding-bottom: 5px;
-            min-height: 40px;
-        }
-
-        .new-header-title {
-            font-family: "Old English Text MT", serif;
-            font-size: 26pt;
-            color: #002060;
-            margin: 0;
-            line-height: 0.9;
-            white-space: nowrap;
-        }
-
-        .new-header-address {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 8pt;
-            color: #002060;
-            margin: 0;
-            padding-bottom: 2px;
-            white-space: nowrap;
-        }
-
-        .new-header-bar {
-            background-color: #FFB800;
-            height: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding-right: 0.5in;
-            width: 100%;
-            position: relative;
-            z-index: 1;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .new-header-url {
-            font-family: "Century Gothic", Arial, sans-serif;
-            font-size: 9pt;
-            font-weight: bold;
-            color: #002060;
-            margin: 0;
         }
 
         /* Form Sub-Header (SAPD) */
@@ -779,85 +799,83 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             font-weight: bold;
         }
 
-        /* --- PRINT MEDIA QUERIES --- */
+        /* --- PRINT MEDIA QUERIES (0 margin) --- */
         @page { 
-            size: 8.5in 14in; 
-            margin: 0; 
+            size: auto;
+            margin: 0;
         } 
         
         #print-area, #print-blank-area { display: none; }
 
         @media print {
-            html, body {
-                background-color: white !important;
-                color: black !important;
+            body {
                 margin: 0 !important;
                 padding: 0 !important;
+                background: white !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                height: auto !important;
             }
 
-            * { text-shadow: none !important; }
-
-            .new-header-title,
-            .new-header-address,
-            .new-header-url {
-                color: #002060 !important;
-            }
-
-            .navbar, .main-container, .bottom-panel, .btn, .d-print-none { 
+            .navbar, .main-container, .bottom-panel, .btn, .alert, .d-print-none { 
                 display: none !important; 
             }
 
-            body.printing-mode-queue #print-area,
-            body.printing-mode-blank #print-blank-area {
+            #print-area {
                 display: block !important;
-                position: relative !important; 
+                position: absolute;
+                top: 0;
+                left: 0;
                 width: 100%;
-                z-index: 9999;
+                height: 100%;
             }
 
-            .hcc-form {
+            #print-area .hcc-form,
+            .print-blank #print-blank-area .hcc-form {
                 transform: none !important;
                 box-shadow: none !important;
                 margin: 0 auto !important;
-                width: 100% !important; 
-                height: 13.9in !important; 
-                max-height: 13.9in !important; 
-                page-break-after: always;
-                page-break-inside: avoid;
-                display: flex !important;
-                flex-direction: column;
-                visibility: visible !important;
-                border: none !important;
-                padding: 0.6in 0.3in 0.3in 0.3in !important;
-                box-sizing: border-box !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.5in 0.3in 0.3in 0.3in !important;
+                page-break-after: always !important;
             }
-            
+
+            .print-blank #print-area {
+                display: none !important;
+            }
+
+            .print-blank #print-blank-area {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
             .new-header-wrapper {
-                margin-top: -0.6in !important;
-                margin-left: -0.3in !important; 
-                margin-right: -0.3in !important; 
-                padding-top: 0.4in !important; 
+                margin-top: -0.25in !important;
+                margin-left: -0.25in !important;
+                margin-right: -0.25in !important;
+                padding-top: 0 !important;
             }
 
-            .new-header-logo {
-                position: absolute !important;
-                top: 0.2in !important;
-                left: -5px !important;
-                width: 180px !important;
-            }
-            
-            .hcc-form:last-of-type { 
-                page-break-after: auto !important; 
+            .fading-bar, .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
             }
 
-            .image-section { display: flex !important; }
+            .image-section {
+                display: flex !important;
+            }
 
-            /* Disable resize elements on print */
-            .resize-wrapper { border: none !important; }
-            .resize-handle { display: none !important; }
+            .resize-wrapper {
+                border: none !important;
+            }
+            .resize-handle {
+                display: none !important;
+            }
         }
 
         /* THEME TABLES */
@@ -1006,17 +1024,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             </div>
 
             <div class="hcc-form" id="paper-preview">
-                
+                <!-- NEW HEADER (from facilities) -->
                 <div class="new-header-wrapper">
-                    <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                    
-                    <div class="new-header-top">
-                        <div class="new-header-title">Holy Cross College</div>
-                        <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                    </div>
-                    
-                    <div class="new-header-bar">
-                        <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                    <div class="fading-bar"></div>
+                    <div class="header-content">
+                        <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                        <div class="text-content">
+                            <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                            <div class="divider-line"></div>
+                            <div class="details">
+                                Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                                www.holycrosscollegesinc.com
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -1092,7 +1112,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <div style="margin-top: 35px;">
                             Date: <span class="date-line" id="out_date_footer"></span>
                         </div>
-                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -1118,14 +1138,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 }
         ?>
         <div class="hcc-form">
+            <!-- NEW HEADER (from facilities) -->
             <div class="new-header-wrapper">
-                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                <div class="new-header-top">
-                    <div class="new-header-title">Holy Cross College</div>
-                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                </div>
-                <div class="new-header-bar">
-                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1163,7 +1188,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <div class="image-section" style="display:flex!important;">
                             <?php foreach ($p['image_paths'] as $idx => $path): ?>
                                 <?php 
-                                $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 50;
+                                $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 48;
                                 if (file_exists($path)): 
                                 ?>
                                     <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
@@ -1185,14 +1210,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
 
     <div id="print-blank-area">
         <div class="hcc-form">
+            <!-- NEW HEADER (from facilities) -->
             <div class="new-header-wrapper">
-                <img src="background-hcc-logo.png" alt="HCC Logo" class="new-header-logo">
-                <div class="new-header-top">
-                    <div class="new-header-title">Holy Cross College</div>
-                    <div class="new-header-address">Holy Cross College Sta. Lucia, Sta. Ana, Pampanga, Philippines 2022</div>
-                </div>
-                <div class="new-header-bar">
-                    <div class="new-header-url">www.holycrosscollegepampanga.com</div>
+                <div class="fading-bar"></div>
+                <div class="header-content">
+                    <img src="Logo-hcc.png" alt="HCC Logo" class="new-header-logo">
+                    <div class="text-content">
+                        <div class="new-header-title">Holy Cross Colleges, Inc.</div>
+                        <div class="divider-line"></div>
+                        <div class="details">
+                            Holy Cross Colleges, Inc. Sta. Lucia, Sta. Ana, Pampanga 2022<br>
+                            www.holycrosscollegesinc.com
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -1373,29 +1403,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         const savedTheme = localStorage.getItem('appTheme') || 'dark';
         if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.getElementById('themeBtn').innerHTML = '<i class="fa fa-sun"></i>'; }
 
-        function printQueue() { 
-            document.body.classList.add('printing-mode-queue'); 
-            
-            // Allow display block to apply, then auto-shrink before sending to printer
-            setTimeout(() => {
-                autoFitAllTexts();
-                setTimeout(() => {
-                    window.print();
-                }, 100);
-            }, 50); 
+        // --- PRINT FUNCTIONS (FIXED) ---
+        function printQueue() {
+            document.body.classList.remove('print-blank');
+            setTimeout(() => { window.print(); }, 100);
         }
         
-        function printBlank() { 
-            document.body.classList.add('printing-mode-blank'); 
-            setTimeout(() => {
-                window.print();
-            }, 200); 
+        function printBlank() {
+            document.body.classList.add('print-blank');
+            setTimeout(() => { window.print(); }, 100);
         }
 
         // --- Handle cleanup safely after the print dialog closes ---
         window.addEventListener('afterprint', () => {
-            document.body.classList.remove('printing-mode-queue');
-            document.body.classList.remove('printing-mode-blank');
+            document.body.classList.remove('print-blank');
         });
 
         let loadedImages = [];
@@ -1431,7 +1452,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             autoFitAllTexts();
         }
 
-        // --- UPDATED: IMAGE DRAG-TO-RESIZE LOGIC ---
+        // --- FIXED: IMAGE DRAG-TO-RESIZE LOGIC (now handles multiple images correctly) ---
         function updatePaperImages() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
@@ -1443,7 +1464,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 sizeArray = JSON.parse(savedSizesVal);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
             } catch(e) {
-                sizeArray = [parseInt(savedSizesVal) || 50];
+                sizeArray = [parseInt(savedSizesVal) || 48]; // Default to 48
             }
             
             paperImageContainer.innerHTML = ''; 
@@ -1458,16 +1479,29 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             }
 
             function appendResizableImage(src, index) {
+                // Ensure src is a valid string
+                if (!src || typeof src !== 'string') {
+                    console.warn('Invalid image source at index', index);
+                    imagesLoaded++;
+                    checkAllLoaded();
+                    return;
+                }
+
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
                 
-                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 50;
+                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48; // Default to 48
                 wrapper.style.width = initialSize + '%';
                 
                 let img = document.createElement('img');
                 img.src = src;
                 img.className = 'paper-preview-img';
                 img.onload = function() {
+                    imagesLoaded++;
+                    checkAllLoaded();
+                };
+                img.onerror = function() {
+                    console.warn('Failed to load image:', src);
                     imagesLoaded++;
                     checkAllLoaded();
                 };
@@ -1526,7 +1560,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                             // Save individual sizes back to JSON Array
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
-                                updatedSizes.push(parseFloat(w.style.width) || 50);
+                                updatedSizes.push(parseFloat(w.style.width) || 48);
                             });
                             document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
                             
@@ -1624,7 +1658,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             // Re-sync size array to match newly added items
             let currentSizes = [];
             try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-            while(currentSizes.length < this.files.length) currentSizes.push(50);
+            while(currentSizes.length < this.files.length) currentSizes.push(48); // Default to 48
             document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
             renderFormPreviews(); 
