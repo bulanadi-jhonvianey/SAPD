@@ -9,164 +9,218 @@ if (session_status() === PHP_SESSION_NONE) {
 ini_set('display_errors', 1);
 error_reporting(E_ALL);
 
+// Enable MySQLi exceptions for all errors
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 // Database Credentials
 $servername = "localhost";
 $username = "root";
 $password = "";
 $dbname = "sapd_db";
 
-// 1. Create Connection
-$conn = new mysqli($servername, $username, $password);
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-// 2. Create Database
-$conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
-$conn->select_db($dbname);
-
-// Table Setup
-$table_sql = "CREATE TABLE IF NOT EXISTS parking_applications (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            applicant_type VARCHAR(50) DEFAULT 'EMPLOYEE',
-            applicant_name VARCHAR(255), department VARCHAR(100), address TEXT,
-            contact_number VARCHAR(50), license_no VARCHAR(50), email VARCHAR(100), fb_account VARCHAR(100),
-            vehicle_type VARCHAR(50), vehicle_brand VARCHAR(50), vehicle_color VARCHAR(50), or_no VARCHAR(50), cr_no VARCHAR(50),
-            emerg_name VARCHAR(255), emerg_address TEXT, emerg_relation VARCHAR(100), emerg_contact VARCHAR(50),
-            checklist_data TEXT DEFAULT NULL,
-            secondary_vehicles TEXT DEFAULT NULL,
-            violation_data TEXT DEFAULT NULL,
-            image_paths TEXT DEFAULT NULL, 
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )";
-$conn->query($table_sql);
-
-// Auto-Repair Columns
-$cols = ['applicant_type', 'applicant_name', 'department', 'address', 'contact_number', 'license_no', 'email', 'fb_account', 'vehicle_type', 'vehicle_brand', 'vehicle_color', 'or_no', 'cr_no', 'emerg_name', 'emerg_address', 'emerg_relation', 'emerg_contact', 'image_paths', 'checklist_data', 'secondary_vehicles', 'violation_data'];
-foreach ($cols as $c) {
-    $check_col = $conn->query("SHOW COLUMNS FROM parking_applications LIKE '$c'");
-    if ($check_col->num_rows == 0) {
-        $conn->query("ALTER TABLE parking_applications ADD $c VARCHAR(255) DEFAULT ''");
-    }
-}
-
-// Session Queue
-if (!isset($_SESSION['parking_print_queue'])) {
-    $_SESSION['parking_print_queue'] = [];
-}
-
-// Upload Directory
-$upload_dir = "uploads/parking/";
-if (!file_exists($upload_dir)) {
-    mkdir($upload_dir, 0777, true);
-}
-
-// --- FORM HANDLERS ---
-$success_msg = "";
-$error_msg = "";
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
-    $d = [];
-    $standard_fields = ['applicant_type', 'applicant_name', 'department', 'address', 'contact_number', 'license_no', 'email', 'fb_account', 'vehicle_type', 'vehicle_brand', 'vehicle_color', 'or_no', 'cr_no', 'emerg_name', 'emerg_address', 'emerg_relation', 'emerg_contact'];
-
-    foreach ($standard_fields as $field) {
-        $d[$field] = isset($_POST[$field]) ? $conn->real_escape_string($_POST[$field]) : '';
+try {
+    // 1. Create Connection
+    $conn = new mysqli($servername, $username, $password);
+    if ($conn->connect_error) {
+        throw new Exception("Connection failed: " . $conn->connect_error);
     }
 
-    // Capture Checklist Data (JSON)
-    $checklist = [];
-    foreach ($_POST as $key => $val) {
-        if (strpos($key, 'chk_') === 0) {
-            $checklist[$key] = $val;
+    // 2. Create Database
+    $conn->query("CREATE DATABASE IF NOT EXISTS $dbname");
+    $conn->select_db($dbname);
+
+    // Table Setup
+    $table_sql = "CREATE TABLE IF NOT EXISTS employee_applications (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                applicant_type VARCHAR(50) DEFAULT 'EMPLOYEE',
+                applicant_name VARCHAR(255) DEFAULT '', 
+                department VARCHAR(100) DEFAULT '', 
+                address TEXT,
+                contact_number VARCHAR(50) DEFAULT '', 
+                license_no VARCHAR(50) DEFAULT '', 
+                email VARCHAR(100) DEFAULT '', 
+                fb_account VARCHAR(100) DEFAULT '',
+                vehicle_type VARCHAR(50) DEFAULT '', 
+                vehicle_brand VARCHAR(50) DEFAULT '', 
+                vehicle_color VARCHAR(50) DEFAULT '', 
+                or_no VARCHAR(50) DEFAULT '', 
+                cr_no VARCHAR(50) DEFAULT '',
+                emerg_name VARCHAR(255) DEFAULT '', 
+                emerg_address TEXT, 
+                emerg_relation VARCHAR(100) DEFAULT '', 
+                emerg_contact VARCHAR(50) DEFAULT '',
+                checklist_data TEXT DEFAULT NULL,
+                secondary_vehicles TEXT DEFAULT NULL,
+                violation_data TEXT DEFAULT NULL,
+                image_paths TEXT DEFAULT NULL, 
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )";
+    
+    if (!$conn->query($table_sql)) {
+        throw new Exception("Table creation failed: " . $conn->error);
+    }
+
+    // Auto-Repair Columns
+    $cols = ['applicant_type', 'applicant_name', 'department', 'address', 'contact_number', 'license_no', 'email', 'fb_account', 'vehicle_type', 'vehicle_brand', 'vehicle_color', 'or_no', 'cr_no', 'emerg_name', 'emerg_address', 'emerg_relation', 'emerg_contact', 'image_paths', 'checklist_data', 'secondary_vehicles', 'violation_data'];
+    foreach ($cols as $c) {
+        $check_col = $conn->query("SHOW COLUMNS FROM employee_applications LIKE '$c'");
+        if ($check_col && $check_col->num_rows == 0) {
+            $conn->query("ALTER TABLE employee_applications ADD `$c` TEXT DEFAULT NULL");
         }
     }
-    $checklist_json = json_encode($checklist);
 
-    // Capture Secondary Vehicles (JSON)
-    $sec_vehicles = [];
-    if (isset($_POST['sec_v_type'])) {
-        for ($i = 0; $i < count($_POST['sec_v_type']); $i++) {
-            if (!empty($_POST['sec_v_type'][$i])) {
-                $sec_vehicles[] = [
-                    'type' => $_POST['sec_v_type'][$i],
-                    'brand' => $_POST['sec_v_brand'][$i],
-                    'color' => $_POST['sec_v_color'][$i],
-                    'or' => $_POST['sec_v_or'][$i],
-                    'cr' => $_POST['sec_v_cr'][$i]
-                ];
+    // Session Queue
+    if (!isset($_SESSION['employee_print_queue'])) {
+        $_SESSION['employee_print_queue'] = [];
+    }
+
+    // Upload Directory
+    $upload_dir = "uploads/employee/";
+    if (!file_exists($upload_dir)) {
+        mkdir($upload_dir, 0777, true);
+    }
+
+    // Helper to print arrays safely
+    $getVal = function($arr, $key) {
+        return isset($arr[$key]) ? htmlspecialchars($arr[$key]) : '';
+    };
+
+    // --- FORM HANDLERS ---
+    $success_msg = "";
+    $error_msg = "";
+
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_application'])) {
+        
+        // Capture all standard fields
+        $d = [];
+        $standard_fields = ['applicant_type', 'applicant_name', 'department', 'address', 'contact_number', 'license_no', 'email', 'fb_account', 'vehicle_type', 'vehicle_brand', 'vehicle_color', 'or_no', 'cr_no', 'emerg_name', 'emerg_address', 'emerg_relation', 'emerg_contact'];
+
+        foreach ($standard_fields as $field) {
+            $d[$field] = trim($_POST[$field] ?? '');
+        }
+
+        // Capture Checklist Data (JSON)
+        $checklist = [];
+        foreach ($_POST as $key => $val) {
+            if (strpos($key, 'chk_') === 0) {
+                $checklist[$key] = $val;
             }
         }
-    }
-    $sec_vehicles_json = json_encode($sec_vehicles);
+        $checklist_json = json_encode($checklist);
 
-    // Capture Violation Data (JSON)
-    $violations = [];
-    if (isset($_POST['vio_date'])) {
-        for ($i = 0; $i < count($_POST['vio_date']); $i++) {
-            if (!empty($_POST['vio_date'][$i]) || !empty($_POST['vio_desc'][$i])) {
-                $violations[] = [
-                    'date' => $_POST['vio_date'][$i],
-                    'time' => $_POST['vio_time'][$i],
-                    'loc' => $_POST['vio_loc'][$i],
-                    'desc' => $_POST['vio_desc'][$i],
-                    'action' => $_POST['vio_action'][$i],
-                    'officer' => $_POST['vio_officer'][$i]
-                ];
-            }
-        }
-    }
-    $violation_json = json_encode($violations);
+        // Secondary vehicles and violations are not in the form, store empty JSON
+        $sec_vehicles_json = "[]";
+        $violation_json = "[]";
 
-    // Handle Images
-    $image_paths_json = null;
-    $uploaded_files = [];
-    if (isset($_FILES['vehicle_images']) && !empty($_FILES['vehicle_images']['name'][0])) {
-        $total = count($_FILES['vehicle_images']['name']);
-        for ($i = 0; $i < $total; $i++) {
-            if ($_FILES['vehicle_images']['error'][$i] === UPLOAD_ERR_OK) {
-                $ext = pathinfo($_FILES['vehicle_images']['name'][$i], PATHINFO_EXTENSION);
-                $new_name = uniqid('park_') . "_$i." . $ext;
-                if (move_uploaded_file($_FILES['vehicle_images']['tmp_name'][$i], $upload_dir . $new_name)) {
-                    $uploaded_files[] = $upload_dir . $new_name;
+        // Handle Images (optional)
+        $image_paths_json = null;
+        $uploaded_files = [];
+        if (isset($_FILES['vehicle_images']) && !empty($_FILES['vehicle_images']['name'][0])) {
+            $total = count($_FILES['vehicle_images']['name']);
+            for ($i = 0; $i < $total; $i++) {
+                if ($_FILES['vehicle_images']['error'][$i] === UPLOAD_ERR_OK) {
+                    $ext = pathinfo($_FILES['vehicle_images']['name'][$i], PATHINFO_EXTENSION);
+                    $new_name = uniqid('park_') . "_$i." . $ext;
+                    if (move_uploaded_file($_FILES['vehicle_images']['tmp_name'][$i], $upload_dir . $new_name)) {
+                        $uploaded_files[] = $upload_dir . $new_name;
+                    }
                 }
             }
         }
+        if (!empty($uploaded_files)) {
+            $image_paths_json = json_encode($uploaded_files);
+        } else {
+            $image_paths_json = "[]";
+        }
+
+        // Insert using prepared statement
+        $stmt = $conn->prepare("INSERT INTO employee_applications 
+                (applicant_type, applicant_name, department, address, contact_number, license_no, email, fb_account, vehicle_type, vehicle_brand, vehicle_color, or_no, cr_no, emerg_name, emerg_address, emerg_relation, emerg_contact, checklist_data, secondary_vehicles, violation_data, image_paths) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+        if (!$stmt) {
+            throw new Exception("Database Prepare Failed: " . $conn->error);
+        }
+
+        $stmt->bind_param("sssssssssssssssssssss", 
+            $d['applicant_type'], $d['applicant_name'], $d['department'], $d['address'], 
+            $d['contact_number'], $d['license_no'], $d['email'], $d['fb_account'], 
+            $d['vehicle_type'], $d['vehicle_brand'], $d['vehicle_color'], $d['or_no'], 
+            $d['cr_no'], $d['emerg_name'], $d['emerg_address'], $d['emerg_relation'], 
+            $d['emerg_contact'], $checklist_json, $sec_vehicles_json, $violation_json, $image_paths_json
+        );
+
+        if ($stmt->execute()) {
+            $last_id = $stmt->insert_id;
+            error_log("Inserted employee application with ID: $last_id");
+            
+            // Add to print queue
+            $_SESSION['employee_print_queue'][] = array_merge($d, $checklist, [
+                'secondary_vehicles' => $sec_vehicles_json, 
+                'violation_data' => $violation_json, 
+                'image_paths' => $image_paths_json
+            ]);
+            
+            $stmt->close();
+            
+            // Force session write before redirect
+            session_write_close();
+            
+            header("Location: " . strtok($_SERVER["REQUEST_URI"], '?') . "?success=1");
+            exit();
+        } else {
+            throw new Exception("Database Failed to Save: " . $stmt->error);
+        }
     }
-    if (!empty($uploaded_files))
-        $image_paths_json = json_encode($uploaded_files);
 
-    $sql = "INSERT INTO parking_applications (applicant_type, applicant_name, department, address, contact_number, license_no, email, fb_account, vehicle_type, vehicle_brand, vehicle_color, or_no, cr_no, emerg_name, emerg_address, emerg_relation, emerg_contact, checklist_data, secondary_vehicles, violation_data, image_paths) VALUES ('{$d['applicant_type']}', '{$d['applicant_name']}', '{$d['department']}', '{$d['address']}', '{$d['contact_number']}', '{$d['license_no']}', '{$d['email']}', '{$d['fb_account']}', '{$d['vehicle_type']}', '{$d['vehicle_brand']}', '{$d['vehicle_color']}', '{$d['or_no']}', '{$d['cr_no']}', '{$d['emerg_name']}', '{$d['emerg_address']}', '{$d['emerg_relation']}', '{$d['emerg_contact']}', '$checklist_json', '$sec_vehicles_json', '$violation_json', '$image_paths_json')";
-
-    if ($conn->query($sql)) {
-        $_SESSION['parking_print_queue'][] = array_merge($d, $checklist, ['secondary_vehicles' => $sec_vehicles_json, 'violation_data' => $violation_json, 'image_paths' => $uploaded_files]);
-        header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
+    // Handle reprint: add to queue and set flag to print
+    if (isset($_GET['reprint_id'])) {
+        $id = intval($_GET['reprint_id']);
+        $res = $conn->query("SELECT * FROM employee_applications WHERE id = $id");
+        if ($res && $res->num_rows > 0) {
+            $row_data = $res->fetch_assoc();
+            $checks = json_decode($row_data['checklist_data'] ?? '{}', true);
+            if (is_array($checks)) {
+                $row_data = array_merge($row_data, $checks);
+            }
+            $_SESSION['employee_print_queue'][] = $row_data;
+            $_SESSION['auto_print'] = true;
+            session_write_close();
+        }
+        header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
         exit();
-    } else {
-        $error_msg = "Error: " . $conn->error;
     }
-}
 
-if (isset($_GET['delete_id'])) {
-    $conn->query("DELETE FROM parking_applications WHERE id = " . intval($_GET['delete_id']));
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
-if (isset($_POST['clear_queue'])) {
-    $_SESSION['parking_print_queue'] = [];
-    header("Location: " . $_SERVER['PHP_SELF']);
-    exit();
-}
+    // Handle delete
+    if (isset($_GET['delete_id'])) {
+        $conn->query("DELETE FROM employee_applications WHERE id = " . intval($_GET['delete_id']));
+        header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
+        exit();
+    }
 
-// --- SEARCH LOGIC ---
-$search_term = "";
-$where_clause = "";
-if (isset($_GET['search']) && !empty($_GET['search'])) {
-    $search_term = $conn->real_escape_string($_GET['search']);
-    $where_clause = "WHERE applicant_name LIKE '%$search_term%' OR department LIKE '%$search_term%'";
-}
+    // Handle clear queue
+    if (isset($_POST['clear_queue'])) {
+        $_SESSION['employee_print_queue'] = [];
+        session_write_close();
+        header("Location: " . strtok($_SERVER["REQUEST_URI"], '?'));
+        exit();
+    }
 
-$recent_reports = $conn->query("SELECT * FROM parking_applications $where_clause ORDER BY id DESC LIMIT 10");
-$total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications")->fetch_assoc()['total'];
+    // --- SEARCH LOGIC ---
+    $search_term = "";
+    $where_clause = "";
+    if (isset($_GET['search']) && !empty($_GET['search'])) {
+        $search_term = $conn->real_escape_string($_GET['search']);
+        $where_clause = "WHERE applicant_name LIKE '%$search_term%' OR department LIKE '%$search_term%'";
+    }
+
+    $recent_reports = $conn->query("SELECT * FROM employee_applications $where_clause ORDER BY id DESC LIMIT 10");
+    $total_count = $conn->query("SELECT COUNT(*) as total FROM employee_applications")->fetch_assoc()['total'] ?? 0;
+
+} catch (Exception $e) {
+    $error_msg = $e->getMessage();
+    error_log("Employee application error: " . $error_msg);
+}
 ?>
 
 <!DOCTYPE html>
@@ -272,39 +326,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             border-color: var(--accent);
         }
 
-        /* Dropdown Button Custom */
-        .btn-collapse {
-            background-color: var(--input-bg);
-            color: var(--text-main);
-            border: 1px solid var(--border);
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-            padding: 12px;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .btn-collapse:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        .btn-collapse[aria-expanded="true"] {
-            border-color: var(--accent);
-            background-color: rgba(0, 123, 255, 0.1);
-        }
-
-        .btn-collapse i.chevron {
-            transition: transform 0.3s ease;
-        }
-
-        .btn-collapse[aria-expanded="true"] i.chevron {
-            transform: rotate(180deg);
-        }
-
         /* --- LAYOUT --- */
         .main-container {
             display: flex;
@@ -328,6 +349,31 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             max-width: 450px;
             display: flex;
             flex-direction: column;
+        }
+
+        /* --- LEFT PANEL FORCED WHITE TEXT --- */
+        .left-panel {
+            background-color: #13203c !important;
+            color: #ffffff !important;
+        }
+
+        .left-panel .panel-title,
+        .left-panel label,
+        .left-panel .form-check-label,
+        .left-panel small,
+        .left-panel span {
+            color: #ffffff !important;
+        }
+
+        .left-panel .form-control,
+        .left-panel .form-select {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
         }
 
         .right-panel {
@@ -372,11 +418,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             height: 14in; 
             position: relative;
             background: transparent;
-            /* Scale down for preview only */
             transform: scale(0.6);
             transform-origin: top left;
             margin-right: -3in;
-            /* Compensate for scale gap due to larger height */
             margin-bottom: -5.6in; 
         }
 
@@ -405,7 +449,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             color: rgba(128, 128, 128, 0.7);
         }
         
-        /* Remove original readonly gray styling */
         input[readonly].form-control {
             background-color: var(--input-bg);
             color: var(--text-main);
@@ -435,18 +478,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             color: white;
             padding: 5px 10px;
             border-radius: 4px;
-        }
-
-        .sec-vehicle-box {
-            background-color: rgba(0, 0, 0, 0.2);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-        }
-
-        body.light-mode .sec-vehicle-box {
-            background-color: rgba(0, 0, 0, 0.05);
         }
 
         /* --- FORM DESIGN (SCREEN & PRINT SHARED) --- */
@@ -635,7 +666,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             font-family: Arial, sans-serif;
         }
 
-        /* Adjust Table cell spacing and heights to expand the form content evenly */
         .data-grid {
             width: 100%;
             border-collapse: collapse;
@@ -679,7 +709,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             border-bottom: none;
             font-size: 9pt;
             padding: 4px;
-            margin-top: 15px;
+            margin-top: 5px; 
             font-family: Arial, sans-serif;
         }
 
@@ -720,7 +750,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             width: 100%;
             border-collapse: collapse;
             border: 1px solid black;
-            margin-top: 15px;
+            margin-top: 5px; 
             font-size: 8pt;
             text-align: center;
         }
@@ -750,7 +780,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         .docs-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 15px;
+            margin-top: 5px; 
         }
 
         .docs-table td {
@@ -770,15 +800,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         }
 
         .id-cell {
-            width: 2.1in;
+            width: 2.2in; 
             text-align: right;
             vertical-align: top;
             padding-right: 5px;
         }
 
         .id-box {
-            width: 1.5in; 
-            height: 1.5in; 
+            width: 2in; 
+            height: 2in; 
             border: 1px solid black;
             display: flex;
             align-items: center;
@@ -790,7 +820,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         .sig-table {
             width: 100%;
-            margin-top: 5px; 
+            margin-top: 10px; 
             font-size: 10pt;
             font-family: Arial, sans-serif;
             border-collapse: collapse;
@@ -798,7 +828,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         .sig-table td {
             vertical-align: top;
-            padding-bottom: 5px;
+            padding-bottom: 0px; 
         }
 
         /* VIOLATION TABLE (BACK) */
@@ -826,10 +856,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
 
         /* WAIVER SPACING ADJUSTMENTS */
         .waiver-text {
-            font-size: 17px; /* Updated to 17px */
+            font-size: 17px; 
             text-align: justify;
             margin-top: 5px; 
-            line-height: 1.1; /* Adjusted for larger font */
+            line-height: 1.1; 
         }
 
         .waiver-text ol {
@@ -881,7 +911,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         /* --- PRINT SETTINGS --- */
         @media print {
             @page {
-                size: 8.5in 14in; 
+                size: legal; 
                 margin: 0; 
             }
 
@@ -957,20 +987,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 font-size: 11pt !important;
             }
 
-            /* Force rules to be 17px and tight spacing in print too */
             .waiver-text, .waiver-text li, .waiver-text p {
-                font-size: 17px !important; /* Updated to 17px */
+                font-size: 17px !important;
                 line-height: 1.1 !important;
                 margin-bottom: 0 !important;
             }
 
-            /* Prevent the large titles from breaking layout but keep them distinct */
             .new-header-title { font-size: 28pt !important; }
             .division-title h2 { font-size: 14pt !important; }
             .division-title h3 { font-size: 11pt !important; }
             .employee-title { font-size: 16pt !important; }
             
-            /* Spacing adjustments specifically required to fit the new text inside the fixed paper size */
             .division-header { margin-bottom: 5px !important; }
             .violation-table { margin-top: 10px !important; }
             
@@ -980,8 +1007,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             .emerg-header { margin-top: 5px !important; padding: 2px !important; }
             .mv-table { margin-top: 5px !important; }
             .docs-table { margin-top: 5px !important; }
-            .sig-table { margin-top: 10px !important; }
-            .sig-table td { padding-bottom: 2px !important; }
+            .sig-table { margin-top: 10px !important; } 
+            .sig-table td { padding-bottom: 0px !important; } 
 
             .waiver-text { 
                 margin-top: 5px !important; 
@@ -996,6 +1023,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+        }
+
+        /* ========== TOP ALIGNMENT FIX ========== */
+        .data-grid td,
+        .data-grid th {
+            vertical-align: top !important;
+            padding-top: 4px !important;
+            line-height: 1.3 !important;
+        }
+
+        .data-grid td *,
+        .data-grid th * {
+            line-height: inherit !important;
+        }
+
+        .sig-table td {
+            vertical-align: top !important;
+            line-height: 1.3 !important;
         }
     </style>
 </head>
@@ -1018,16 +1063,28 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         <div class="left-panel">
             <div class="panel-header">
                 <div class="panel-title"><i class="fa fa-pencil-alt"></i> FILL APPLICATION</div>
-                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['parking_print_queue']); ?></div>
+                <div class="badge-queue">QUEUE: <?php echo count($_SESSION['employee_print_queue']); ?></div>
             </div>
 
-            <?php if (!empty($success_msg))
-                echo "<div class='alert alert-success alert-dismissible fade show'>$success_msg<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"; ?>
-            <?php if (!empty($error_msg))
-                echo "<div class='alert alert-danger alert-dismissible fade show'>$error_msg<button type='button' class='btn-close' data-bs-dismiss='alert'></button></div>"; ?>
+            <?php if (isset($_GET['success'])): ?>
+                <div class='alert alert-success alert-dismissible fade show'>
+                    <i class="fa fa-check-circle me-2"></i>Application saved and added to queue!
+                    <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if (!empty($error_msg)): ?>
+                <div class='alert alert-danger alert-dismissible fade show' style="background-color: #ffcccc; color: #cc0000; border: 2px solid #cc0000;">
+                    <strong><i class="fa fa-exclamation-triangle me-2"></i> CRITICAL ERROR DETECTED:</strong><br> 
+                    <?php echo $error_msg; ?>
+                    <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
+                </div>
+            <?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data" id="appForm">
-                <label class="small text-secondary fw-bold mb-1">APPLICATION STATUS</label>
+                <input type="hidden" name="submit_application" value="1">
+                
+                <label class="small opacity-75 fw-bold mb-1">APPLICATION STATUS</label>
                 <div class="d-flex gap-3 mb-2">
                     <div class="form-check"><input class="form-check-input" type="checkbox" name="chk_approved"
                             id="in_chk_approved" value="1" onchange="syncStatus('approved')"><label
@@ -1037,19 +1094,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             class="form-check-label" for="in_chk_disapproved">Disapproved</label></div>
                 </div>
 
-                <label class="small text-secondary fw-bold mb-1">APPLICATION TYPE</label>
+                <label class="small opacity-75 fw-bold mb-1">APPLICATION TYPE</label>
                 <input type="text" name="applicant_type" id="in_type" class="form-control fw-bold" value="EMPLOYEE" readonly>
 
-                <label class="small text-secondary fw-bold mb-1">APPLICANT DETAILS</label>
+                <label class="small opacity-75 fw-bold mb-1">APPLICANT DETAILS</label>
                 <input type="text" name="applicant_name" id="in_name" class="form-control"
-                    placeholder="Name (Last, First, MI)" required oninput="updatePreview()">
+                    placeholder="Name (Last, First, MI)" oninput="updatePreview()">
                 <div class="row g-2">
                     <div class="col-6"><input type="text" name="department" id="in_dept" class="form-control"
-                            placeholder="Department" required oninput="updatePreview()"></div>
+                            placeholder="Department" oninput="updatePreview()"></div>
                     <div class="col-6"><input type="text" name="contact_number" id="in_cel" class="form-control"
-                            placeholder="Cel No." required oninput="updatePreview()"></div>
+                            placeholder="Cel No." oninput="updatePreview()"></div>
                 </div>
-                <input type="text" name="address" id="in_address" class="form-control" placeholder="Address" required
+                <input type="text" name="address" id="in_address" class="form-control" placeholder="Address"
                     oninput="updatePreview()">
 
                 <div class="row g-2">
@@ -1059,7 +1116,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             placeholder="Email" oninput="updatePreview()"></div>
                 </div>
 
-                <label class="small text-secondary fw-bold mb-1 mt-2">VEHICLE INFO (Main)</label>
+                <label class="small opacity-75 fw-bold mb-1 mt-2">VEHICLE INFO (Main)</label>
                 <div class="row g-2">
                     <div class="col-6"><input type="text" name="vehicle_type" id="in_vtype" class="form-control"
                             placeholder="Type (Car/Motor)" oninput="updatePreview()"></div>
@@ -1079,60 +1136,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             placeholder="FB Account" oninput="updatePreview()"></div>
                 </div>
 
-                <div class="mt-3 mb-2">
-                    <button class="btn btn-collapse" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#secVehiclesCollapse" aria-expanded="false" aria-controls="secVehiclesCollapse">
-                        <span><i class="fa fa-car me-2"></i> Additional Vehicles (Optional)</span>
-                        <i class="fa fa-chevron-down chevron"></i>
-                    </button>
-
-                    <div class="collapse mt-2" id="secVehiclesCollapse">
-                        <div id="sec_vehicle_container">
-                            <div class="sec-vehicle-box">
-                                <small class="text-secondary d-block mb-1">Secondary Vehicle 1</small>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-4"><input type="text" name="sec_v_type[]" id="in_sec_type_0"
-                                            class="form-control form-control-sm" placeholder="Type"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-4"><input type="text" name="sec_v_brand[]" id="in_sec_brand_0"
-                                            class="form-control form-control-sm" placeholder="Brand"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-4"><input type="text" name="sec_v_color[]" id="in_sec_color_0"
-                                            class="form-control form-control-sm" placeholder="Color"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-6"><input type="text" name="sec_v_or[]" id="in_sec_or_0"
-                                            class="form-control form-control-sm" placeholder="OR #"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-6"><input type="text" name="sec_v_cr[]" id="in_sec_cr_0"
-                                            class="form-control form-control-sm" placeholder="CR #"
-                                            oninput="updatePreview()"></div>
-                                </div>
-                            </div>
-                            <div class="sec-vehicle-box">
-                                <small class="text-secondary d-block mb-1">Secondary Vehicle 2</small>
-                                <div class="row g-2 mb-2">
-                                    <div class="col-4"><input type="text" name="sec_v_type[]" id="in_sec_type_1"
-                                            class="form-control form-control-sm" placeholder="Type"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-4"><input type="text" name="sec_v_brand[]" id="in_sec_brand_1"
-                                            class="form-control form-control-sm" placeholder="Brand"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-4"><input type="text" name="sec_v_color[]" id="in_sec_color_1"
-                                            class="form-control form-control-sm" placeholder="Color"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-6"><input type="text" name="sec_v_or[]" id="in_sec_or_1"
-                                            class="form-control form-control-sm" placeholder="OR #"
-                                            oninput="updatePreview()"></div>
-                                    <div class="col-6"><input type="text" name="sec_v_cr[]" id="in_sec_cr_1"
-                                            class="form-control form-control-sm" placeholder="CR #"
-                                            oninput="updatePreview()"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <label class="small text-secondary fw-bold mb-1 mt-2">EMERGENCY CONTACT</label>
+                <label class="small opacity-75 fw-bold mb-1 mt-2">EMERGENCY CONTACT</label>
                 <input type="text" name="emerg_name" id="in_ename" class="form-control" placeholder="Name"
                     oninput="updatePreview()">
                 <input type="text" name="emerg_address" id="in_eaddress" class="form-control" placeholder="Address"
@@ -1144,7 +1148,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             placeholder="Contact #" oninput="updatePreview()"></div>
                 </div>
 
-                <label class="small text-secondary fw-bold mb-1 mt-2">DOCUMENTS SUBMITTED</label>
+                <label class="small opacity-75 fw-bold mb-1 mt-2">DOCUMENTS SUBMITTED</label>
                 <div class="card p-2 mb-3" style="background-color: var(--input-bg); border: 1px solid var(--border);">
                     <div class="row g-2">
                         <div class="col-6">
@@ -1192,50 +1196,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                     </div>
                 </div>
 
-                <div class="mt-2 mb-3">
-                    <button class="btn btn-collapse" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#violationCollapse" aria-expanded="false" aria-controls="violationCollapse">
-                        <span><i class="fa fa-gavel me-2"></i> Violation History (Admin Only)</span>
-                        <i class="fa fa-chevron-down chevron"></i>
-                    </button>
-
-                    <div class="collapse mt-2" id="violationCollapse">
-                        <div class="sec-vehicle-box">
-                            <small class="text-secondary d-block mb-2">Enter recent violations to appear on the back of
-                                the form.</small>
-                            <?php for ($i = 0; $i < 3; $i++): ?>
-                                <div class="border-bottom border-secondary pb-2 mb-2">
-                                    <div class="row g-1 mb-1">
-                                        <div class="col-4"><input type="text" name="vio_date[]"
-                                                id="in_vio_date_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Date" oninput="updatePreview()"></div>
-                                        <div class="col-4"><input type="text" name="vio_time[]"
-                                                id="in_vio_time_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Time" oninput="updatePreview()"></div>
-                                        <div class="col-4"><input type="text" name="vio_loc[]"
-                                                id="in_vio_loc_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Location" oninput="updatePreview()"></div>
-                                    </div>
-                                    <div class="row g-1">
-                                        <div class="col-4"><input type="text" name="vio_desc[]"
-                                                id="in_vio_desc_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Violation" oninput="updatePreview()"></div>
-                                        <div class="col-4"><input type="text" name="vio_action[]"
-                                                id="in_vio_action_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Action" oninput="updatePreview()"></div>
-                                        <div class="col-4"><input type="text" name="vio_officer[]"
-                                                id="in_vio_officer_<?php echo $i; ?>" class="form-control form-control-sm"
-                                                placeholder="Officer" oninput="updatePreview()"></div>
-                                    </div>
-                                </div>
-                            <?php endfor; ?>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="d-flex gap-2 mt-3">
-                    <button type="submit" name="submit_application"
-                        class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2"><i class="fa fa-plus-circle me-2"></i> ADD
+                    <button type="submit" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2"><i class="fa fa-plus-circle me-2"></i> ADD
                         TO QUEUE</button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"><i
                             class="fa fa-rotate-right"></i></button>
@@ -1250,11 +1212,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 <div class="col-6"><button onclick="printBlank()"
                         class="btn btn-secondary w-100 fw-bold text-white h-100"><i class="fa fa-file me-2"></i> Blank
                         Form</button></div>
-                <?php if (count($_SESSION['parking_print_queue']) > 0): ?>
+                <?php if (count($_SESSION['employee_print_queue']) > 0): ?>
                     <div class="col-12">
-                        <form method="POST" class="m-0"><button type="submit" name="clear_queue"
-                                class="btn btn-danger w-100 fw-bold" onclick="return confirm('Clear queue?')"><i
-                                    class="fa fa-trash me-2"></i> Clear Queue</button></form>
+                        <form method="POST" class="m-0">
+                            <input type="hidden" name="clear_queue" value="1">
+                            <button type="submit" class="btn btn-danger w-100 fw-bold" onclick="return confirm('Clear queue?')"><i class="fa fa-trash me-2"></i> Clear Queue</button>
+                        </form>
                     </div>
                 <?php endif; ?>
             </div>
@@ -1288,7 +1251,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             <img src="background.png" alt="SAPD Logo" class="sapd-logo">
                             <div class="division-title">
                                 <h2>SAFETY AND PROTECTION DIVISION</h2>
-                                <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
+                                <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2026-2027)</h3>
                                 <h1 class="employee-title" id="out_type_preview">EMPLOYEE</h1>
                                 <div class="status-checkboxes"><span class="checkbox-box" id="view_chk_approved"></span>
                                     Approved &nbsp;&nbsp;&nbsp; <span class="checkbox-box" id="view_chk_disapproved"></span>
@@ -1296,9 +1259,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             </div>
                         </div>
 
-                        <div class="file-info"><span>File Application # ____________</span><span>Date: <span
-                                    id="out_date"
-                                    style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
+                        <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
                         <table class="data-grid">
                             <tr>
                                 <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First,
@@ -1307,40 +1268,40 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                                 <td class="label">DEPARTMENT</td>
                                 <td class="value" id="out_dept"></td>
                             </tr>
-                            <tr>
+                             <tr>
                                 <td class="label">ADDRESS</td>
                                 <td class="value" colspan="2" id="out_address"></td>
                                 <td class="label">MOTORIZED VEHICLE TYPE</td>
                                 <td class="value" id="out_vtype"></td>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td class="label">CEL. NO.</td>
                                 <td class="value" colspan="2" id="out_cel"></td>
                                 <td class="label">MOTORIZED VEHICLE BRAND</td>
                                 <td class="value" id="out_vbrand"></td>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td class="label">LICENSE #</td>
                                 <td class="value" colspan="2" id="out_license"></td>
                                 <td class="label">MOTORIZED VEHICLE COLOR</td>
                                 <td class="value" id="out_vcolor"></td>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td class="label">OR #</td>
                                 <td class="value" colspan="2" id="out_or"></td>
                                 <td class="label">CR #</td>
                                 <td class="value" id="out_cr"></td>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td class="label">E-MAIL</td>
                                 <td class="value" colspan="2" id="out_email"></td>
                                 <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
                                 <td class="value" id="out_fb"></td>
-                            </tr>
-                        </table>
+                             </tr>
+                         </table>
                         <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
                         <table class="emerg-table">
-                            <tr>
+                             <tr>
                                 <td style="width: 60%; padding-left: 10px;">
                                     <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
                                             class="emerg-val" id="out_ename"></span></div>
@@ -1348,57 +1309,49 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                                             class="emerg-val" id="out_eaddress"></span></div>
                                     <div><span class="emerg-label">Relation:</span> <span class="emerg-val"
                                             id="out_erelation"></span></div>
-                                </td>
+                                 </td>
                                 <td style="width: 40%; vertical-align: top;">
                                     <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):
                                     </div>
                                     <div id="out_econtact"
                                         style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
                                     </div>
-                                </td>
-                            </tr>
-                        </table>
+                                 </td>
+                             </tr>
+                         </table>
                         <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">
                             Fill up the table below if you are using more than one vehicle:</div>
                         <table class="mv-table">
-                            <tr>
+                             <tr>
                                 <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                                 <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                                 <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                                 <th style="width: 15%;">OR #</th>
                                 <th style="width: 15%;">CR #</th>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td id="out_sec_type_0"></td>
                                 <td id="out_sec_brand_0"></td>
                                 <td id="out_sec_color_0"></td>
                                 <td id="out_sec_or_0"></td>
                                 <td id="out_sec_cr_0"></td>
-                            </tr>
-                            <tr>
+                             </tr>
+                             <tr>
                                 <td id="out_sec_type_1"></td>
                                 <td id="out_sec_brand_1"></td>
                                 <td id="out_sec_color_1"></td>
                                 <td id="out_sec_or_1"></td>
                                 <td id="out_sec_cr_1"></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                        </table>
+                             </tr>
+                             <tr>
+                                <td></td><td></td><td></td><td></td><td></td>
+                             </tr>
+                             <tr>
+                                <td></td><td></td><td></td><td></td><td></td>
+                             </tr>
+                         </table>
                         <table class="docs-table">
-                            <tr>
+                             <tr>
                                 <td class="checklist">
                                     <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
                                     <div class="mb-1"><span class="checkbox-box" id="view_chk_cr"></span> Certificate of
@@ -1418,25 +1371,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                                         background)</div>
                                     <div class="mb-1"><span class="checkbox-box" id="view_chk_id_1x1"></span> Updated 1
                                         1"x1" colored ID picture (White background)</div>
-                                </td>
+                                 </td>
                                 <td class="id-cell">
                                     <div class="id-box"></div>
-                                </td>
-                            </tr>
-                        </table>
+                                 </td>
+                             </tr>
+                         </table>
                         <table class="sig-table">
-                            <tr>
+                             <tr>
                                 <td style="text-align: left;">
-                                    <div style="border-top: 1px solid black; width: 300px; margin-bottom: 5px; margin-left: 0; margin-top: 10px;">
-                                        <div style="text-align:center; font-weight:bold; padding-top:2px;" id="out_sig_name"></div>
+                                    <div style="width: 300px; margin-left: 0;">
+                                        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;" id="out_sig_name"></div>
+                                        <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
+                                        <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <span id="out_sig_preview">employee</span></div>
                                     </div>
-                                    <div style="margin-bottom: 15px; font-size: 10pt;">Signature over printed name of <span id="out_sig_preview">employee</span></div>
                                     <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                                     <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                     <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                                </td>
-                            </tr>
-                        </table>
+                                 </td>
+                             </tr>
+                         </table>
                     </div>
                 </div>
 
@@ -1461,32 +1415,32 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <table class="violation-table"
                             style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                             <thead>
-                                <tr>
+                                 <tr>
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>Location</th>
                                     <th>Violation</th>
                                     <th>Action Taken</th>
                                     <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                                </tr>
+                                 </tr>
                             </thead>
                             <tbody>
                                 <?php for ($i = 0; $i < 5; $i++): ?>
-                                    <tr>
+                                     <tr>
                                         <td id="out_vio_date_<?php echo $i; ?>"></td>
                                         <td id="out_vio_time_<?php echo $i; ?>"></td>
                                         <td id="out_vio_loc_<?php echo $i; ?>"></td>
                                         <td id="out_vio_desc_<?php echo $i; ?>"></td>
                                         <td id="out_vio_action_<?php echo $i; ?>"></td>
                                         <td id="out_vio_officer_<?php echo $i; ?>"></td>
-                                    </tr>
+                                     </tr>
                                 <?php endfor; ?>
                             </tbody>
-                        </table>
+                         </table>
                         <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                             <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga
                                 Patakaran ng Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
-                            <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
+                            <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2026-2027</h5>
                         </div>
                         <div class="waiver-text">
                             <ol>
@@ -1537,7 +1491,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         </div>
                         <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
                             <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                            <div style="margin-top:35px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                            <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
                                 Pangalan at lagda ng <span id="out_sig_fil_preview">Empleyado</span>
                             </div>
                         </div>
@@ -1557,7 +1511,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <input type="text" name="search" class="form-control" placeholder="Search name or dept..."
                             value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
                         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-                        <?php if (!empty($search_term)): ?><a href="<?php echo $_SERVER['PHP_SELF']; ?>"
+                        <?php if (!empty($search_term)): ?><a href="<?php echo strtok($_SERVER["REQUEST_URI"], '?'); ?>"
                                 class="btn btn-secondary"><i class="fa fa-times"></i></a><?php endif; ?>
                     </div>
                 </form>
@@ -1566,7 +1520,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
-                    <tr>
+                     <tr>
                         <th>ID</th>
                         <th>TYPE</th>
                         <th>NAME</th>
@@ -1574,42 +1528,146 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <th>VEHICLE</th>
                         <th>CONTACT</th>
                         <th>ACTIONS</th>
-                    </tr>
+                     </tr>
                 </thead>
                 <tbody>
-                    <?php if ($recent_reports->num_rows > 0): ?>
+                    <?php if ($recent_reports && $recent_reports->num_rows > 0): ?>
                         <?php while ($row = $recent_reports->fetch_assoc()): ?>
-                            <tr>
+                             <tr>
                                 <td>#<?php echo $row['id']; ?></td>
-                                <td><span class="badge bg-info text-white"><?php echo $row['applicant_type']; ?></span></td>
-                                <td class="fw-bold"><?php echo htmlspecialchars($row['applicant_name']); ?></td>
-                                <td><?php echo htmlspecialchars($row['department']); ?></td>
-                                <td><?php echo htmlspecialchars($row['vehicle_brand'] . ' ' . $row['vehicle_color']); ?></td>
-                                <td><?php echo htmlspecialchars($row['contact_number']); ?></td>
+                                <td><span class="badge bg-info text-white"><?php echo htmlspecialchars($row['applicant_type'] ?? 'EMPLOYEE'); ?></span></td>
+                                <td class="fw-bold"><?php echo htmlspecialchars($row['applicant_name'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars($row['department'] ?? ''); ?></td>
+                                <td><?php echo htmlspecialchars(($row['vehicle_brand'] ?? '') . ' ' . ($row['vehicle_color'] ?? '')); ?></td>
+                                <td><?php echo htmlspecialchars($row['contact_number'] ?? ''); ?></td>
                                 <td class="text-end">
-                                    <div class="d-flex gap-1 justify-content-center"><button
-                                            onclick='loadData(<?php echo json_encode($row); ?>)'
-                                            class="btn btn-sm btn-info text-white"><i class="fa fa-eye"></i></button><a
-                                            href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <button onclick='showViewModal(<?php echo json_encode($row); ?>)' class="btn btn-sm btn-info text-white" title="View">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                        <button onclick='loadData(<?php echo json_encode($row); ?>)' class="btn btn-sm btn-warning text-white" title="Edit">
+                                            <i class="fa fa-pencil-alt"></i>
+                                        </button>
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+                                            <i class="fa fa-print"></i>
+                                        </a>
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" title="Delete" onclick="return confirm('Delete this record?')">
+                                            <i class="fa fa-trash"></i>
+                                        </a>
                                     </div>
                                 </td>
-                            </tr>
+                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr>
+                         <tr>
                             <td colspan="7" class="text-center py-4 text-muted"><i
                                     class="fa fa-database fa-2x mb-3"></i><br>No records found.</td>
-                        </tr>
+                         </tr>
                     <?php endif; ?>
                 </tbody>
-            </table>
+             </table>
+        </div>
+    </div>
+
+    <!-- View Modal (Read-Only) -->
+    <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background-color: var(--panel-bg); color: var(--text-main);">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewModalLabel">Application Details (Read-Only)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Name:</div>
+                        <div class="col-md-9" id="view_name"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Department:</div>
+                        <div class="col-md-9" id="view_dept"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Address:</div>
+                        <div class="col-md-9" id="view_address"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Contact No.:</div>
+                        <div class="col-md-9" id="view_contact"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">License No.:</div>
+                        <div class="col-md-9" id="view_license"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Email:</div>
+                        <div class="col-md-9" id="view_email"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">FB Account:</div>
+                        <div class="col-md-9" id="view_fb"></div>
+                    </div>
+                    <hr>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Vehicle Type:</div>
+                        <div class="col-md-9" id="view_vtype"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Vehicle Brand:</div>
+                        <div class="col-md-9" id="view_vbrand"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Vehicle Color:</div>
+                        <div class="col-md-9" id="view_vcolor"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">OR No.:</div>
+                        <div class="col-md-9" id="view_or"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">CR No.:</div>
+                        <div class="col-md-9" id="view_cr"></div>
+                    </div>
+                    <hr>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Emergency Name:</div>
+                        <div class="col-md-9" id="view_ename"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Emergency Address:</div>
+                        <div class="col-md-9" id="view_eaddress"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Emergency Relation:</div>
+                        <div class="col-md-9" id="view_erelation"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Emergency Contact:</div>
+                        <div class="col-md-9" id="view_econtact"></div>
+                    </div>
+                    <hr>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Documents Submitted:</div>
+                        <div class="col-md-9" id="view_docs"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Secondary Vehicles:</div>
+                        <div class="col-md-9" id="view_sec_vehicles"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Violation History:</div>
+                        <div class="col-md-9" id="view_violations"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="print-area">
-        <?php if (count($_SESSION['parking_print_queue']) > 0): ?>
-            <?php foreach ($_SESSION['parking_print_queue'] as $p): ?>
+        <?php if (count($_SESSION['employee_print_queue']) > 0): ?>
+            <?php foreach ($_SESSION['employee_print_queue'] as $p): ?>
 
                 <div class="hcc-form">
                     
@@ -1632,157 +1690,138 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                         <img src="background.png" alt="SAPD Logo" class="sapd-logo">
                         <div class="division-title">
                             <h2>SAFETY AND PROTECTION DIVISION</h2>
-                            <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
-                            <h1 class="employee-title"><?php echo strtoupper($p['applicant_type']); ?></h1>
+                            <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2026-2027)</h3>
+                            <h1 class="employee-title"><?php echo strtoupper($getVal($p, 'applicant_type')); ?></h1>
                             <div class="status-checkboxes">
-                                <span
-                                    class="checkbox-box <?php echo isset($p['chk_approved']) && $p['chk_approved'] == '1' ? 'checked' : ''; ?>"></span>
+                                <span class="checkbox-box <?php echo $getVal($p, 'chk_approved') == '1' ? 'checked' : ''; ?>"></span>
                                 Approved &nbsp;&nbsp;&nbsp;
-                                <span
-                                    class="checkbox-box <?php echo isset($p['chk_disapproved']) && $p['chk_disapproved'] == '1' ? 'checked' : ''; ?>"></span>
+                                <span class="checkbox-box <?php echo $getVal($p, 'chk_disapproved') == '1' ? 'checked' : ''; ?>"></span>
                                 Disapproved
                             </div>
                         </div>
                     </div>
 
-                    <div class="file-info"><span>File Application # ____________</span><span>Date: <span
-                                style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
+                    <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
 
                     <table class="data-grid">
-                        <tr>
+                         <tr>
                             <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span>
-                            </td>
-                            <td class="value" colspan="2"><?php echo $p['applicant_name']; ?></td>
+                             </td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'applicant_name'); ?></td>
                             <td class="label">DEPARTMENT</td>
-                            <td class="value"><?php echo $p['department']; ?></td>
-                        </tr>
-                        <tr>
+                            <td class="value"><?php echo $getVal($p, 'department'); ?></td>
+                         </tr>
+                         <tr>
                             <td class="label">ADDRESS</td>
-                            <td class="value" colspan="2"><?php echo $p['address']; ?></td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'address'); ?></td>
                             <td class="label">MOTORIZED VEHICLE TYPE</td>
-                            <td class="value"><?php echo $p['vehicle_type']; ?></td>
-                        </tr>
-                        <tr>
+                            <td class="value"><?php echo $getVal($p, 'vehicle_type'); ?></td>
+                         </tr>
+                         <tr>
                             <td class="label">CEL. NO.</td>
-                            <td class="value" colspan="2"><?php echo $p['contact_number']; ?></td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'contact_number'); ?></td>
                             <td class="label">MOTORIZED VEHICLE BRAND</td>
-                            <td class="value"><?php echo $p['vehicle_brand']; ?></td>
-                        </tr>
-                        <tr>
+                            <td class="value"><?php echo $getVal($p, 'vehicle_brand'); ?></td>
+                         </tr>
+                         <tr>
                             <td class="label">LICENSE #</td>
-                            <td class="value" colspan="2"><?php echo $p['license_no']; ?></td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'license_no'); ?></td>
                             <td class="label">MOTORIZED VEHICLE COLOR</td>
-                            <td class="value"><?php echo $p['vehicle_color']; ?></td>
-                        </tr>
-                        <tr>
+                            <td class="value"><?php echo $getVal($p, 'vehicle_color'); ?></td>
+                         </tr>
+                         <tr>
                             <td class="label">OR #</td>
-                            <td class="value" colspan="2"><?php echo $p['or_no']; ?></td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'or_no'); ?></td>
                             <td class="label">CR #</td>
-                            <td class="value"><?php echo $p['cr_no']; ?></td>
-                        </tr>
-                        <tr>
+                            <td class="value"><?php echo $getVal($p, 'cr_no'); ?></td>
+                         </tr>
+                         <tr>
                             <td class="label">E-MAIL</td>
-                            <td class="value" colspan="2"><?php echo $p['email']; ?></td>
+                            <td class="value" colspan="2"><?php echo $getVal($p, 'email'); ?></td>
                             <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
-                            <td class="value"><?php echo $p['fb_account']; ?></td>
-                        </tr>
-                    </table>
+                            <td class="value"><?php echo $getVal($p, 'fb_account'); ?></td>
+                         </tr>
+                     </table>
 
                     <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
                     <table class="emerg-table">
-                        <tr>
+                         <tr>
                             <td style="width: 60%; padding-left: 10px;">
                                 <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
-                                        class="emerg-val"><?php echo $p['emerg_name']; ?></span></div>
+                                        class="emerg-val"><?php echo $getVal($p, 'emerg_name'); ?></span></div>
                                 <div style="margin-bottom: 5px;"><span class="emerg-label">Address:</span> <span
-                                        class="emerg-val"><?php echo $p['emerg_address']; ?></span></div>
+                                        class="emerg-val"><?php echo $getVal($p, 'emerg_address'); ?></span></div>
                                 <div><span class="emerg-label">Relation:</span> <span
-                                        class="emerg-val"><?php echo $p['emerg_relation']; ?></span></div>
-                            </td>
+                                        class="emerg-val"><?php echo $getVal($p, 'emerg_relation'); ?></span></div>
+                             </td>
                             <td style="width: 40%; vertical-align: top;">
                                 <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):</div>
                                 <div
                                     style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
-                                    <?php echo $p['emerg_contact']; ?>
+                                    <?php echo $getVal($p, 'emerg_contact'); ?>
                                 </div>
-                            </td>
-                        </tr>
-                    </table>
+                             </td>
+                         </tr>
+                     </table>
 
                     <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">Fill up the
                         table below if you are using more than one vehicle:</div>
                     <table class="mv-table">
-                        <tr>
+                         <tr>
                             <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                             <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                             <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                             <th style="width: 15%;">OR #</th>
                             <th style="width: 15%;">CR #</th>
-                        </tr>
+                         </tr>
                         <?php
                         $sec_v = isset($p['secondary_vehicles']) ? json_decode($p['secondary_vehicles'], true) : [];
                         for ($i = 0; $i < 4; $i++) {
                             $v = isset($sec_v[$i]) ? $sec_v[$i] : null;
                             echo "<tr>";
-                            echo "<td>" . ($v ? $v['type'] : '') . "</td>";
-                            echo "<td>" . ($v ? $v['brand'] : '') . "</td>";
-                            echo "<td>" . ($v ? $v['color'] : '') . "</td>";
-                            echo "<td>" . ($v ? $v['or'] : '') . "</td>";
-                            echo "<td>" . ($v ? $v['cr'] : '') . "</td>";
+                            echo "<td>" . htmlspecialchars($v ? ($v['type'] ?? '') : '') . "</td>";
+                            echo "<td>" . htmlspecialchars($v ? ($v['brand'] ?? '') : '') . "</td>";
+                            echo "<td>" . htmlspecialchars($v ? ($v['color'] ?? '') : '') . "</td>";
+                            echo "<td>" . htmlspecialchars($v ? ($v['or'] ?? '') : '') . "</td>";
+                            echo "<td>" . htmlspecialchars($v ? ($v['cr'] ?? '') : '') . "</td>";
                             echo "</tr>";
                         }
                         ?>
-                    </table>
+                     </table>
 
                     <table class="docs-table">
-                        <tr>
+                         <tr>
                             <td class="checklist">
                                 <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_cr']) && $p['chk_cr'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Certificate of Registration (CR)</div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_or']) && $p['chk_or'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Official Receipt (OR)</div>
-                                <div style="margin-top: 10px; margin-bottom: 5px;"><strong>Updated/registered drivers
-                                        License:</strong></div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_student_lic']) && $p['chk_student_lic'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Student Drivers License</div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_nonpro_lic']) && $p['chk_nonpro_lic'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Non-Pro Drivers License</div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_pro_lic']) && $p['chk_pro_lic'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Professional Drivers License</div>
-                                <div style="margin-top: 10px; margin-bottom: 2px;"><span
-                                        class="checkbox-box <?php echo isset($p['chk_id_2x2']) && $p['chk_id_2x2'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Updated 1 2"x2" colored ID picture (White background)</div>
-                                <div class="mb-1"><span
-                                        class="checkbox-box <?php echo isset($p['chk_id_1x1']) && $p['chk_id_1x1'] == '1' ? 'checked' : ''; ?>"></span>
-                                    Updated 1 1"x1" colored ID picture (White background)</div>
-                            </td>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_cr') == '1' ? 'checked' : ''; ?>"></span> Certificate of Registration (CR)</div>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_or') == '1' ? 'checked' : ''; ?>"></span> Official Receipt (OR)</div>
+                                <div style="margin-top: 10px; margin-bottom: 5px;"><strong>Updated/registered drivers License:</strong></div>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_student_lic') == '1' ? 'checked' : ''; ?>"></span> Student Drivers License</div>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_nonpro_lic') == '1' ? 'checked' : ''; ?>"></span> Non-Pro Drivers License</div>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_pro_lic') == '1' ? 'checked' : ''; ?>"></span> Professional Drivers License</div>
+                                <div style="margin-top: 10px; margin-bottom: 2px;"><span class="checkbox-box <?php echo $getVal($p, 'chk_id_2x2') == '1' ? 'checked' : ''; ?>"></span> Updated 1 2"x2" colored ID picture (White background)</div>
+                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_id_1x1') == '1' ? 'checked' : ''; ?>"></span> Updated 1 1"x1" colored ID picture (White background)</div>
+                             </td>
                             <td class="id-cell">
                                 <div class="id-box"></div>
-                            </td>
-                        </tr>
-                    </table>
+                             </td>
+                         </tr>
+                     </table>
 
                     <table class="sig-table">
-                        <tr>
+                         <tr>
                             <td style="text-align: left;">
-                                <div style="border-top: 1px solid black; width: 300px; margin-bottom: 5px; margin-left: 0; margin-top: 10px;">
-                                    <div style="text-align:center; font-weight:bold; padding-top:2px;">
-                                        <?php echo $p['applicant_name']; ?>
-                                    </div>
+                                <div style="width: 300px; margin-left: 0;">
+                                    <div style="text-align: center; font-weight: bold; margin-bottom: 5px;"><?php echo $getVal($p, 'applicant_name'); ?></div>
+                                    <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
+                                    <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <?php echo strtolower($getVal($p, 'applicant_type')); ?></div>
                                 </div>
-                                <div style="margin-bottom: 15px; font-size: 10pt;">Signature over printed name of <?php echo strtolower($p['applicant_type']); ?></div>
                                 <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                                 <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                 <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                            </td>
-                        </tr>
-                    </table>
+                             </td>
+                         </tr>
+                     </table>
                 </div>
 
                 <div class="hcc-form">
@@ -1805,14 +1844,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                     <table class="violation-table"
                         style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                         <thead>
-                            <tr>
+                             <tr>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Location</th>
                                 <th>Violation</th>
                                 <th>Action Taken</th>
                                 <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                            </tr>
+                             </tr>
                         </thead>
                         <tbody>
                             <?php
@@ -1820,17 +1859,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             for ($i = 0; $i < 5; $i++) {
                                 $v = isset($vio_data[$i]) ? $vio_data[$i] : null;
                                 echo "<tr>";
-                                echo "<td>" . ($v ? $v['date'] : '') . "</td><td>" . ($v ? $v['time'] : '') . "</td><td>" . ($v ? $v['loc'] : '') . "</td>";
-                                echo "<td>" . ($v ? $v['desc'] : '') . "</td><td>" . ($v ? $v['action'] : '') . "</td><td>" . ($v ? $v['officer'] : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['date'] ?? '') : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['time'] ?? '') : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['loc'] ?? '') : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['desc'] ?? '') : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['action'] ?? '') : '') . "</td>";
+                                echo "<td>" . htmlspecialchars($v ? ($v['officer'] ?? '') : '') . "</td>";
                                 echo "</tr>";
                             }
                             ?>
                         </tbody>
-                    </table>
+                     </table>
                     <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                         <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                             Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
-                        <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
+                        <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2026-2027</h5>
                     </div>
                     <div class="waiver-text">
                         <ol>
@@ -1875,8 +1918,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                     </div>
                     <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
                         <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                        <div style="margin-top:35px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
-                            Pangalan at lagda ng Empleyado
+                        <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                            Pangalan at lagda ng <span id="out_sig_fil_blank">Empleyado</span>
                         </div>
                     </div>
                 </div>
@@ -1908,113 +1951,88 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 <img src="background.png" alt="SAPD Logo" class="sapd-logo">
                 <div class="division-title">
                     <h2>SAFETY AND PROTECTION DIVISION</h2>
-                    <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2024-2025)</h3>
+                    <h3>APPLICATION FOR EMPLOYEES VEHICLE PARKING SPACE (SY 2026-2027)</h3>
                     <h1 class="employee-title" id="out_type_blank">EMPLOYEE</h1>
                     <div class="status-checkboxes"><span class="checkbox-box"></span> Approved &nbsp;&nbsp;&nbsp; <span
                             class="checkbox-box"></span> Disapproved</div>
                 </div>
             </div>
 
-            <div class="file-info"><span>File Application # ____________</span><span>Date: <span
-                        style="text-decoration: underline;"><?php echo date('m/d/Y'); ?></span></span></div>
+            <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
             <table class="data-grid">
-                <tr>
+                 <tr>
                     <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span>
-                    </td>
+                     </td>
                     <td class="value" colspan="2"></td>
                     <td class="label">DEPARTMENT</td>
                     <td class="value"></td>
-                </tr>
-                <tr>
+                 </tr>
+                 <tr>
                     <td class="label">ADDRESS</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE TYPE</td>
                     <td class="value"></td>
-                </tr>
-                <tr>
+                 </tr>
+                 <tr>
                     <td class="label">CEL. NO.</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE BRAND</td>
                     <td class="value"></td>
-                </tr>
-                <tr>
+                 </tr>
+                 <tr>
                     <td class="label">LICENSE #</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE COLOR</td>
                     <td class="value"></td>
-                </tr>
-                <tr>
+                 </tr>
+                 <tr>
                     <td class="label">OR #</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">CR #</td>
                     <td class="value"></td>
-                </tr>
-                <tr>
+                 </tr>
+                 <tr>
                     <td class="label">E-MAIL</td>
                     <td class="value" colspan="2"></td>
                     <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
                     <td class="value"></td>
-                </tr>
-            </table>
+                 </tr>
+             </table>
             <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
             <table class="emerg-table">
-                <tr>
+                 <tr>
                     <td style="width: 60%; padding-left: 10px;">
                         <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
                                 class="emerg-val"></span></div>
                         <div style="margin-bottom: 5px;"><span class="emerg-label">Address:</span> <span
                                 class="emerg-val"></span></div>
                         <div><span class="emerg-label">Relation:</span> <span class="emerg-val"></span></div>
-                    </td>
+                     </td>
                     <td style="width: 40%; vertical-align: top;">
                         <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):</div>
                         <div
                             style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
                         </div>
-                    </td>
-                </tr>
-            </table>
+                     </td>
+                 </tr>
+             </table>
             <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">Fill up the
                 table below if you are using more than one vehicle:</div>
             <table class="mv-table">
-                <tr>
+                 <tr>
                     <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                     <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                     <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                     <th style="width: 15%;">OR #</th>
                     <th style="width: 15%;">CR #</th>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                    <td></td>
-                </tr>
-            </table>
+                 </tr>
+                 <tr><td></td><td></td><td></td><td></td><td></td></tr>
+                 <tr><td></td><td></td><td></td><td></td><td></td></tr>
+                 <tr><td></td><td></td><td></td><td></td><td></td></tr>
+                 <tr><td></td><td></td><td></td><td></td><td></td></tr>
+             </table>
             <table class="docs-table">
-                <tr>
+                 <tr>
                     <td class="checklist">
                         <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
                         <div class="mb-1"><span class="checkbox-box"></span> Certificate of Registration (CR)</div>
@@ -2028,23 +2046,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                             2"x2" colored ID picture (White background)</div>
                         <div class="mb-1"><span class="checkbox-box"></span> Updated 1 1"x1" colored ID picture (White
                             background)</div>
-                    </td>
+                     </td>
                     <td class="id-cell">
                         <div class="id-box"></div>
-                    </td>
-                </tr>
-            </table>
+                     </td>
+                 </tr>
+             </table>
             <table class="sig-table">
-                <tr>
+                 <tr>
                     <td style="text-align: left;">
-                        <div style="border-top: 1px solid black; width: 300px; margin-bottom: 5px; margin-left: 0; margin-top: 10px;"></div>
-                        <div style="margin-bottom: 15px; font-size: 10pt;">Signature over printed name of <span id="out_sig_blank">employee</span></div>
+                        <div style="width: 300px; margin-left: 0;">
+                            <div style="text-align: center; font-weight: bold; margin-bottom: 5px;"></div>
+                            <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
+                            <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <span id="out_sig_blank">employee</span></div>
+                        </div>
                         <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                         <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                         <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                    </td>
-                </tr>
-            </table>
+                     </td>
+                 </tr>
+             </table>
         </div>
 
         <div class="hcc-form">
@@ -2067,62 +2088,27 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             <table class="violation-table"
                 style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                 <thead>
-                    <tr>
+                     <tr>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Location</th>
                         <th>Violation</th>
                         <th>Action Taken</th>
                         <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                    </tr>
+                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
-                    <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                    </tr>
+                     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                     <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                 </tbody>
-            </table>
+             </table>
             <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                 <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                     Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
-                <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2025-2026</h5>
+                <h5 style="margin:5px 0 0 0; font-weight:normal; font-size: 10pt;">SY 2026-2027</h5>
             </div>
             <div class="waiver-text">
                 <ol>
@@ -2167,7 +2153,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             </div>
             <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
                 <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                <div style="margin-top:35px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
                     Pangalan at lagda ng <span id="out_sig_fil_blank">Empleyado</span>
                 </div>
             </div>
@@ -2220,21 +2206,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 if (el && out) out.innerText = el.value;
             }
 
-            // Secondary Vehicles
+            // Secondary Vehicles (no inputs now)
             for (let i = 0; i < 2; i++) {
                 ['type', 'brand', 'color', 'or', 'cr'].forEach(type => {
-                    const input = document.getElementById(`in_sec_${type}_${i}`);
                     const output = document.getElementById(`out_sec_${type}_${i}`);
-                    if (input && output) output.innerText = input.value;
+                    if (output) output.innerText = '';
                 });
             }
 
-            // Violation History
+            // Violation History (no inputs now)
             for (let i = 0; i < 3; i++) {
                 ['date', 'time', 'loc', 'desc', 'action', 'officer'].forEach(type => {
-                    const input = document.getElementById(`in_vio_${type}_${i}`);
                     const output = document.getElementById(`out_vio_${type}_${i}`);
-                    if (input && output) output.innerText = input.value;
+                    if (output) output.innerText = '';
                 });
             }
 
@@ -2309,65 +2293,105 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
                 } catch (e) { console.log(e); }
             }
 
-            // Load Secondary Vehicles
-            for (let i = 0; i < 2; i++) {
-                ['type', 'brand', 'color', 'or', 'cr'].forEach(k => {
-                    const el = document.getElementById(`in_sec_${k}_${i}`);
-                    if (el) el.value = '';
-                });
-            }
-            if (data.secondary_vehicles) {
-                try {
-                    const sec = JSON.parse(data.secondary_vehicles);
-                    if (sec.length > 0) new bootstrap.Collapse(document.getElementById('secVehiclesCollapse'), { show: true });
-                    for (let i = 0; i < sec.length && i < 2; i++) {
-                        document.getElementById(`in_sec_type_${i}`).value = sec[i].type || '';
-                        document.getElementById(`in_sec_brand_${i}`).value = sec[i].brand || '';
-                        document.getElementById(`in_sec_color_${i}`).value = sec[i].color || '';
-                        document.getElementById(`in_sec_or_${i}`).value = sec[i].or || '';
-                        document.getElementById(`in_sec_cr_${i}`).value = sec[i].cr || '';
-                    }
-                } catch (e) { console.log(e); }
-            }
-
-            // Load Violation Data
-            for (let i = 0; i < 3; i++) {
-                ['date', 'time', 'loc', 'desc', 'action', 'officer'].forEach(k => {
-                    const el = document.getElementById(`in_vio_${k}_${i}`);
-                    if (el) el.value = '';
-                });
-            }
-            if (data.violation_data) {
-                try {
-                    const vio = JSON.parse(data.violation_data);
-                    if (vio.length > 0) new bootstrap.Collapse(document.getElementById('violationCollapse'), { show: true });
-                    for (let i = 0; i < vio.length && i < 3; i++) {
-                        document.getElementById(`in_vio_date_${i}`).value = vio[i].date || '';
-                        document.getElementById(`in_vio_time_${i}`).value = vio[i].time || '';
-                        document.getElementById(`in_vio_loc_${i}`).value = vio[i].loc || '';
-                        document.getElementById(`in_vio_desc_${i}`).value = vio[i].desc || '';
-                        document.getElementById(`in_vio_action_${i}`).value = vio[i].action || '';
-                        document.getElementById(`in_vio_officer_${i}`).value = vio[i].officer || '';
-                    }
-                } catch (e) { console.log(e); }
-            }
-
+            // Secondary vehicles and violations are not in the form anymore, so skip loading them
             updatePreview();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // View Modal (Read-Only)
+        function showViewModal(data) {
+            // Populate modal fields
+            document.getElementById('view_name').innerText = data.applicant_name || '';
+            document.getElementById('view_dept').innerText = data.department || '';
+            document.getElementById('view_address').innerText = data.address || '';
+            document.getElementById('view_contact').innerText = data.contact_number || '';
+            document.getElementById('view_license').innerText = data.license_no || '';
+            document.getElementById('view_email').innerText = data.email || '';
+            document.getElementById('view_fb').innerText = data.fb_account || '';
+            document.getElementById('view_vtype').innerText = data.vehicle_type || '';
+            document.getElementById('view_vbrand').innerText = data.vehicle_brand || '';
+            document.getElementById('view_vcolor').innerText = data.vehicle_color || '';
+            document.getElementById('view_or').innerText = data.or_no || '';
+            document.getElementById('view_cr').innerText = data.cr_no || '';
+            document.getElementById('view_ename').innerText = data.emerg_name || '';
+            document.getElementById('view_eaddress').innerText = data.emerg_address || '';
+            document.getElementById('view_erelation').innerText = data.emerg_relation || '';
+            document.getElementById('view_econtact').innerText = data.emerg_contact || '';
+
+            // Documents
+            let docsHtml = '';
+            const checkMap = ['chk_cr', 'chk_or', 'chk_student_lic', 'chk_nonpro_lic', 'chk_pro_lic', 'chk_id_2x2', 'chk_id_1x1'];
+            if (data.checklist_data) {
+                try {
+                    const checks = JSON.parse(data.checklist_data);
+                    docsHtml = '<ul>';
+                    for (let key of checkMap) {
+                        if (checks[key] == '1') {
+                            let label = key.replace('chk_', '').toUpperCase().replace('_', ' ');
+                            docsHtml += `<li>${label}</li>`;
+                        }
+                    }
+                    docsHtml += '</ul>';
+                } catch(e) { docsHtml = 'N/A'; }
+            } else {
+                docsHtml = 'N/A';
+            }
+            document.getElementById('view_docs').innerHTML = docsHtml;
+
+            // Secondary Vehicles
+            let secHtml = '';
+            if (data.secondary_vehicles) {
+                try {
+                    const sec = JSON.parse(data.secondary_vehicles);
+                    if (sec.length > 0) {
+                        secHtml = '<ul>';
+                        sec.forEach(v => {
+                            secHtml += `<li>${v.type || ''} ${v.brand || ''} ${v.color || ''} OR:${v.or || ''} CR:${v.cr || ''}</li>`;
+                        });
+                        secHtml += '</ul>';
+                    } else {
+                        secHtml = 'None';
+                    }
+                } catch(e) { secHtml = 'N/A'; }
+            } else {
+                secHtml = 'None';
+            }
+            document.getElementById('view_sec_vehicles').innerHTML = secHtml;
+
+            // Violations
+            let vioHtml = '';
+            if (data.violation_data) {
+                try {
+                    const vio = JSON.parse(data.violation_data);
+                    if (vio.length > 0) {
+                        vioHtml = '<table class="table table-sm table-bordered"><thead><tr><th>Date</th><th>Time</th><th>Location</th><th>Violation</th><th>Action</th><th>Officer</th></tr></thead><tbody>';
+                        vio.forEach(v => {
+                            vioHtml += `<tr><td>${v.date || ''}</td><td>${v.time || ''}</td><td>${v.loc || ''}</td><td>${v.desc || ''}</td><td>${v.action || ''}</td><td>${v.officer || ''}</td></tr>`;
+                        });
+                        vioHtml += '</tbody></table>';
+                    } else {
+                        vioHtml = 'None';
+                    }
+                } catch(e) { vioHtml = 'N/A'; }
+            } else {
+                vioHtml = 'None';
+            }
+            document.getElementById('view_violations').innerHTML = vioHtml;
+
+            // Show modal
+            var modal = new bootstrap.Modal(document.getElementById('viewModal'));
+            modal.show();
+        }
+
         function resetForm() {
             document.getElementById('appForm').reset();
-            // keep the readonly value intact
             document.getElementById('in_type').value = 'EMPLOYEE';
             document.querySelectorAll('.checkbox-box.checked').forEach(el => el.classList.remove('checked'));
-            new bootstrap.Collapse(document.getElementById('secVehiclesCollapse'), { toggle: false }).hide();
-            new bootstrap.Collapse(document.getElementById('violationCollapse'), { toggle: false }).hide();
             updatePreview();
         }
 
         function updatePrintButton() {
-            const queueCount = <?php echo count($_SESSION['parking_print_queue']); ?>;
+            const queueCount = <?php echo count($_SESSION['employee_print_queue']); ?>;
             const btn = document.getElementById('printQueueBtn'); 
             if (btn) btn.disabled = queueCount === 0;
         }
@@ -2381,6 +2405,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM parking_applications"
             document.body.classList.add('printing-mode-blank');
             setTimeout(() => { window.print(); document.body.classList.remove('printing-mode-blank'); }, 200);
         }
+
+        // Auto print if reprint was triggered
+        <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
+            window.addEventListener('load', function() {
+                printQueue();
+            });
+            <?php unset($_SESSION['auto_print']); ?>
+        <?php endif; ?>
 
         document.addEventListener('DOMContentLoaded', function () {
             updatePreview();

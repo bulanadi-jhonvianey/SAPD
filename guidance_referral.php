@@ -1,5 +1,5 @@
 <?php
-// --- 1. SETUP & CONFIGURATION ---
+// --- guidance_referral.php ---
 ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -224,7 +224,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        /* --- EXACT OLD ENGLISH TEXT MT FONT --- */
+        /* --- OLD ENGLISH TEXT MT FONT --- */
         @font-face {
             font-family: "Old English Text MT";
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
@@ -329,7 +329,48 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             border: 1px solid var(--border);
         }
 
-        .left-panel { flex: 1; max-width: 450px; display: flex; flex-direction: column; }
+        .left-panel {
+            flex: 1;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- FORCE WHITE TEXT IN LEFT PANEL (like employee form) --- */
+        .left-panel {
+            background-color: #13203c !important;
+            color: #ffffff !important;
+        }
+
+        .left-panel .panel-title,
+        .left-panel label,
+        .left-panel .form-check-label,
+        .left-panel small,
+        .left-panel span {
+            color: #ffffff !important;
+        }
+
+        .left-panel .form-control,
+        .left-panel .form-select {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .left-panel .form-check-input {
+            background-color: #1f2f4e !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-check-input:checked {
+            background-color: var(--accent) !important;
+            border-color: var(--accent) !important;
+        }
+
         .right-panel {
             flex: 2;
             display: flex;
@@ -445,9 +486,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             width: 100%;
             height: 40px; 
             background: 
-                /* 1. Dark gold lower line (5px) - stays solid almost completely to the edge (95%) */
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
-                /* 2. Main yellow bar - moved fade to the left (30% -> 55%) so it doesn't hit the text */
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
             -webkit-print-color-adjust: exact;
@@ -522,7 +561,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             height: 14in; 
             background: white;
             color: black;
-            padding: 0.5in 0.3in 0.3in 0.3in; /* Adjusted top padding for new header */
+            padding: 0.5in 0.3in 0.3in 0.3in;
             font-family: Arial, sans-serif;
             position: relative;
             box-sizing: border-box;
@@ -1049,23 +1088,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
 
                 <table class="info-table">
-                    <tr>
+
                         <td class="label-col">Student's/ Pupil's Name</td>
                         <td class="input-cell" id="out_student"></td>
                     </tr>
-                    <tr>
+
                         <td class="label-col">Grade/Year/Course/Section</td>
                         <td class="input-cell" id="out_grade"></td>
                     </tr>
-                    <tr>
+
                         <td class="label-col">Person making referral</td>
                         <td class="input-cell" id="out_referrer"></td>
                     </tr>
-                    <tr>
+
                         <td class="label-col">Time:</td>
                         <td class="input-cell" id="out_time"></td>
                     </tr>
-                    <tr>
                         <td class="label-col">Date:</td>
                         <td class="input-cell" id="out_date"></td>
                     </tr>
@@ -1162,11 +1200,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
             </div>
             <table class="info-table">
-                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo htmlspecialchars($p['student']); ?></td></tr>
-                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo htmlspecialchars($p['grade']); ?></td></tr>
-                <tr><td class="label-col">Person making referral</td><td class="input-cell"><?php echo htmlspecialchars($p['referrer']); ?></td></tr>
-                <tr><td class="label-col">Time:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
-                <tr><td class="label-col">Date:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
+                32<td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo htmlspecialchars($p['student']); ?></td></tr>
+                32<td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo htmlspecialchars($p['grade']); ?></td></tr>
+                32<td class="label-col">Person making referral</td><td class="input-cell"><?php echo htmlspecialchars($p['referrer']); ?></td></tr>
+                32<td class="label-col">Time:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
+                32<td class="label-col">Date:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -1234,11 +1272,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
             </div>
             <table class="info-table">
-                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">Person making referral</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">Time:</td><td class="input-cell"></td></tr>
-                <tr><td class="label-col">Date:</td><td class="input-cell"></td></tr>
+                32<td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"></td></tr>
+                32<td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"></td></tr>
+                32<td class="label-col">Person making referral</td><td class="input-cell"></td></tr>
+                32<td class="label-col">Time:</td><td class="input-cell"></td></tr>
+                32<td class="label-col">Date:</td><td class="input-cell"></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -1281,7 +1319,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
-                    <tr>
+                    
                         <th>ID</th>
                         <th>Student Name</th>
                         <th>Level/Section</th>
@@ -1289,7 +1327,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <th>Date</th>
                         <th>Images</th>
                         <th>Reasons</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1335,7 +1373,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                                 }
                             }
                             ?>
-                            <tr>
+                            
                                 <td><?php echo $row['id']; ?></td>
                                 <td><?php echo htmlspecialchars($row['student_name']); ?></td>
                                 <td><?php echo htmlspecialchars($row['grade_section']); ?></td>
@@ -1345,54 +1383,80 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                                 <td><small><?php echo mb_strimwidth($reason_display, 0, 40, "..."); ?></small></td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-center">
+                                        <!-- Reprint button -->
                                         <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success" title="Add to print queue"><i class="fa fa-print"></i></a>
-                                        <button type="button" class="btn btn-sm btn-info text-white" onclick="loadToPreview(<?php echo $preview_json; ?>)"><i class="fa fa-eye"></i></button>
+                                        <!-- View button (read-only modal) -->
+                                        <button type="button" class="btn btn-sm btn-info text-white" onclick="showViewModal(<?php echo $preview_json; ?>)"><i class="fa fa-eye"></i></button>
+                                        <!-- Edit button (load into form) -->
+                                        <button type="button" class="btn btn-sm btn-warning text-white" onclick="editRecord(<?php echo $preview_json; ?>)"><i class="fa fa-pencil-alt"></i></button>
+                                        <!-- Delete button -->
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        <tr><td colspan="8" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
+                        32<td colspan="8" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
     </div>
 
-    <script>
-        // --- TEXT AUTO-SHRINK FUNCTION ---
-        function autoFitAllTexts() {
-            const containers = document.querySelectorAll('.incident-content');
-            
-            containers.forEach(container => {
-                const textEl = container.querySelector('.desc-text');
-                const imgEl = container.querySelector('.image-section');
-                
-                if (!textEl) return;
-                
-                // Reset to default font size to measure accurately
-                textEl.style.fontSize = '11pt';
-                
-                const availableHeight = container.clientHeight;
-                if (availableHeight === 0) return; // If hidden, we can't measure
-                
-                let imgHeight = 0;
-                if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
-                    imgHeight = imgEl.offsetHeight;
-                }
-                
-                let currentSize = 11;
-                const minSize = 6; // Prevents the text from becoming microscopic 
-                
-                // Keep shrinking by 0.5pt as long as text height + image height overflows the box
-                while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
-                    currentSize -= 0.5;
-                    textEl.style.fontSize = currentSize + 'pt';
-                }
-            });
-        }
+    <!-- View Modal (Read-Only) -->
+    <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background-color: var(--panel-bg); color: var(--text-main);">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewModalLabel">Referral Details (Read-Only)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Student Name:</div>
+                        <div class="col-md-9" id="view_student"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Grade/Section:</div>
+                        <div class="col-md-9" id="view_grade"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Referrer:</div>
+                        <div class="col-md-9" id="view_referrer"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Date:</div>
+                        <div class="col-md-9" id="view_date"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Time:</div>
+                        <div class="col-md-9" id="view_time"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Reasons:</div>
+                        <div class="col-md-9" id="view_reasons"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Other Reason:</div>
+                        <div class="col-md-9" id="view_other"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Description:</div>
+                        <div class="col-md-9" id="view_desc"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Images:</div>
+                        <div class="col-md-9" id="view_images"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <script>
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
             const isLight = document.body.classList.contains('light-mode');
@@ -1403,7 +1467,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         const savedTheme = localStorage.getItem('appTheme') || 'dark';
         if (savedTheme === 'light') { document.body.classList.add('light-mode'); document.getElementById('themeBtn').innerHTML = '<i class="fa fa-sun"></i>'; }
 
-        // --- PRINT FUNCTIONS (FIXED) ---
+        // --- PRINT FUNCTIONS ---
         function printQueue() {
             document.body.classList.remove('print-blank');
             setTimeout(() => { window.print(); }, 100);
@@ -1414,7 +1478,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             setTimeout(() => { window.print(); }, 100);
         }
 
-        // --- Handle cleanup safely after the print dialog closes ---
         window.addEventListener('afterprint', () => {
             document.body.classList.remove('print-blank');
         });
@@ -1452,19 +1515,46 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             autoFitAllTexts();
         }
 
-        // --- FIXED: IMAGE DRAG-TO-RESIZE LOGIC (now handles multiple images correctly) ---
+        function autoFitAllTexts() {
+            const containers = document.querySelectorAll('.incident-content');
+            
+            containers.forEach(container => {
+                const textEl = container.querySelector('.desc-text');
+                const imgEl = container.querySelector('.image-section');
+                
+                if (!textEl) return;
+                
+                textEl.style.fontSize = '11pt';
+                
+                const availableHeight = container.clientHeight;
+                if (availableHeight === 0) return;
+                
+                let imgHeight = 0;
+                if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
+                    imgHeight = imgEl.offsetHeight;
+                }
+                
+                let currentSize = 11;
+                const minSize = 6;
+                
+                while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
+                    currentSize -= 0.5;
+                    textEl.style.fontSize = currentSize + 'pt';
+                }
+            });
+        }
+
         function updatePaperImages() {
             const paperImageContainer = document.getElementById('out_images_container');
             const fileInput = document.getElementById('in_images');
             
-            // Fetch current Array of Saved Sizes
             let savedSizesVal = document.getElementById('in_img_size').value;
             let sizeArray = [];
             try {
                 sizeArray = JSON.parse(savedSizesVal);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
             } catch(e) {
-                sizeArray = [parseInt(savedSizesVal) || 48]; // Default to 48
+                sizeArray = [parseInt(savedSizesVal) || 48];
             }
             
             paperImageContainer.innerHTML = ''; 
@@ -1479,9 +1569,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             }
 
             function appendResizableImage(src, index) {
-                // Ensure src is a valid string
                 if (!src || typeof src !== 'string') {
-                    console.warn('Invalid image source at index', index);
                     imagesLoaded++;
                     checkAllLoaded();
                     return;
@@ -1490,7 +1578,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
                 
-                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48; // Default to 48
+                let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
                 wrapper.style.width = initialSize + '%';
                 
                 let img = document.createElement('img');
@@ -1501,14 +1589,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                     checkAllLoaded();
                 };
                 img.onerror = function() {
-                    console.warn('Failed to load image:', src);
                     imagesLoaded++;
                     checkAllLoaded();
                 };
                 
                 wrapper.appendChild(img);
 
-                // Inject 8 interaction handles
                 const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
                 handles.forEach(dir => {
                     let handle = document.createElement('div');
@@ -1557,7 +1643,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                             if(percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
                             
-                            // Save individual sizes back to JSON Array
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
                                 updatedSizes.push(parseFloat(w.style.width) || 48);
@@ -1597,7 +1682,55 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             }
         }
 
-        function loadToPreview(data) {
+        // View Modal (Read-Only)
+        function showViewModal(data) {
+            document.getElementById('view_student').innerText = data.student || '';
+            document.getElementById('view_grade').innerText = data.grade || '';
+            document.getElementById('view_referrer').innerText = data.referrer || '';
+            document.getElementById('view_date').innerText = data.date || '';
+            
+            let timeVal = data.time;
+            if (timeVal) {
+                let [h, m] = timeVal.split(':');
+                let ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12; h = h ? h : 12;
+                timeVal = `${h}:${m} ${ampm}`;
+            }
+            document.getElementById('view_time').innerText = timeVal || '';
+            
+            let reasonsHtml = '';
+            if (data.reasons && Array.isArray(data.reasons)) {
+                reasonsHtml = '<ul>';
+                data.reasons.forEach(r => { reasonsHtml += `<li>${r}</li>`; });
+                reasonsHtml += '</ul>';
+            } else {
+                reasonsHtml = 'None';
+            }
+            document.getElementById('view_reasons').innerHTML = reasonsHtml;
+            document.getElementById('view_other').innerText = data.other || '';
+            document.getElementById('view_desc').innerText = data.desc || '';
+            
+            // Images
+            let imagesHtml = '';
+            if (data.images && data.images.length) {
+                imagesHtml = '<div class="d-flex flex-wrap gap-2">';
+                data.images.forEach(img => {
+                    if (img && (img.startsWith('uploads/') || img.startsWith('data:'))) {
+                        imagesHtml += `<img src="${img}" style="max-height:100px; max-width:150px;" class="border rounded">`;
+                    }
+                });
+                imagesHtml += '</div>';
+            } else {
+                imagesHtml = 'None';
+            }
+            document.getElementById('view_images').innerHTML = imagesHtml;
+            
+            var modal = new bootstrap.Modal(document.getElementById('viewModal'));
+            modal.show();
+        }
+
+        // Edit: load record into the form for modification
+        function editRecord(data) {
             document.getElementById('in_student').value = data.student || '';
             document.getElementById('in_grade').value = data.grade || '';
             document.getElementById('in_referrer').value = data.referrer || '';
@@ -1606,6 +1739,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             document.getElementById('in_desc').value = data.desc || '';
             document.getElementById('in_other').value = data.other || '';
             
+            // Clear and set checkboxes
             document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
             if (data.reasons && Array.isArray(data.reasons)) {
                 data.reasons.forEach(r => {
@@ -1614,7 +1748,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 });
             }
 
-            // Apply Saved Image Sizes
+            // Load saved image sizes
             let savedSize = data.image_size || '[]';
             if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
             document.getElementById('in_img_size').value = savedSize;
@@ -1655,10 +1789,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             for (let file of this.files) { dt.items.add(file); }
             this.files = dt.files; 
             
-            // Re-sync size array to match newly added items
             let currentSizes = [];
             try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-            while(currentSizes.length < this.files.length) currentSizes.push(48); // Default to 48
+            while(currentSizes.length < this.files.length) currentSizes.push(48);
             document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
             renderFormPreviews(); 
@@ -1682,7 +1815,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
             dt.items.remove(index); 
             fileInput.files = dt.files; 
             
-            // Remove the associated size from the JSON array
             try {
                 let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
                 if (Array.isArray(sizeArray)) {
@@ -1698,4 +1830,5 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         document.addEventListener('DOMContentLoaded', function () { updateTextPreview(); setTimeout(() => { document.querySelectorAll('.alert').forEach(a => new bootstrap.Alert(a).close()); }, 5000); });
     </script>
 </body>
+
 </html>

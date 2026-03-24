@@ -89,8 +89,9 @@
     $success_msg = "";
     $error_msg = "";
 
-    // HANDLE: ADD REQUEST
+    // HANDLE: ADD / EDIT REQUEST
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
+        $edit_id = isset($_POST['edit_id']) ? intval($_POST['edit_id']) : 0;
         $title = $conn->real_escape_string($_POST['title']);
         $loc = $conn->real_escape_string($_POST['location']);
         $date = $conn->real_escape_string($_POST['inspection_date']);
@@ -98,11 +99,15 @@
         $desc = $conn->real_escape_string($_POST['description']);
         $img_size = isset($_POST['image_size']) && !empty($_POST['image_size']) ? $conn->real_escape_string($_POST['image_size']) : '[]';
 
+        // Retrieve previously kept images during an edit
+        $kept_images = isset($_POST['kept_images']) ? json_decode($_POST['kept_images'], true) : [];
+        if (!is_array($kept_images)) $kept_images = [];
+
         $image_paths_json = null;
         $uploaded_files = [];
         $upload_errors = [];
 
-        // Handle Multiple Image Uploads
+        // Handle Multiple Image Uploads (New Files)
         if (isset($_FILES['inspection_images']) && !empty($_FILES['inspection_images']['name'][0])) {
             $total_files = count($_FILES['inspection_images']['name']);
             $allowed_exts = ['jpg', 'jpeg', 'png', 'gif'];
@@ -134,33 +139,52 @@
         }
 
         if (empty($error_msg)) {
-            if (!empty($uploaded_files)) {
-                $image_paths_json = json_encode($uploaded_files);
+            // Merge kept images with newly uploaded images
+            $all_images = array_merge($kept_images, $uploaded_files);
+            if (!empty($all_images)) {
+                $image_paths_json = json_encode($all_images);
             }
 
-            $stmt = $conn->prepare("INSERT INTO facility_inspections (title, location, inspection_date, inspection_time, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
-
-            if ($stmt === false) {
-                $error_msg = "<strong>Database Error:</strong> " . $conn->error;
-            } else {
-                $stmt->bind_param("sssssss", $title, $loc, $date, $time, $desc, $image_paths_json, $img_size);
-
-                if ($stmt->execute()) {
-                    $_SESSION['facility_print_queue'][] = [
-                        'title' => $title, // Kept mixed case
-                        'loc' => $loc,     // Kept mixed case
-                        'date' => $date,
-                        'time' => $time,
-                        'desc' => $desc,
-                        'image_paths' => $uploaded_files,
-                        'image_size' => $img_size
-                    ];
-                    header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
-                    exit();
+            if ($edit_id > 0) {
+                // UPDATE EXISTING RECORD
+                $stmt = $conn->prepare("UPDATE facility_inspections SET title=?, location=?, inspection_date=?, inspection_time=?, description=?, image_paths=?, image_size=? WHERE id=?");
+                if ($stmt === false) {
+                    $error_msg = "<strong>Database Error:</strong> " . $conn->error;
                 } else {
-                    $error_msg = "<strong>Save Failed:</strong> " . $stmt->error;
+                    $stmt->bind_param("sssssssi", $title, $loc, $date, $time, $desc, $image_paths_json, $img_size, $edit_id);
+                    if ($stmt->execute()) {
+                        $success_msg = "Inspection updated successfully!";
+                        header("Location: " . $_SERVER['PHP_SELF'] . "?success=2");
+                        exit();
+                    } else {
+                        $error_msg = "<strong>Update Failed:</strong> " . $stmt->error;
+                    }
+                    $stmt->close();
                 }
-                $stmt->close();
+            } else {
+                // INSERT NEW RECORD
+                $stmt = $conn->prepare("INSERT INTO facility_inspections (title, location, inspection_date, inspection_time, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
+                if ($stmt === false) {
+                    $error_msg = "<strong>Database Error:</strong> " . $conn->error;
+                } else {
+                    $stmt->bind_param("sssssss", $title, $loc, $date, $time, $desc, $image_paths_json, $img_size);
+                    if ($stmt->execute()) {
+                        $_SESSION['facility_print_queue'][] = [
+                            'title' => $title,
+                            'loc' => $loc,
+                            'date' => $date,
+                            'time' => $time,
+                            'desc' => $desc,
+                            'image_paths' => $all_images,
+                            'image_size' => $img_size
+                        ];
+                        header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
+                        exit();
+                    } else {
+                        $error_msg = "<strong>Save Failed:</strong> " . $stmt->error;
+                    }
+                    $stmt->close();
+                }
             }
         }
     }
@@ -191,8 +215,10 @@
         exit();
     }
 
-    if (isset($_GET['success']))
-        $success_msg = "Inspection recorded successfully!";
+    if (isset($_GET['success'])) {
+        if ($_GET['success'] == 1) $success_msg = "Inspection recorded successfully!";
+        if ($_GET['success'] == 2) $success_msg = "Inspection updated successfully!";
+    }
     if (isset($_GET['error']))
         $error_msg = "An error occurred.";
 
@@ -998,6 +1024,9 @@
                 <?php endif; ?>
 
                 <form method="POST" enctype="multipart/form-data" id="reportForm">
+                    <input type="hidden" name="edit_id" id="edit_id" value="">
+                    <input type="hidden" name="kept_images" id="kept_images" value="[]">
+
                     <input type="text" name="title" id="in_title" class="form-control" placeholder="Facility / Item Name"
                         required oninput="updateTextPreview()">
                     <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
@@ -1485,6 +1514,7 @@
                                 <?php
 
                                 $preview_data = [
+                                    'id' => $row['id'], // Added ID for Edit Function
                                     'title' => $row['title'],
                                     'loc' => $row['location'],
                                     'date' => $row['inspection_date'],
@@ -1528,11 +1558,19 @@
                                                 title="View Only">
                                                 <i class="fa fa-eye"></i>
                                             </button>
+                                            
+                                            <button type="button" class="btn btn-sm btn-primary text-white"
+                                                onclick='editRecord(<?php echo $preview_json; ?>)'
+                                                title="Edit">
+                                                <i class="fa fa-edit"></i>
+                                            </button>
+
                                             <button type="button" class="btn btn-sm btn-success text-white"
                                                 onclick='reprintRecord(<?php echo $preview_json; ?>)'
                                                 title="Reprint">
                                                 <i class="fa fa-print"></i>
                                             </button>
+                                            
                                             <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                                 onclick="return confirm('Delete this record?')" title="Delete">
                                                 <i class="fa fa-trash"></i>
@@ -1584,6 +1622,7 @@
                 window.print();
             }
 
+            // REPRINT FUNCTION
             function reprintRecord(data) {
                 // Build HTML for the specific record
                 let imgHtml = '';
@@ -1797,10 +1836,15 @@
                 }
                 this.files = dt.files;
                 
-                // Re-sync size array to match newly added items (Changed default from 50 to 48)
+                // Re-sync size array to match newly added items 
                 let currentSizes = [];
                 try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-                while(currentSizes.length < this.files.length) currentSizes.push(48);
+                
+                // Get kept images count to offset sizes correctly
+                let keptCount = 0;
+                try { keptCount = JSON.parse(document.getElementById('kept_images').value).length; } catch(e){}
+                
+                while(currentSizes.length < (keptCount + this.files.length)) currentSizes.push(48);
                 document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
                 renderFormPreviews();
@@ -1810,7 +1854,7 @@
             function updateImagePreview() {
                 paperImageContainer.innerHTML = '';
 
-                // --- Fetch current Array of Saved Sizes (Changed default from 50 to 48) ---
+                // Fetch sizes
                 let savedSizesVal = document.getElementById('in_img_size').value;
                 let sizeArray = [];
                 try {
@@ -1820,12 +1864,10 @@
                     sizeArray = [parseInt(savedSizesVal) || 48];
                 }
 
-                // --- HELPER FUNCTION TO APPEND MS-WORD STYLE RESIZABLE IMAGES ---
                 function appendImage(src, index) {
                     let wrapper = document.createElement('div');
                     wrapper.className = 'resize-wrapper';
                     
-                    // Changed default from 50 to 48
                     let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
                     wrapper.style.width = initialSize + '%';
                     
@@ -1836,7 +1878,6 @@
                     
                     wrapper.appendChild(img);
 
-                    // Inject 8 interaction handles (4 edges, 4 corners)
                     const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
                     handles.forEach(dir => {
                         let handle = document.createElement('div');
@@ -1846,7 +1887,6 @@
 
                     paperImageContainer.appendChild(wrapper);
 
-                    // Custom JavaScript Drag & Resize Logic
                     const resizers = wrapper.querySelectorAll('.resize-handle');
                     let original_width = 0;
                     let original_mouse_x = 0;
@@ -1889,7 +1929,6 @@
                                 
                                 let updatedSizes = [];
                                 document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
-                                    // Changed fallback from 50 to 48
                                     updatedSizes.push(parseFloat(w.style.width) || 48);
                                 });
                                 document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
@@ -1903,20 +1942,34 @@
                     });
                 }
 
+                // Render Kept Images First
+                let kept = [];
+                try { kept = JSON.parse(document.getElementById('kept_images').value); } catch(e){}
+                let currentIndex = 0;
+                
+                kept.forEach(src => {
+                    appendImage(src, currentIndex++);
+                });
+
+                // Render New Files
                 if (fileInput.files.length > 0) {
-                    paperImageContainer.style.display = 'flex';
-                    [...fileInput.files].forEach((file, index) => {
+                    [...fileInput.files].forEach((file) => {
                         let reader = new FileReader();
+                        let myIndex = currentIndex++;
                         reader.onload = function (e) {
-                            appendImage(e.target.result, index);
+                            appendImage(e.target.result, myIndex);
                         }
                         reader.readAsDataURL(file);
                     });
-                } else if (loadedImages.length > 0) {
-                    paperImageContainer.style.display = 'flex';
-                    loadedImages.forEach((src, index) => {
-                        appendImage(src, index);
+                } else if (kept.length === 0 && loadedImages.length > 0 && isLoadedMode) {
+                    // Initial View Mode rendering
+                    loadedImages.forEach(src => {
+                        appendImage(src, currentIndex++);
                     });
+                }
+
+                if (kept.length > 0 || fileInput.files.length > 0 || (isLoadedMode && loadedImages.length > 0)) {
+                    paperImageContainer.style.display = 'flex';
                 } else {
                     paperImageContainer.style.display = 'none';
                 }
@@ -1924,12 +1977,24 @@
 
             function renderFormPreviews() {
                 formPreviewContainer.innerHTML = '';
+                
+                // Render Kept Images
+                let kept = [];
+                try { kept = JSON.parse(document.getElementById('kept_images').value); } catch(e){}
+                kept.forEach((src, index) => {
+                    let item = document.createElement('div');
+                    item.className = 'form-preview-item';
+                    item.innerHTML = `<img src="${src}"><button type="button" class="btn-delete-img" onclick="removeKeptFile(${index})" title="Remove saved image"><i class="fa fa-times"></i></button>`;
+                    formPreviewContainer.appendChild(item);
+                });
+
+                // Render Newly added files
                 [...dt.files].forEach((file, index) => {
                     let reader = new FileReader();
                     reader.onload = function (e) {
                         let item = document.createElement('div');
                         item.className = 'form-preview-item';
-                        item.innerHTML = `<img src="${e.target.result}"><button type="button" class="btn-delete-img" onclick="removeFile(${index})"><i class="fa fa-times"></i></button>`;
+                        item.innerHTML = `<img src="${e.target.result}"><button type="button" class="btn-delete-img" onclick="removeFile(${index})" title="Remove new image"><i class="fa fa-times"></i></button>`;
                         formPreviewContainer.appendChild(item);
                     }
                     reader.readAsDataURL(file);
@@ -1941,6 +2006,25 @@
                 fileInput.files = dt.files;
 
                 try {
+                    // Account for kept images offsetting the size array
+                    let keptCount = JSON.parse(document.getElementById('kept_images').value).length || 0;
+                    let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
+                    if (Array.isArray(sizeArray)) {
+                        sizeArray.splice(keptCount + index, 1);
+                        document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
+                    }
+                } catch(e) {}
+
+                renderFormPreviews();
+                updateImagePreview();
+            }
+
+            function removeKeptFile(index) {
+                try {
+                    let kept = JSON.parse(document.getElementById('kept_images').value);
+                    kept.splice(index, 1);
+                    document.getElementById('kept_images').value = JSON.stringify(kept);
+
                     let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
                     if (Array.isArray(sizeArray)) {
                         sizeArray.splice(index, 1);
@@ -1952,7 +2036,56 @@
                 updateImagePreview();
             }
 
-            // --- Load Data to Preview ---
+            // --- EDIT MODE ---
+            function editRecord(data) {
+                // Populate inputs
+                document.getElementById('edit_id').value = data.id;
+                document.getElementById('in_title').value = data.title;
+                document.getElementById('in_loc').value = data.loc;
+                document.getElementById('in_date').value = data.date;
+                document.getElementById('in_time').value = data.time;
+                document.getElementById('in_desc').value = data.desc;
+
+                let savedSize = data.image_size || '[]';
+                if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
+                document.getElementById('in_img_size').value = savedSize;
+
+                // Handle pre-existing images for Edit Mode
+                let keptImages = data.images || [];
+                document.getElementById('kept_images').value = JSON.stringify(keptImages);
+
+                isLoadedMode = false; // Important: we are interacting/editing
+                document.getElementById('in_images').value = "";
+                dt = new DataTransfer(); 
+
+                renderFormPreviews();
+                updateTextPreview();
+                updateImagePreview();
+
+                // Unlock fields (in case they were in view mode prior)
+                const fieldsToEnable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
+                fieldsToEnable.forEach(id => {
+                    let el = document.getElementById(id);
+                    if(el) el.disabled = false;
+                });
+                
+                let submitBtn = document.querySelector('button[name="submit_report"]');
+                if(submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fa fa-save me-2"></i> UPDATE RECORD';
+                    submitBtn.classList.remove('btn-primary');
+                    submitBtn.classList.add('btn-success');
+                }
+                
+                let addImgBtn = document.getElementById('btn_add_images');
+                if(addImgBtn) addImgBtn.disabled = false;
+
+                setTimeout(autoFitAllTexts, 200);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+
+            // --- VIEW ONLY MODE ---
             function loadToPreview(data) {
                 document.getElementById('in_title').value = data.title;
                 document.getElementById('in_loc').value = data.loc;
@@ -1960,7 +2093,6 @@
                 document.getElementById('in_time').value = data.time;
                 document.getElementById('in_desc').value = data.desc;
 
-                // Apply Saved Image Sizes (JSON string array from DB)
                 let savedSize = data.image_size || '[]';
                 if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
                 document.getElementById('in_img_size').value = savedSize;
@@ -1968,10 +2100,14 @@
                 loadedImages = data.images || [];
                 isLoadedMode = true;
 
+                // Clear any edits
+                document.getElementById('kept_images').value = "[]";
                 document.getElementById('in_images').value = "";
-                document.getElementById('form-image-previews').innerHTML = "";
+                dt = new DataTransfer();
 
+                document.getElementById('form-image-previews').innerHTML = "";
                 const formPreviewContainer = document.getElementById('form-image-previews');
+                
                 if (loadedImages.length > 0) {
                     loadedImages.forEach((src, index) => {
                         let item = document.createElement('div');
@@ -1995,20 +2131,18 @@
                 if(submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<i class="fa fa-lock me-2"></i> VIEW ONLY';
+                    submitBtn.classList.remove('btn-success');
+                    submitBtn.classList.add('btn-primary');
                 }
                 
                 let addImgBtn = document.getElementById('btn_add_images');
                 if(addImgBtn) addImgBtn.disabled = true;
 
                 setTimeout(autoFitAllTexts, 200);
-
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
-            // --- Reset Form ---
+            // --- Reset Form (Exit View/Edit Mode) ---
             function resetForm() {
                 // UNLOCK ALL FIELDS
                 const fieldsToDisable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
@@ -2021,12 +2155,16 @@
                 if(submitBtn) {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE';
+                    submitBtn.classList.remove('btn-success');
+                    submitBtn.classList.add('btn-primary');
                 }
                 
                 let addImgBtn = document.getElementById('btn_add_images');
                 if(addImgBtn) addImgBtn.disabled = false;
 
                 document.getElementById('reportForm').reset();
+                document.getElementById('edit_id').value = "";
+                document.getElementById('kept_images').value = "[]";
                 document.getElementById('in_images').value = "";
                 document.getElementById('in_img_size').value = "[]";
                 dt = new DataTransfer();

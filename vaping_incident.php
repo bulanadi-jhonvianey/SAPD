@@ -84,8 +84,9 @@ if (!file_exists($upload_dir)) {
 $success_msg = "";
 $error_msg = "";
 
-// HANDLE: ADD REQUEST
+// HANDLE: ADD OR EDIT REQUEST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
+    $edit_id = isset($_POST['edit_id']) ? intval($_POST['edit_id']) : 0;
     $case = $conn->real_escape_string($_POST['case_title']);
     $loc = $conn->real_escape_string($_POST['location']);
     $date = $conn->real_escape_string($_POST['incident_date']);
@@ -131,33 +132,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
     if (empty($error_msg)) {
         if (!empty($uploaded_files)) {
             $image_paths_json = json_encode($uploaded_files);
+        } else {
+            // If editing and no new images are uploaded, retain the old ones
+            if ($edit_id > 0) {
+                $res = $conn->query("SELECT image_paths FROM vaping_reports WHERE id = $edit_id");
+                if ($row = $res->fetch_assoc()) {
+                    $image_paths_json = $row['image_paths'];
+                    $uploaded_files = json_decode($image_paths_json, true) ?: [];
+                }
+            }
         }
 
-        $stmt = $conn->prepare("INSERT INTO vaping_reports (case_title, location, incident_date, incident_time, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
-
-        if ($stmt === false) {
-            $error_msg = "<strong>Database Error:</strong> " . $conn->error;
-        } else {
-            $stmt->bind_param("sssssss", $case, $loc, $date, $time, $desc, $image_paths_json, $img_size);
-
-            if ($stmt->execute()) {
-                $_SESSION['vaping_print_queue'][] = [
-                    'case' => strtoupper($case),
-                    'loc' => strtoupper($loc),
-                    'date' => $date,
-                    'time' => $time,
-                    'desc' => $desc,
-                    'image_paths' => $uploaded_files,
-                    'image_size' => $img_size
-                ];
-                header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
-                exit();
+        if ($edit_id > 0) {
+            // UPDATE LOGIC
+            $stmt = $conn->prepare("UPDATE vaping_reports SET case_title=?, location=?, incident_date=?, incident_time=?, description=?, image_paths=?, image_size=? WHERE id=?");
+            if ($stmt === false) {
+                $error_msg = "<strong>Database Error:</strong> " . $conn->error;
             } else {
-                $error_msg = "<strong>Save Failed:</strong> " . $stmt->error;
+                $stmt->bind_param("sssssssi", $case, $loc, $date, $time, $desc, $image_paths_json, $img_size, $edit_id);
+                if ($stmt->execute()) {
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?success=edit");
+                    exit();
+                } else {
+                    $error_msg = "<strong>Update Failed:</strong> " . $stmt->error;
+                }
+                $stmt->close();
             }
-            $stmt->close();
+        } else {
+            // INSERT LOGIC
+            $stmt = $conn->prepare("INSERT INTO vaping_reports (case_title, location, incident_date, incident_time, description, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?)");
+            if ($stmt === false) {
+                $error_msg = "<strong>Database Error:</strong> " . $conn->error;
+            } else {
+                $stmt->bind_param("sssssss", $case, $loc, $date, $time, $desc, $image_paths_json, $img_size);
+
+                if ($stmt->execute()) {
+                    $_SESSION['vaping_print_queue'][] = [
+                        'case' => strtoupper($case),
+                        'loc' => strtoupper($loc),
+                        'date' => $date,
+                        'time' => $time,
+                        'desc' => $desc,
+                        'image_paths' => $uploaded_files,
+                        'image_size' => $img_size
+                    ];
+                    header("Location: " . $_SERVER['PHP_SELF'] . "?success=add");
+                    exit();
+                } else {
+                    $error_msg = "<strong>Save Failed:</strong> " . $stmt->error;
+                }
+                $stmt->close();
+            }
         }
     }
+}
+
+// HANDLE: REPRINT LOG
+if (isset($_GET['reprint_id'])) {
+    $rep_id = intval($_GET['reprint_id']);
+    $res = $conn->query("SELECT * FROM vaping_reports WHERE id = $rep_id");
+    if ($row = $res->fetch_assoc()) {
+        $_SESSION['vaping_print_queue'][] = [
+            'case' => strtoupper($row['case_title']),
+            'loc' => strtoupper($row['location']),
+            'date' => $row['incident_date'],
+            'time' => $row['incident_time'],
+            'desc' => $row['description'],
+            'image_paths' => json_decode($row['image_paths'], true),
+            'image_size' => $row['image_size']
+        ];
+        $_SESSION['auto_print'] = true;
+    }
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
 }
 
 // HANDLE: DELETE LOG
@@ -186,8 +233,14 @@ if (isset($_POST['clear_queue'])) {
     exit();
 }
 
-if (isset($_GET['success']))
-    $success_msg = "Vaping incident recorded successfully!";
+if (isset($_GET['success'])) {
+    if ($_GET['success'] === 'edit') {
+        $success_msg = "Vaping incident updated successfully!";
+    } else {
+        $success_msg = "Vaping incident recorded and queued successfully!";
+    }
+}
+
 if (isset($_GET['error']))
     $error_msg = "An error occurred.";
 
@@ -392,7 +445,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             box-shadow: none;
         }
 
-        /* --- Placeholder text color to match theme --- */
         .form-control::placeholder {
             color: var(--text-main);
             opacity: 1;
@@ -488,7 +540,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             margin-right: -0.25in;
             margin-top: -0.25in;
             height: 1.5in;
-            margin-bottom: 0px; /* Kept tight to the line */
+            margin-bottom: 0px; 
         }
 
         .fading-bar {
@@ -565,7 +617,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             line-height: 1.2;
             font-family: Arial, sans-serif;
         }
-        /* ========== END NEW HEADER STYLES ========== */
 
         /* --- PAPER FORM DESIGN (SCREEN PREVIEW) --- */
         .hcc-form {
@@ -586,13 +637,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             flex-direction: column;
         }
 
-        /* --- DIVISION TITLE --- */
         .division-header {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-top: -5px; /* MODIFIED: Using negative margin to pull it slightly higher */
+            margin-top: -5px; 
             margin-bottom: 5px;
             position: relative;
             z-index: 60;
@@ -651,7 +701,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             color: black;
         }
 
-        /* --- FIXED: PREVENT TABLE EXPANSION --- */
         .desc-table {
             width: 100%;
             border-collapse: collapse;
@@ -667,19 +716,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-right: 2px solid black;
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 0; /* Important: removed padding so absolute inner box handles it */
+            padding: 0; 
             vertical-align: top;
-            height: 500px; /* Firmly holds layout */
-            position: relative; /* Anchor for internal content */
+            height: 500px; 
+            position: relative; 
         }
 
         .desc-content {
-            position: absolute; /* Locks size to table cell bounds */
+            position: absolute; 
             top: 0; bottom: 0; left: 0; right: 0;
-            padding: 6px 8px; /* Restored padding here */
+            padding: 6px 8px; 
             font-size: 10pt;
             color: black;
-            overflow: hidden; /* Stops images from pushing bottom elements */
+            overflow: hidden; 
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
@@ -703,7 +752,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         .image-section {
             display: none;
             width: 100%;
-            margin-top: auto;  /* Push to bottom */
+            margin-top: auto; 
             padding: 5px 0;
             box-sizing: border-box;
             justify-content: center;
@@ -722,7 +771,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             margin: 0;
             padding: 0;
             transition: border-color 0.2s;
-            user-select: none; /* Prevent text selection during drag */
+            user-select: none; 
             box-sizing: border-box;
         }
         
@@ -1040,6 +1089,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             <?php endif; ?>
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
+                <input type="hidden" name="edit_id" id="edit_id" value="">
+                
                 <input type="text" name="case_title" id="in_case" class="form-control"
                     placeholder="Case (e.g., Possession of Vape)" required oninput="updatePreview()">
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
@@ -1089,8 +1140,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" name="submit_report" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
+                    <button type="submit" name="submit_report" id="submit_btn" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE
+                    </button>
+                    <button type="button" id="cancel_edit_btn" onclick="cancelEdit()" class="btn btn-danger fw-bold py-3 mt-2 d-none" title="Cancel Edit">
+                        <i class="fa fa-times"></i>
                     </button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"
                         title="Clear form to start new">
@@ -1101,7 +1155,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
             <hr class="border-secondary my-4">
 
-            <!-- UPDATED BUTTON SECTION (matching CCTV) -->
             <div class="d-flex gap-2 flex-wrap mb-2">
                 <button onclick="printQueue()" class="btn btn-success flex-grow-1 fw-bold" <?php echo count($_SESSION['vaping_print_queue']) == 0 ? 'disabled' : ''; ?>>
                     <i class="fa fa-print me-2"></i> Print Queue (<?php echo count($_SESSION['vaping_print_queue']); ?>)
@@ -1557,7 +1610,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                         <th>Location</th>
                         <th>Date</th>
                         <th>Time</th>
-                        <th>Action</th>
+                        <th class="text-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1602,13 +1655,21 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                                 <td><?php echo strtoupper($row['location']); ?></td>
                                 <td><?php echo $row['incident_date']; ?></td>
                                 <td><?php echo date('h:i A', strtotime($row['incident_time'])); ?></td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button type="button" class="btn btn-sm btn-info text-white"
-                                            onclick="loadToPreview(<?php echo $preview_json; ?>)"
-                                            title="Load into Display/Form">
+                                            onclick='viewOnly(<?php echo $preview_json; ?>)'
+                                            title="View Record Only">
                                             <i class="fa fa-eye"></i>
                                         </button>
+                                        <button type="button" class="btn btn-sm btn-primary"
+                                            onclick='editRecord(<?php echo $preview_json; ?>, <?php echo $row['id']; ?>)'
+                                            title="Edit Record">
+                                            <i class="fa fa-pen"></i>
+                                        </button>
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-secondary" title="Reprint">
+                                            <i class="fa fa-print"></i>
+                                        </a>
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                             onclick="return confirm('Delete this record?')" title="Delete">
                                             <i class="fa fa-trash"></i>
@@ -1893,7 +1954,80 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             updateImagePreview();
         }
 
-        // --- Load Data to Preview ---
+        // --- NEW VIEW ONLY LOGIC ---
+        function viewOnly(data) {
+            document.getElementById('out_case').innerText = data.case.toUpperCase();
+            document.getElementById('out_loc').innerText = data.loc.toUpperCase();
+            document.getElementById('out_date').innerText = data.date;
+            
+            let timeVal = data.time;
+            if (timeVal) {
+                let [h, m] = timeVal.split(':');
+                let ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12; h = h ? h : 12;
+                document.getElementById('out_time').innerText = `${h}:${m} ${ampm}`;
+            } else {
+                document.getElementById('out_time').innerText = '';
+            }
+            document.getElementById('out_desc').innerText = data.desc;
+
+            const paperImageContainer = document.getElementById('out_images_container');
+            paperImageContainer.innerHTML = '';
+            
+            let savedSize = data.image_size || '[]';
+            let sizeArray = [];
+            try {
+                sizeArray = JSON.parse(savedSize);
+                if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
+            } catch(e) {
+                sizeArray = [parseInt(savedSize) || 48];
+            }
+            
+            let images = data.images || [];
+            if (images.length > 0) {
+                paperImageContainer.style.display = 'flex';
+                images.forEach((src, index) => {
+                    let wrapper = document.createElement('div');
+                    wrapper.className = 'resize-wrapper';
+                    wrapper.style.border = 'none'; // No resize outlines in View Only mode
+                    let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
+                    wrapper.style.width = initialSize + '%';
+                    
+                    let img = document.createElement('img');
+                    img.src = src;
+                    img.className = 'paper-preview-img';
+                    img.onload = function() { autoFitAllTexts(); };
+                    
+                    wrapper.appendChild(img);
+                    paperImageContainer.appendChild(wrapper);
+                });
+            } else {
+                paperImageContainer.style.display = 'none';
+            }
+            
+            autoFitAllTexts();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // --- EDIT RECORD LOGIC ---
+        function editRecord(data, id) {
+            document.getElementById('edit_id').value = id;
+            document.getElementById('submit_btn').innerHTML = '<i class="fa fa-save me-2"></i> UPDATE RECORD';
+            document.getElementById('submit_btn').classList.replace('btn-primary', 'btn-success');
+            document.getElementById('cancel_edit_btn').classList.remove('d-none');
+            
+            loadToPreview(data); 
+        }
+
+        function cancelEdit() {
+            document.getElementById('edit_id').value = '';
+            document.getElementById('submit_btn').innerHTML = '<i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE';
+            document.getElementById('submit_btn').classList.replace('btn-success', 'btn-primary');
+            document.getElementById('cancel_edit_btn').classList.add('d-none');
+            resetForm();
+        }
+
+        // --- Load Data to Preview (Used for Edit Mode) ---
         function loadToPreview(data) {
             document.getElementById('in_case').value = data.case;
             document.getElementById('in_loc').value = data.loc;
@@ -1933,6 +2067,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             document.getElementById('reportForm').reset();
             document.getElementById('in_images').value = "";
             document.getElementById('in_img_size').value = "[]";
+            document.getElementById('edit_id').value = "";
             dt = new DataTransfer();
             loadedImages = [];
             isLoadedMode = false;
@@ -1942,6 +2077,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             updateImagePreview();
             document.querySelectorAll('.desc-box').forEach(el => el.style.fontSize = '10pt');
         }
+
+        // Auto print logic based on PHP session flag triggered by reprint button
+        <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
+            window.addEventListener('load', function() {
+                printQueue();
+            });
+            <?php unset($_SESSION['auto_print']); ?>
+        <?php endif; ?>
 
         // Initial update on page load
         document.addEventListener('DOMContentLoaded', function () {

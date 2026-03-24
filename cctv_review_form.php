@@ -139,6 +139,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_request'])) {
     }
 }
 
+// HANDLE: REPRINT LOG
+if (isset($_GET['reprint_id'])) {
+    $rep_id = intval($_GET['reprint_id']);
+    $res = $conn->query("SELECT * FROM cctv_requests WHERE id = $rep_id");
+    if ($row = $res->fetch_assoc()) {
+        $_SESSION['cctv_print_queue'][] = [
+            'name' => $row['requestor_name'],
+            'lvl' => strtoupper($row['level_section']),
+            'date' => $row['incident_date'],
+            'time' => $row['incident_time'],
+            'loc' => strtoupper($row['location']),
+            'reason' => $row['reason'],
+            'eval' => $row['evaluation'],
+            'assisted' => strtoupper($row['assisted_by']),
+            'reviewed' => strtoupper($row['reviewed_by'])
+        ];
+        $_SESSION['auto_print'] = true;
+        header("Location: " . $_SERVER['PHP_SELF']);
+        exit();
+    }
+}
+
 // HANDLE: DELETE LOG
 if (isset($_GET['delete_id'])) {
     $del_id = intval($_GET['delete_id']);
@@ -314,12 +336,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             flex-direction: column;
         }
 
-        /* Force left panel labels and secondary text to white (dark mode) */
-        .left-panel label,
-        .left-panel .text-secondary {
-            color: #ffffff !important;
-        }
-
         .right-panel {
             flex: 2;
             display: flex;
@@ -335,10 +351,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             margin: 20px;
         }
 
+        /* --- SYNCED FORM CONTROL FONT COLORS --- */
         .form-control {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
-            color: var(--text-main); /* white in dark mode, dark in light */
+            color: var(--text-main) !important;
+            font-weight: 500;
             margin-bottom: 10px;
             padding: 12px;
         }
@@ -346,20 +364,24 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         .form-control:focus {
             background-color: var(--input-bg);
             border-color: var(--accent);
-            color: var(--text-main);
+            color: var(--text-main) !important;
             box-shadow: none;
         }
 
         /* Placeholder text color matches input text */
         .form-control::placeholder {
-            color: var(--text-main);
-            opacity: 1;
+            color: rgba(255, 255, 255, 0.6);
         }
-        .form-control:-ms-input-placeholder {
-            color: var(--text-main);
+        body.light-mode .form-control::placeholder {
+            color: rgba(0, 0, 0, 0.5);
         }
-        .form-control::-ms-input-placeholder {
-            color: var(--text-main);
+
+        /* Force left panel labels and secondary text to white */
+        .left-panel label,
+        .left-panel .text-secondary {
+            color: var(--text-main) !important;
+            opacity: 0.9;
+            font-weight: 600;
         }
 
         .panel-header {
@@ -739,8 +761,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             <form method="POST" id="requestForm">
                 <input type="hidden" name="edit_id" id="in_edit_id" value="">
 
+                <label class="small text-secondary mb-1">Requestor Name</label>
                 <input type="text" name="requestor_name" id="in_name" class="form-control" placeholder="Requestor Name"
                     required oninput="updatePreview()">
+                
+                <label class="small text-secondary mb-1">Level / Section</label>
                 <input type="text" name="level_section" id="in_lvl" class="form-control" placeholder="Level / Section"
                     required oninput="updatePreview()">
 
@@ -757,19 +782,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                     </div>
                 </div>
 
+                <label class="small text-secondary mb-1">Location of Incident</label>
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location of Incident"
                     required oninput="updatePreview()">
+                
+                <label class="small text-secondary mb-1">Reason for Review</label>
                 <textarea name="reason" id="in_reason" class="form-control" rows="3" placeholder="Reason for Review"
                     required oninput="updatePreview()"></textarea>
+                
+                <label class="small text-secondary mb-1">Evaluation (Optional)</label>
                 <textarea name="evaluation" id="in_eval" class="form-control" rows="3"
-                    placeholder="Evaluation (Optional)" oninput="updatePreview()"></textarea>
+                    placeholder="Evaluation" oninput="updatePreview()"></textarea>
 
                 <div class="row mt-2">
                     <div class="col-6">
+                        <label class="small text-secondary mb-1">Assisted By</label>
                         <input type="text" name="assisted_by" id="in_assisted" class="form-control"
                             placeholder="Assisted By" required oninput="updatePreview()">
                     </div>
                     <div class="col-6">
+                        <label class="small text-secondary mb-1">Reviewed By</label>
                         <input type="text" name="reviewed_by" id="in_reviewed" class="form-control"
                             placeholder="Reviewed By" required oninput="updatePreview()">
                     </div>
@@ -779,7 +811,6 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                     <button type="submit" name="submit_request" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE
                     </button>
-                    <!-- Reset button (matches Guidance Referral) -->
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"
                         title="Clear form to start new">
                         <i class="fa fa-rotate-right"></i>
@@ -961,16 +992,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                                 <td><?php echo date('m/d/Y', strtotime($row['created_at'])); ?></td>
                                 <td>
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <!-- VIEW BUTTON (copied from vaping incident) -->
-                                        <button type="button" class="btn btn-sm btn-info text-white" title="View"
-                                            onclick="viewRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)">
+                                        <button type="button" class="btn btn-sm btn-info text-white" title="View Record Only"
+                                            onclick='viewRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)'>
                                             <i class="fa fa-eye"></i>
                                         </button>
 
-                                        <button type="button" class="btn btn-sm btn-warning text-white" title="Update"
-                                            onclick="editRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)">
+                                        <button type="button" class="btn btn-sm btn-warning text-white" title="Edit Record"
+                                            onclick='editRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)'>
                                             <i class="fa fa-edit"></i>
                                         </button>
+                                        
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+                                            <i class="fa fa-print"></i>
+                                        </a>
 
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger btn-delete"
                                             onclick="return confirm('Delete this record?')" title="Delete">
@@ -1051,7 +1085,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                         </tr>
                         <tr>
                             <td class="label-cell">REASON FOR CCTV REVIEW</td>
-                            <td class="input-cell" style="height: 60px; vertical-align: top;"><?php echo $p['reason']; ?></td>
+                            <td class="input-cell" style="height: 60px; vertical-align: top;"><?php echo nl2br($p['reason']); ?></td>
                         </tr>
                     </table>
                     <div class="eval-section">
@@ -1217,6 +1251,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             window.print();
         }
 
+        // Auto print if reprint was triggered
+        <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
+            window.addEventListener('load', function() {
+                printQueue();
+            });
+            <?php unset($_SESSION['auto_print']); ?>
+        <?php endif; ?>
+
         // --- PREVIEW LOGIC ---
         function updatePreview() {
             document.getElementById('out_name').innerText = document.getElementById('in_name').value;
@@ -1239,31 +1281,33 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
             document.getElementById('out_reason').innerText = document.getElementById('in_reason').value;
             document.getElementById('out_eval').innerText = document.getElementById('in_eval').value;
-            document.getElementById('out_assisted').innerText = document.getElementById('in_assisted').value;
-            document.getElementById('out_reviewed').innerText = document.getElementById('in_reviewed').value;
+            document.getElementById('out_assisted').innerText = document.getElementById('in_assisted').value.toUpperCase();
+            document.getElementById('out_reviewed').innerText = document.getElementById('in_reviewed').value.toUpperCase();
         }
 
-        // --- VIEW RECORD (copied from vaping incident) ---
+        // --- VIEW RECORD ONLY ---
         function viewRecord(data) {
-            // Fill form inputs with record data
-            document.getElementById('in_name').value = data.requestor_name;
-            document.getElementById('in_lvl').value = data.level_section;
-            document.getElementById('in_date').value = data.incident_date;
-            document.getElementById('in_time').value = data.incident_time;
-            document.getElementById('in_loc').value = data.location;
-            document.getElementById('in_reason').value = data.reason;
-            document.getElementById('in_eval').value = data.evaluation;
-            document.getElementById('in_assisted').value = data.assisted_by;
-            document.getElementById('in_reviewed').value = data.reviewed_by;
+            // Fill Right Panel Only - Form Inputs are unaffected
+            document.getElementById('out_name').innerText = data.requestor_name;
+            document.getElementById('out_lvl').innerText = (data.level_section || '').toUpperCase();
+            document.getElementById('out_loc').innerText = (data.location || '').toUpperCase();
+            document.getElementById('out_date').innerText = data.incident_date || '';
 
-            // Clear edit_id and ensure add mode
-            document.getElementById('in_edit_id').value = '';
-            document.getElementById('add_btn_group').style.display = 'flex'; // make visible (flex)
-            document.getElementById('edit_btn_group').style.display = 'none';
-            document.getElementById('form-panel-title').innerHTML = `<i class="fa fa-pen-to-square"></i> NEW REQUEST`;
+            let timeVal = data.incident_time;
+            if (timeVal) {
+                let [h, m] = timeVal.split(':');
+                let ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12;
+                h = h ? h : 12;
+                document.getElementById('out_time').innerText = `${h}:${m} ${ampm}`;
+            } else {
+                document.getElementById('out_time').innerText = '';
+            }
 
-            // Update preview
-            updatePreview();
+            document.getElementById('out_reason').innerText = data.reason;
+            document.getElementById('out_eval').innerText = data.evaluation;
+            document.getElementById('out_assisted').innerText = (data.assisted_by || '').toUpperCase();
+            document.getElementById('out_reviewed').innerText = (data.reviewed_by || '').toUpperCase();
 
             // Scroll to preview
             document.querySelector('.right-panel').scrollIntoView({ behavior: 'smooth' });
@@ -1313,7 +1357,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             updatePreview();
         }
 
-        // --- NEW RESET FUNCTION (matches Guidance Referral) ---
+        // --- NEW RESET FUNCTION ---
         function resetForm() {
             document.getElementById('requestForm').reset();
             document.getElementById('in_edit_id').value = '';

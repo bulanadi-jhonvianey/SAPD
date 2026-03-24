@@ -1,5 +1,5 @@
 <?php
-// --- 1. SETUP & CONFIGURATION ---
+// --- violator_log.php ---
 ob_start();
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -53,7 +53,6 @@ if (!isset($_SESSION['current_officer'])) {
 }
 
 // --- CONSTANTS ---
-// Reduced from 40 to 37 to remove 3 rows at the bottom
 $MAX_LOG_ROWS = 37; 
 $current_page = $_SESSION['current_page'];
 
@@ -66,7 +65,7 @@ if (!isset($_SESSION['log_print_queue'][$current_page])) {
 $success_msg = "";
 $error_msg = "";
 
-// HANDLE: ADD TO LOG
+// HANDLE: ADD TO LOG (New entry)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_log'])) {
     $date = $conn->real_escape_string($_POST['report_date']);
     $student = $conn->real_escape_string($_POST['student_name']);
@@ -101,6 +100,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_log'])) {
         $error_msg = "Database Error: " . $conn->error;
     }
 }
+
+// HANDLE: REPRINT (Add existing record to queue)
+if (isset($_GET['reprint_id'])) {
+    $id = intval($_GET['reprint_id']);
+    $res = $conn->query("SELECT * FROM violator_logs WHERE id = $id");
+    if ($row = $res->fetch_assoc()) {
+        // Prepare queue entry
+        $entry = [
+            'date' => $row['report_date'],
+            'student' => $row['student_name'],
+            'location' => $row['location'],
+            'violation' => $row['violation'],
+            'time' => $row['report_time']
+        ];
+        
+        // Determine which page to add to (current page if not full, else new page)
+        $page_to_add = $current_page;
+        if (count($_SESSION['log_print_queue'][$current_page]) >= $MAX_LOG_ROWS) {
+            // Current page is full, create a new page
+            $_SESSION['log_print_queue'][] = [];
+            $page_to_add = count($_SESSION['log_print_queue']) - 1;
+            $_SESSION['current_page'] = $page_to_add; // Switch to the new page
+        }
+        $_SESSION['log_print_queue'][$page_to_add][] = $entry;
+        $_SESSION['auto_print'] = true; // Flag to auto print after reload
+    }
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit();
+}
+
+// HANDLE: EDIT (load data into form) - we do this via JavaScript, no server action needed
 
 // HANDLE: NEW SHEET
 if (isset($_POST['new_sheet'])) {
@@ -512,7 +542,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             .print-area-container:last-child { page-break-after: avoid; }
             
-            /* Ensures printed header is also pushed down 0.2in */
             .new-header-wrapper { margin-top: 0.2in !important; margin-left: -0.5in !important; margin-right: -0.5in !important; padding-top: 0 !important; }
             
             .fading-bar, .divider-line { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
@@ -530,14 +559,28 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         .text-center.py-4 { color: var(--text-main); opacity: 0.7; }
         .badge.bg-dark { background-color: var(--input-bg) !important; color: var(--text-main); border: 1px solid var(--border); }
 
-        input[type="date"], input[type="time"] { position: relative; z-index: 1; }
-        .time-date-label { color: #000 !important; font-weight: bold; margin-bottom: 5px; display: block; }
-        .form-control::placeholder { color: #000 !important; opacity: 1; }
-        body:not(.light-mode) .form-control::placeholder { color: #fff !important; }
-        body:not(.light-mode) .time-date-label { color: #fff !important; }
-        .time-input, .date-input { background-color: var(--input-bg) !important; color: #000 !important; border: 1px solid var(--border) !important; padding: 12px !important; margin-bottom: 10px !important; }
-        body:not(.light-mode) .time-input, body:not(.light-mode) .date-input { color: #fff !important; }
-        body:not(.light-mode) .time-input::placeholder, body:not(.light-mode) .date-input::placeholder { color: #ccc !important; }
+        /* Left panel input overrides to match employee form white text */
+        .left-panel .form-control,
+        .left-panel .time-input,
+        .left-panel .date-input {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+        .left-panel .time-date-label {
+            color: #ffffff !important;
+        }
+
+        .time-input, .date-input {
+            background-color: var(--input-bg) !important;
+            border: 1px solid var(--border) !important;
+            padding: 12px !important;
+            margin-bottom: 10px !important;
+        }
+
         .btn-new-sheet { animation: pulse 2s infinite; }
         @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(111, 66, 193, 0); } 100% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0); } }
     </style>
@@ -600,12 +643,12 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     <div class="col-6">
                         <label class="time-date-label">Time</label>
                         <input type="time" name="report_time" id="in_time" class="form-control time-input" required
-                            onchange="updatePreview()" oninput="updatePreview()" style="color: #000;" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                            onchange="updatePreview()" oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
                     </div>
                     <div class="col-6">
                         <label class="time-date-label">Date</label>
                         <input type="date" name="report_date" id="in_date" class="form-control date-input" required
-                            onchange="updatePreview()" oninput="updatePreview()" style="color: #000;" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                            onchange="updatePreview()" oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
                     </div>
                 </div>
 
@@ -747,7 +790,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         </tr>
 
                         <?php
-                        // Dynamically fill remaining rows up to MAX limit
                         for ($i = 0; $i < ($MAX_LOG_ROWS - $items_count); $i++):
                             ?>
                             <tr>
@@ -801,7 +843,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
                 <table class="log-table">
                     <thead>
-                        <tr>
+                        32
                             <th class="col-date">DATE</th>
                             <th class="col-name">NAME OF VIOLATOR</th>
                             <th class="col-loc">LOCATION</th>
@@ -852,29 +894,17 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
-                    <tr>
                         <th>ID</th>
                         <th>Student Name</th>
                         <th>Violation</th>
                         <th>Location</th>
                         <th>Date</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if ($recent_logs && $recent_logs->num_rows > 0): ?>
                         <?php while ($row = $recent_logs->fetch_assoc()): ?>
-                            <?php
-                            $preview_data = [
-                                'student' => $row['student_name'],
-                                'location' => $row['location'],
-                                'violation' => $row['violation'],
-                                'date' => $row['report_date'],
-                                'time' => $row['report_time'],
-                                'officer' => $row['officer_name']
-                            ];
-                            $preview_json = htmlspecialchars(json_encode($preview_data), ENT_QUOTES, 'UTF-8');
-                            ?>
                             <tr>
                                 <td><?php echo $row['id']; ?></td>
                                 <td><?php echo htmlspecialchars($row['student_name']); ?></td>
@@ -883,10 +913,21 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                                 <td><?php echo $row['report_date']; ?></td>
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-center">
+                                        <!-- View button (read-only modal) -->
                                         <button type="button" class="btn btn-sm btn-info text-white"
-                                            onclick="loadToPreview(<?php echo $preview_json; ?>)" title="Load into Preview">
+                                            onclick='showViewModal(<?php echo json_encode($row); ?>)' title="View">
                                             <i class="fa fa-eye"></i>
                                         </button>
+                                        <!-- Edit button (load into form) -->
+                                        <button type="button" class="btn btn-sm btn-warning text-white"
+                                            onclick='editRecord(<?php echo json_encode($row); ?>)' title="Edit">
+                                            <i class="fa fa-pencil-alt"></i>
+                                        </button>
+                                        <!-- Reprint button -->
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+                                            <i class="fa fa-print"></i>
+                                        </a>
+                                        <!-- Delete button -->
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                             onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
                                     </div>
@@ -907,6 +948,47 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         </div>
     </div>
 
+    <!-- View Modal (Read-Only) -->
+    <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content" style="background-color: var(--panel-bg); color: var(--text-main);">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewModalLabel">Violator Log Details (Read-Only)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Student Name:</div>
+                        <div class="col-md-9" id="view_student"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Location:</div>
+                        <div class="col-md-9" id="view_location"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Violation:</div>
+                        <div class="col-md-9" id="view_violation"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Date:</div>
+                        <div class="col-md-9" id="view_date"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Time:</div>
+                        <div class="col-md-9" id="view_time"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Safety Officer:</div>
+                        <div class="col-md-9" id="view_officer"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Toggle Theme Script
         function toggleTheme() {
@@ -916,7 +998,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             const themeValue = isLight ? 'light' : 'dark';
             localStorage.setItem('appTheme', themeValue);
             document.cookie = "theme=" + themeValue + "; path=/; max-age=31536000";
-            updateInputColors();
         }
 
         const savedTheme = localStorage.getItem('appTheme') || 'dark';
@@ -925,24 +1006,45 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             document.getElementById('themeBtn').innerHTML = '<i class="fa fa-sun"></i>';
         }
 
-        function updateInputColors() {
-            const isLight = document.body.classList.contains('light-mode');
-            const timeInput = document.getElementById('in_time');
-            const dateInput = document.getElementById('in_date');
-
-            if (isLight) {
-                timeInput.style.color = '#000';
-                dateInput.style.color = '#000';
-            } else {
-                timeInput.style.color = '#fff';
-                dateInput.style.color = '#fff';
+        // View Modal (Read-Only)
+        function showViewModal(data) {
+            document.getElementById('view_student').innerText = data.student_name || '';
+            document.getElementById('view_location').innerText = data.location || '';
+            document.getElementById('view_violation').innerText = data.violation || '';
+            document.getElementById('view_date').innerText = data.report_date || '';
+            // Format time nicely
+            let timeVal = data.report_time;
+            if (timeVal) {
+                let [h, m] = timeVal.split(':');
+                let ampm = 'AM';
+                if (h >= 12) {
+                    ampm = 'PM';
+                    if (h > 12) h = h - 12;
+                }
+                if (h == 0) h = 12;
+                timeVal = `${h}:${m} ${ampm}`;
             }
+            document.getElementById('view_time').innerText = timeVal || '';
+            document.getElementById('view_officer').innerText = data.officer_name || '';
+            var modal = new bootstrap.Modal(document.getElementById('viewModal'));
+            modal.show();
+        }
+
+        // Edit: load record into the form for modification
+        function editRecord(data) {
+            document.getElementById('in_student').value = data.student_name || '';
+            document.getElementById('in_location').value = data.location || '';
+            document.getElementById('in_violation').value = data.violation || '';
+            document.getElementById('in_date').value = data.report_date || '';
+            document.getElementById('in_time').value = data.report_time || '';
+            document.getElementById('in_officer').value = data.officer_name || '';
+            updatePreview();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function printQueue() {
             document.getElementById('print-blank-area').style.display = 'none';
             document.getElementById('print-area').style.display = 'flex';
-
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
@@ -955,7 +1057,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         function printBlank() {
             document.getElementById('print-area').style.display = 'none';
             document.getElementById('print-blank-area').style.display = 'flex';
-
             setTimeout(() => {
                 window.print();
                 setTimeout(() => {
@@ -969,17 +1070,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             document.getElementById('logForm').reset();
             updatePreview();
             document.getElementById('in_student').focus();
-        }
-
-        function loadToPreview(data) {
-            document.getElementById('in_student').value = data.student;
-            document.getElementById('in_location').value = data.location;
-            document.getElementById('in_violation').value = data.violation;
-            document.getElementById('in_date').value = data.date;
-            document.getElementById('in_time').value = data.time;
-            document.getElementById('in_officer').value = data.officer;
-            updatePreview();
-            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function updatePreview() {
@@ -1006,7 +1096,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         if (h > 12) h = h - 12;
                     }
                     if (h == 0) h = 12;
-                    h = parseInt(h);
                     document.getElementById('p_time').innerText = `${h}:${m} ${ampm}`;
                 } else {
                     document.getElementById('p_time').innerText = '';
@@ -1020,7 +1109,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
         document.addEventListener('DOMContentLoaded', function () {
             updatePreview();
-            updateInputColors();
 
             const dateInput = document.getElementById('in_date');
             const timeInput = document.getElementById('in_time');
@@ -1042,6 +1130,14 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 });
             }, 5000);
         });
+
+        // Auto print if reprint was triggered
+        <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
+            window.addEventListener('load', function() {
+                printQueue();
+            });
+            <?php unset($_SESSION['auto_print']); ?>
+        <?php endif; ?>
     </script>
 
 </body>

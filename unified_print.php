@@ -365,7 +365,7 @@ $grand_total = count($all_permits);
     <div class="navbar d-flex justify-content-between align-items-center">
         <div class="d-flex align-items-center gap-3">
             <a href="dashboard.php" class="btn btn-secondary fw-bold"><i class="fa fa-arrow-left me-2"></i>
-                Dashboard</a>
+                Back</a>
             <h4 class="m-0 fw-bold" style="color: var(--text-main);">Unified Print System</h4>
         </div>
         <div class="d-flex gap-2 align-items-center">

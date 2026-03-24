@@ -86,9 +86,9 @@ if ($conn) {
     $stats['incident'] = get_cnt($conn, "SELECT COUNT(*) as c FROM incident_reports");
     $stats['vaping'] = get_cnt($conn, "SELECT COUNT(*) as c FROM vaping_reports");
 
-    // Employee and Student Parking Application counts
-    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM parking_applications");
-    $stats['student_parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM student_parking_applications");
+    // FIXED: Separated database tables
+    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM employee_application");
+    $stats['student_parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM student_application");
 
     $stats['cctv_req'] = get_cnt($conn, "SELECT COUNT(*) as c FROM cctv_requests");
 
@@ -204,20 +204,20 @@ if ($conn) {
     } catch (Exception $e) {
     }
 
-    // 10. Employee Parking Applications
+    // 10. FIXED: Employee Parking Applications
     $recent_parking = [];
     try {
-        $res = $conn->query("SELECT * FROM parking_applications ORDER BY id DESC LIMIT 10");
+        $res = $conn->query("SELECT * FROM employee_application ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_parking[] = $row;
     } catch (Exception $e) {
     }
 
-    // 11. Student Parking Applications
+    // 11. FIXED: Student Parking Applications
     $recent_student_parking = [];
     try {
-        $res = $conn->query("SELECT * FROM student_parking_applications ORDER BY id DESC LIMIT 10");
+        $res = $conn->query("SELECT * FROM student_application ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_student_parking[] = $row;
@@ -294,35 +294,12 @@ if ($conn) {
         }
 
         /* Bootstrap Overrides */
-        .btn-primary {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-        }
-
-        .btn-success {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-            color: white;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-        }
-
-        .btn-warning {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
-            color: white;
-        }
-
-        .btn-info {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-        }
+        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
+        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
+        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
+        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
+        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
 
         /* --- LAYOUT --- */
         .navbar-custom {
@@ -360,10 +337,7 @@ if ($conn) {
             transition: 0.3s;
         }
 
-        .sidebar-content {
-            padding: 20px 15px;
-        }
-
+        .sidebar-content { padding: 20px 15px; }
         .sidebar .nav-link {
             color: var(--text-muted);
             font-weight: 500;
@@ -375,24 +349,9 @@ if ($conn) {
             transition: all 0.3s;
         }
 
-        .sidebar .nav-link:hover {
-            background: var(--bg-body);
-            color: var(--primary-color);
-        }
-
-        .sidebar .nav-link.active {
-            background: var(--bg-body);
-            color: var(--primary-color);
-            font-weight: 600;
-        }
-
-        .sidebar-heading {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            font-weight: 700;
-            color: var(--text-muted);
-            padding: 20px 20px 10px;
-        }
+        .sidebar .nav-link:hover { background: var(--bg-body); color: var(--primary-color); }
+        .sidebar .nav-link.active { background: var(--bg-body); color: var(--primary-color); font-weight: 600; }
+        .sidebar-heading { font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-muted); padding: 20px 20px 10px; }
 
         .main-content {
             margin-left: var(--sidebar-width);
@@ -404,27 +363,10 @@ if ($conn) {
         }
 
         /* --- UI ELEMENTS --- */
-        a.card-link {
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            height: 100%;
-            transition: transform 0.3s;
-        }
-
-        a.card-link:hover {
-            transform: translateY(-5px);
-        }
-
-        .cursor-pointer {
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .cursor-pointer:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
+        a.card-link { text-decoration: none; color: inherit; display: block; height: 100%; transition: transform 0.3s; }
+        a.card-link:hover { transform: translateY(-5px); }
+        .cursor-pointer { cursor: pointer; transition: all 0.2s ease; }
+        .cursor-pointer:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); }
 
         .solid-stat-card {
             border-radius: 15px;
@@ -441,61 +383,20 @@ if ($conn) {
             transition: transform 0.3s;
         }
 
-        .solid-stat-card:hover {
-            transform: translateY(-5px);
-        }
+        .solid-stat-card:hover { transform: translateY(-5px); }
+        .stat-text-wrapper { display: flex; flex-direction: column; z-index: 2; }
+        .stat-icon-large { font-size: 3.5rem; opacity: 0.4; transform: rotate(-10deg); margin-right: -10px; }
 
-        .stat-text-wrapper {
-            display: flex;
-            flex-direction: column;
-            z-index: 2;
-        }
+        .bg-primary-blue { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
+        .bg-success-green { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+        .bg-warning-orange { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: #fff !important; }
 
-        .stat-icon-large {
-            font-size: 3.5rem;
-            opacity: 0.4;
-            transform: rotate(-10deg);
-            margin-right: -10px;
-        }
+        .scrolling-wrapper { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+        .scrolling-wrapper::-webkit-scrollbar { height: 6px; }
+        .scrolling-wrapper::-webkit-scrollbar-track { background: transparent; }
+        .scrolling-wrapper::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
 
-        .bg-primary-blue {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-        }
-
-        .bg-success-green {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-        }
-
-        .bg-warning-orange {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: #fff !important;
-        }
-
-        .scrolling-wrapper {
-            overflow-x: auto;
-            flex-wrap: nowrap;
-            -webkit-overflow-scrolling: touch;
-            padding-bottom: 10px;
-        }
-
-        .scrolling-wrapper::-webkit-scrollbar {
-            height: 6px;
-        }
-
-        .scrolling-wrapper::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .scrolling-wrapper::-webkit-scrollbar-thumb {
-            background-color: var(--border-color);
-            border-radius: 10px;
-        }
-
-        .mini-card-col {
-            flex: 0 0 auto;
-            width: 180px;
-        }
-
+        .mini-card-col { flex: 0 0 auto; width: 180px; }
         .mini-card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
@@ -510,36 +411,11 @@ if ($conn) {
             position: relative;
         }
 
-        .mini-card:hover {
-            border-color: var(--primary-color);
-        }
-
-        .mini-value {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 5px;
-        }
-
-        .mini-label {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .mini-icon {
-            font-size: 1.4rem;
-            margin-bottom: 8px;
-            opacity: 0.85;
-            transition: transform 0.3s;
-        }
-
-        .mini-card:hover .mini-icon {
-            transform: scale(1.1);
-        }
+        .mini-card:hover { border-color: var(--primary-color); }
+        .mini-value { font-size: 1.8rem; font-weight: 700; color: var(--text-main); margin-bottom: 5px; }
+        .mini-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mini-icon { font-size: 1.4rem; margin-bottom: 8px; opacity: 0.85; transition: transform 0.3s; }
+        .mini-card:hover .mini-icon { transform: scale(1.1); }
 
         .stat-card {
             background: var(--bg-card);
@@ -552,98 +428,28 @@ if ($conn) {
             justify-content: space-between;
         }
 
-        .stat-card:hover {
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
-        }
+        .stat-card:hover { box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05); }
+        .stat-label-modern { font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 5px; }
+        .stat-value-modern { font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
+        .stat-icon-wrapper { width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
 
-        .stat-label-modern {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            display: block;
-            margin-bottom: 5px;
-        }
+        .icon-blue { background: #e7f1ff; color: #33c1ff; }
+        .icon-green { background: #e6fffa; color: #05cd99; }
+        .icon-orange { background: #fff7e6; color: #ffb547; }
+        .icon-info { background: #e6f7ff; color: #0dcaf0; }
+        .icon-purple { background: #f3e5f5; color: #9c27b0; }
+        .icon-red { background: #ffe6e6; color: #dc3545; }
 
-        .stat-value-modern {
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
+        [data-bs-theme="dark"] .icon-blue { background: rgba(51, 193, 255, 0.15); }
+        [data-bs-theme="dark"] .icon-green { background: rgba(5, 205, 153, 0.15); }
+        [data-bs-theme="dark"] .icon-orange { background: rgba(255, 181, 71, 0.15); }
+        [data-bs-theme="dark"] .icon-info { background: rgba(13, 202, 240, 0.15); }
+        [data-bs-theme="dark"] .icon-purple { background: rgba(156, 39, 176, 0.15); }
+        [data-bs-theme="dark"] .icon-red { background: rgba(220, 53, 69, 0.15); }
 
-        .stat-icon-wrapper {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
-        }
-
-        .icon-blue {
-            background: #e7f1ff;
-            color: #33c1ff;
-        }
-
-        .icon-green {
-            background: #e6fffa;
-            color: #05cd99;
-        }
-
-        .icon-orange {
-            background: #fff7e6;
-            color: #ffb547;
-        }
-
-        .icon-info {
-            background: #e6f7ff;
-            color: #0dcaf0;
-        }
-
-        .icon-purple {
-            background: #f3e5f5;
-            color: #9c27b0;
-        }
-
-        .icon-red {
-            background: #ffe6e6;
-            color: #dc3545;
-        }
-
-        [data-bs-theme="dark"] .icon-blue {
-            background: rgba(51, 193, 255, 0.15);
-        }
-
-        [data-bs-theme="dark"] .icon-green {
-            background: rgba(5, 205, 153, 0.15);
-        }
-
-        [data-bs-theme="dark"] .icon-orange {
-            background: rgba(255, 181, 71, 0.15);
-        }
-
-        [data-bs-theme="dark"] .icon-info {
-            background: rgba(13, 202, 240, 0.15);
-        }
-
-        [data-bs-theme="dark"] .icon-purple {
-            background: rgba(156, 39, 176, 0.15);
-        }
-
-        [data-bs-theme="dark"] .icon-red {
-            background: rgba(220, 53, 69, 0.15);
-        }
-
-        .border-l-primary {
-            border-left: 5px solid var(--primary-color) !important;
-        }
-
-        .border-l-success {
-            border-left: 5px solid #198754 !important;
-        }
-
-        .border-l-warning {
-            border-left: 5px solid #ffc107 !important;
-        }
+        .border-l-primary { border-left: 5px solid var(--primary-color) !important; }
+        .border-l-success { border-left: 5px solid #198754 !important; }
+        .border-l-warning { border-left: 5px solid #ffc107 !important; }
 
         .calendar-card {
             background: var(--bg-card);
@@ -670,15 +476,8 @@ if ($conn) {
             overflow: hidden;
         }
 
-        .modal-header {
-            padding: 25px 30px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .modal-body {
-            background: var(--bg-body);
-            padding: 20px;
-        }
+        .modal-header { padding: 25px 30px; border-bottom: 1px solid var(--border-color); }
+        .modal-body { background: var(--bg-body); padding: 20px; }
 
         .modern-list-item {
             background: var(--bg-card);
@@ -714,52 +513,16 @@ if ($conn) {
             color: white;
         }
 
-        .list-avatar.success {
-            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
-        }
+        .list-avatar.success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); }
+        .list-avatar.warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: #fff; }
+        .list-avatar.info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); }
+        .list-avatar.danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: #fff; }
+        .list-avatar.purple { background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%); color: #fff; }
+        .list-avatar.primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); }
 
-        .list-avatar.warning {
-            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
-            color: #fff;
-        }
-
-        .list-avatar.info {
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-        }
-
-        .list-avatar.danger {
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: #fff;
-        }
-
-        .list-avatar.purple {
-            background: linear-gradient(135deg, #ab47bc 0%, #8e24aa 100%);
-            color: #fff;
-        }
-
-        .list-avatar.primary {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-        }
-
-        .list-info {
-            flex-grow: 1;
-        }
-
-        .list-title {
-            font-weight: 700;
-            color: var(--text-main);
-            font-size: 0.95rem;
-            margin-bottom: 2px;
-        }
-
-        .list-subtitle {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+        .list-info { flex-grow: 1; }
+        .list-title { font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-bottom: 2px; }
+        .list-subtitle { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; display: flex; align-items: center; gap: 8px; }
 
         .modern-badge {
             padding: 6px 12px;
@@ -769,89 +532,29 @@ if ($conn) {
             text-transform: uppercase;
         }
 
-        .badge-soft-primary {
-            background: rgba(78, 115, 223, 0.1);
-            color: #4e73df;
-        }
+        .badge-soft-primary { background: rgba(78, 115, 223, 0.1); color: #4e73df; }
+        .badge-soft-success { background: rgba(28, 200, 138, 0.1); color: #1cc88a; }
+        .badge-soft-warning { background: rgba(246, 194, 62, 0.1); color: #f6c23e; }
+        .badge-soft-info { background: rgba(54, 185, 204, 0.1); color: #36b9cc; }
+        .badge-soft-danger { background: rgba(220, 53, 69, 0.1); color: #dc3545; }
+        .badge-soft-purple { background: rgba(171, 71, 188, 0.1); color: #ab47bc; }
 
-        .badge-soft-success {
-            background: rgba(28, 200, 138, 0.1);
-            color: #1cc88a;
-        }
-
-        .badge-soft-warning {
-            background: rgba(246, 194, 62, 0.1);
-            color: #f6c23e;
-        }
-
-        .badge-soft-info {
-            background: rgba(54, 185, 204, 0.1);
-            color: #36b9cc;
-        }
-
-        .badge-soft-danger {
-            background: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-        }
-
-        .badge-soft-purple {
-            background: rgba(171, 71, 188, 0.1);
-            color: #ab47bc;
-        }
-
-        .modal-search-container {
-            background-color: var(--bg-card);
-            border-bottom: 1px solid var(--border-color);
-            padding: 15px 25px;
-        }
-
-        .form-control-themed {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-            color: var(--text-main);
-        }
-
-        .input-group-text-themed {
-            background-color: var(--input-bg);
-            border-color: var(--border-color);
-            color: var(--text-muted);
-            border-right: none;
-        }
-
-        .btn-theme-nav {
-            background: var(--input-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+        .modal-search-container { background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); padding: 15px 25px; }
+        .form-control-themed { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-main); }
+        .input-group-text-themed { background-color: var(--input-bg); border-color: var(--border-color); color: var(--text-muted); border-right: none; }
+        .btn-theme-nav { background: var(--input-bg); border: 1px solid var(--border-color); color: var(--text-main); width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
         @media (max-width: 991px) {
-            .sidebar {
-                left: -100%;
-                z-index: 1100;
-            }
-
-            .sidebar.show {
-                left: 0;
-                box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2);
-            }
-
-            .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
+            .sidebar { left: -100%; z-index: 1100; }
+            .sidebar.show { left: 0; box-shadow: 5px 0 15px rgba(0, 0, 0, 0.2); }
+            .main-content { margin-left: 0; width: 100%; }
         }
     </style>
 </head>
 
 <body>
 
-    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"
-        preload="auto"></audio>
+    <audio id="notifSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
     <div class="toast-container">
         <div id="liveToast" class="toast" role="alert">
             <div class="toast-body" id="toastMessage"></div>
@@ -861,26 +564,21 @@ if ($conn) {
     <nav class="navbar navbar-custom">
         <div class="d-flex justify-content-between align-items-center w-100 px-3">
             <div class="d-flex align-items-center">
-                <button class="btn text-secondary d-lg-none me-3" id="sidebarToggle"><i
-                        class="fas fa-bars fa-lg"></i></button>
+                <button class="btn text-secondary d-lg-none me-3" id="sidebarToggle"><i class="fas fa-bars fa-lg"></i></button>
                 <a class="navbar-brand d-flex align-items-center" href="#">
-                    <img src="background.png" alt="Logo" width="35" height="35" onerror="this.style.display='none'"
-                        class="me-2"> SAPD SYSTEM
+                    <img src="background.png" alt="Logo" width="35" height="35" onerror="this.style.display='none'" class="me-2"> SAPD SYSTEM
                 </a>
             </div>
             <form class="d-none d-md-block" id="searchForm" style="width: 300px;">
                 <div class="input-group">
-                    <input class="form-control" type="search" id="searchInput" placeholder="Search forms, permits..."
-                        style="border-radius: 0;">
-                    <button type="submit" class="btn btn-primary" style="border-radius: 0;"><i
-                            class="fas fa-search"></i></button>
+                    <input class="form-control" type="search" id="searchInput" placeholder="Search forms, permits..." style="border-radius: 0;">
+                    <button type="submit" class="btn btn-primary" style="border-radius: 0;"><i class="fas fa-search"></i></button>
                 </div>
             </form>
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-theme-nav rounded-circle" id="themeToggle"><i class="fas fa-moon"></i></button>
                 <div class="dropdown">
-                    <a class="nav-link dropdown-toggle fw-bold" href="#" role="button" data-bs-toggle="dropdown"
-                        style="color: var(--text-main);">
+                    <a class="nav-link dropdown-toggle fw-bold" href="#" role="button" data-bs-toggle="dropdown" style="color: var(--text-main);">
                         <i class="fas fa-user-circle fa-lg me-2"></i> <?php echo $_SESSION['name'] ?? 'User'; ?>
                     </a>
                     <ul class="dropdown-menu dropdown-menu-end shadow border-0">
@@ -894,41 +592,27 @@ if ($conn) {
     <div class="sidebar" id="sidebar">
         <div class="sidebar-content">
             <ul class="nav flex-column">
-                <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i
-                            class="fas fa-th-large me-3"></i> Dashboard</a></li>
+                <li class="nav-item"><a class="nav-link active" href="dashboard.php"><i class="fas fa-th-large me-3"></i> Dashboard</a></li>
                 <h6 class="sidebar-heading">Admin</h6>
                 <li class="nav-item">
                     <a class="nav-link" href="admin_approval.php"><i class="fas fa-user-check me-3"></i> Approvals
-                        <?php if ($stats['pending'] > 0): ?><span
-                                class="badge bg-danger rounded-pill ms-auto"><?php echo $stats['pending']; ?></span><?php endif; ?>
+                        <?php if ($stats['pending'] > 0): ?><span class="badge bg-danger rounded-pill ms-auto"><?php echo $stats['pending']; ?></span><?php endif; ?>
                     </a>
                 </li>
-                <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i>
-                        Active Users</a></li>
+                <li class="nav-item"><a class="nav-link" href="active_users.php"><i class="fas fa-users me-3"></i> Active Users</a></li>
                 <h6 class="sidebar-heading">Forms Management</h6>
-                <li class="nav-item"><a class="nav-link" href="violator_report.php"><i
-                            class="fas fa-file-contract me-3"></i> Violator Report</a></li>
-                <li class="nav-item"><a class="nav-link" href="guidance_referral.php"><i
-                            class="fas fa-hands-helping me-3"></i> Guidance Referral</a></li>
-                <li class="nav-item"><a class="nav-link" href="incident_report.php"><i
-                            class="fas fa-exclamation-triangle me-3"></i> Incident Report</a></li>
-                <li class="nav-item"><a class="nav-link" href="vaping_incident.php"><i
-                            class="fas fa-smoking-ban me-3"></i> Vaping Incident</a></li>
-                <li class="nav-item"><a class="nav-link" href="employee_form.php"><i
-                            class="fas fa-car me-3"></i> Employee Parking Form</a></li>
-                <li class="nav-item"><a class="nav-link" href="student_form.php"><i
-                            class="fas fa-car-side me-3"></i> Student Parking Form</a></li>
-                <li class="nav-item"><a class="nav-link" href="cctv_review_form.php"><i class="fas fa-video me-3"></i>
-                        CCTV Review</a></li>
-                <li class="nav-item"><a class="nav-link" href="facilities_and_inspection.php"><i
-                            class="fas fa-tools me-3"></i> Facilities Insp.</a></li>
+                <li class="nav-item"><a class="nav-link" href="violator_report.php"><i class="fas fa-file-contract me-3"></i> Violator Report</a></li>
+                <li class="nav-item"><a class="nav-link" href="guidance_referral.php"><i class="fas fa-hands-helping me-3"></i> Guidance Referral</a></li>
+                <li class="nav-item"><a class="nav-link" href="incident_report.php"><i class="fas fa-exclamation-triangle me-3"></i> Incident Report</a></li>
+                <li class="nav-item"><a class="nav-link" href="vaping_incident.php"><i class="fas fa-smoking-ban me-3"></i> Vaping Incident</a></li>
+                <li class="nav-item"><a class="nav-link" href="employee_form.php"><i class="fas fa-car me-3"></i> Employee Parking Form</a></li>
+                <li class="nav-item"><a class="nav-link" href="student_form.php"><i class="fas fa-car-side me-3"></i> Student Parking Form</a></li>
+                <li class="nav-item"><a class="nav-link" href="cctv_review_form.php"><i class="fas fa-video me-3"></i> CCTV Review</a></li>
+                <li class="nav-item"><a class="nav-link" href="facilities_and_inspection.php"><i class="fas fa-tools me-3"></i> Facilities Insp.</a></li>
                 <h6 class="sidebar-heading">Other Permits</h6>
-                <li class="nav-item"><a class="nav-link" href="employee_permit.php"><i class="fas fa-id-badge me-3"></i>
-                        Employee Permit</a></li>
-                <li class="nav-item"><a class="nav-link" href="student_permit.php"><i
-                            class="fas fa-user-graduate me-3"></i> Student License</a></li>
-                <li class="nav-item"><a class="nav-link" href="non_permit.php"><i class="fas fa-address-card me-3"></i>
-                        Non-Pro License</a></li>
+                <li class="nav-item"><a class="nav-link" href="employee_permit.php"><i class="fas fa-id-badge me-3"></i> Employee Permit</a></li>
+                <li class="nav-item"><a class="nav-link" href="student_permit.php"><i class="fas fa-user-graduate me-3"></i> Student License</a></li>
+                <li class="nav-item"><a class="nav-link" href="non_permit.php"><i class="fas fa-address-card me-3"></i> Non-Pro License</a></li>
             </ul>
         </div>
     </div>
@@ -938,8 +622,7 @@ if ($conn) {
 
         <div class="row g-4 mb-4">
             <div class="col-md-4">
-                <div class="solid-stat-card bg-primary-blue cursor-pointer" data-bs-toggle="modal"
-                    data-bs-target="#activeUsersModal">
+                <div class="solid-stat-card bg-primary-blue cursor-pointer" data-bs-toggle="modal" data-bs-target="#activeUsersModal">
                     <div class="stat-text-wrapper">
                         <span class="stat-value"><?php echo $stats['users']; ?></span>
                         <span class="stat-label">Active Users</span>
@@ -957,8 +640,7 @@ if ($conn) {
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="solid-stat-card bg-warning-orange cursor-pointer" data-bs-toggle="modal"
-                    data-bs-target="#pendingRequestsModal">
+                <div class="solid-stat-card bg-warning-orange cursor-pointer" data-bs-toggle="modal" data-bs-target="#pendingRequestsModal">
                     <div class="stat-text-wrapper">
                         <span class="stat-value"><?php echo $stats['pending']; ?></span>
                         <span class="stat-label">Pending Requests</span>
@@ -1000,9 +682,9 @@ if ($conn) {
             </div>
             
             <div class="col mini-card-col">
-                <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#parkingModal">
+                <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#employeeParkingModal">
                     <div class="mini-icon text-success"><i class="fas fa-car-side"></i></div>
-                    <div class="mini-value"><?php echo $stats['parking_form']; ?></div>
+                    <div class="mini-value"><?php echo $stats['employee_parking_form']; ?></div>
                     <div class="mini-label">Emp. Parking</div>
                 </div>
             </div>
@@ -1034,29 +716,20 @@ if ($conn) {
         <h5 class="fw-bold mb-3 text-secondary">Permit Breakdown</h5>
         <div class="row g-3">
             <div class="col-md-4">
-                <div class="stat-card border-l-primary cursor-pointer" data-bs-toggle="modal"
-                    data-bs-target="#employeePermitsModal">
-                    <div class="stat-content"><span class="stat-label-modern">Employee Permits</span><span
-                            class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span><small
-                            class="text-primary d-block mt-1">Search & View</small></div>
+                <div class="stat-card border-l-primary cursor-pointer" data-bs-toggle="modal" data-bs-target="#employeePermitsModal">
+                    <div class="stat-content"><span class="stat-label-modern">Employee Permits</span><span class="stat-value-modern"><?php echo $stats['emp_permit']; ?></span><small class="text-primary d-block mt-1">Search & View</small></div>
                     <div class="stat-icon-wrapper icon-blue"><i class="fas fa-id-badge"></i></div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="stat-card border-l-success cursor-pointer" data-bs-toggle="modal"
-                    data-bs-target="#studentPermitsModal">
-                    <div class="stat-content"><span class="stat-label-modern">Student License</span><span
-                            class="stat-value-modern"><?php echo $stats['student_permit']; ?></span><small
-                            class="text-success d-block mt-1">Search & View</small></div>
+                <div class="stat-card border-l-success cursor-pointer" data-bs-toggle="modal" data-bs-target="#studentPermitsModal">
+                    <div class="stat-content"><span class="stat-label-modern">Student License</span><span class="stat-value-modern"><?php echo $stats['student_permit']; ?></span><small class="text-success d-block mt-1">Search & View</small></div>
                     <div class="stat-icon-wrapper icon-green"><i class="fas fa-user-graduate"></i></div>
                 </div>
             </div>
             <div class="col-md-4">
-                <div class="stat-card border-l-warning cursor-pointer" data-bs-toggle="modal"
-                    data-bs-target="#nonProPermitsModal">
-                    <div class="stat-content"><span class="stat-label-modern">Non-Pro License</span><span
-                            class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span><small
-                            class="text-warning d-block mt-1">Search & View</small></div>
+                <div class="stat-card border-l-warning cursor-pointer" data-bs-toggle="modal" data-bs-target="#nonProPermitsModal">
+                    <div class="stat-content"><span class="stat-label-modern">Non-Pro License</span><span class="stat-value-modern"><?php echo $stats['non_pro_permit']; ?></span><small class="text-warning d-block mt-1">Search & View</small></div>
                     <div class="stat-icon-wrapper icon-orange"><i class="fas fa-address-card"></i></div>
                 </div>
             </div>
@@ -1067,10 +740,8 @@ if ($conn) {
                 <div class="calendar-card">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="fw-bold mb-0">Event Schedule</h5>
-                        <div class="bg-primary text-white px-4 py-2 rounded-pill shadow-sm"
-                            style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
-                            <i class="far fa-calendar-alt me-2"></i><span id="currentDateDisplay"
-                                class="fw-bold">Loading...</span>
+                        <div class="bg-primary text-white px-4 py-2 rounded-pill shadow-sm" style="background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);">
+                            <i class="far fa-calendar-alt me-2"></i><span id="currentDateDisplay" class="fw-bold">Loading...</span>
                         </div>
                     </div>
                     <div id="calendar"></div>
@@ -1083,15 +754,13 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-users me-2"></i>Recent Active Users
-                    </h5>
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-users me-2"></i>Recent Active Users</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="activeUserSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name, Email...">
+                        <input type="text" id="activeUserSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name, Email...">
                     </div>
                 </div>
                 <div class="modal-body" id="activeUsersContainer">
@@ -1102,24 +771,17 @@ if ($conn) {
                                     <div class="list-avatar primary"><i class="fas fa-user"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($u['name']); ?></div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($u['email']); ?></span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($u['email']); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end"><span class="modern-badge badge-soft-success">Active</span></div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No active users found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-users-slash fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No active users found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer">
-                    <a href="active_users.php" class="btn btn-primary rounded-pill px-4">Full System</a>
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-footer"><a href="active_users.php" class="btn btn-primary rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1128,15 +790,13 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-hourglass-half me-2"></i>Pending
-                        Requests</h5>
+                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-hourglass-half me-2"></i>Pending Requests</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="pendingSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name...">
+                        <input type="text" id="pendingSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
                     </div>
                 </div>
                 <div class="modal-body" id="pendingRequestsContainer">
@@ -1147,24 +807,17 @@ if ($conn) {
                                     <div class="list-avatar warning"><i class="fas fa-user-clock"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($p['name']); ?></div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-id-badge me-1"></i><?php echo htmlspecialchars($p['role']); ?>
-                                                Request</span></div>
+                                        <div class="list-subtitle"><span><i class="fas fa-id-badge me-1"></i><?php echo htmlspecialchars($p['role']); ?> Request</span></div>
                                     </div>
                                 </div>
                                 <div class="text-end"><span class="modern-badge badge-soft-warning">Pending</span></div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-check-circle fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No pending requests.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-check-circle fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No pending requests.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer">
-                    <a href="admin_approval.php" class="btn btn-warning text-white rounded-pill px-4">Full System</a>
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-footer"><a href="admin_approval.php" class="btn btn-warning text-white rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1173,15 +826,13 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-file-contract me-2"></i>Recent
-                        Violator Logs</h5>
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-file-contract me-2"></i>Recent Violator Logs</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="violatorSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name, Violation...">
+                        <input type="text" id="violatorSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name, Violation...">
                     </div>
                 </div>
                 <div class="modal-body" id="violatorContainer">
@@ -1195,13 +846,10 @@ if ($conn) {
                                 <div class="d-flex align-items-center">
                                     <div class="list-avatar primary"><i class="fas fa-user-times"></i></div>
                                     <div class="list-info">
-                                        <div class="list-title"><?php echo htmlspecialchars($v['student_name'] ?? 'Unknown'); ?>
-                                        </div>
+                                        <div class="list-title"><?php echo htmlspecialchars($v['student_name'] ?? 'Unknown'); ?></div>
                                         <div class="list-subtitle">
-                                            <span class="me-3"><i
-                                                    class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($violation); ?></span>
-                                            <span><i
-                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($location); ?></span>
+                                            <span class="me-3"><i class="fas fa-exclamation-circle me-1"></i><?php echo htmlspecialchars($violation); ?></span>
+                                            <span><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($location); ?></span>
                                         </div>
                                     </div>
                                 </div>
@@ -1212,15 +860,10 @@ if ($conn) {
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No recent records found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No recent records found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer">
-                    <a href="violator_report.php" class="btn btn-primary rounded-pill px-4">Full System</a>
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-footer"><a href="violator_report.php" class="btn btn-primary rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1229,15 +872,13 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-info"><i class="fas fa-hands-helping me-2"></i>Recent Guidance
-                        Referrals</h5>
+                    <h5 class="modal-title fw-bold text-info"><i class="fas fa-hands-helping me-2"></i>Recent Guidance Referrals</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
                     <div class="input-group">
                         <span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span>
-                        <input type="text" id="guidanceSearch" class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Student, Reason...">
+                        <input type="text" id="guidanceSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Student, Reason...">
                     </div>
                 </div>
                 <div class="modal-body" id="guidanceContainer">
@@ -1254,30 +895,21 @@ if ($conn) {
                                 <div class="d-flex align-items-center">
                                     <div class="list-avatar info"><i class="fas fa-user-friends"></i></div>
                                     <div class="list-info">
-                                        <div class="list-title"><?php echo htmlspecialchars($g['student_name'] ?? 'Unknown'); ?>
-                                        </div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-comment-dots me-1"></i><?php echo htmlspecialchars($display_reason); ?></span>
-                                        </div>
+                                        <div class="list-title"><?php echo htmlspecialchars($g['student_name'] ?? 'Unknown'); ?></div>
+                                        <div class="list-subtitle"><span><i class="fas fa-comment-dots me-1"></i><?php echo htmlspecialchars($display_reason); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small mb-1"><?php echo $g['referral_date'] ?? date('Y-m-d'); ?></div>
-                                    <span
-                                        class="modern-badge badge-soft-info"><?php echo htmlspecialchars($g['status'] ?? 'Pending'); ?></span>
+                                    <span class="modern-badge badge-soft-info"><?php echo htmlspecialchars($g['status'] ?? 'Pending'); ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No recent records found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No recent records found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer">
-                    <a href="guidance_referral.php" class="btn btn-info text-white rounded-pill px-4">Full System</a>
-                    <button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button>
-                </div>
+                <div class="modal-footer"><a href="guidance_referral.php" class="btn btn-info text-white rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1286,15 +918,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Recent
-                        Incident Reports</h5>
+                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Recent Incident Reports</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="incidentSearch"
-                            class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Case, Location..."></div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="incidentSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Case, Location..."></div>
                 </div>
                 <div class="modal-body" id="incidentContainer">
                     <?php if (!empty($recent_incidents)): ?>
@@ -1304,26 +932,19 @@ if ($conn) {
                                     <div class="list-avatar warning"><i class="fas fa-exclamation-triangle"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($inc['case_title']); ?></div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($inc['location']); ?></span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($inc['location']); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-muted small mb-1"><?php echo $inc['incident_date']; ?></div><span
-                                        class="modern-badge badge-soft-warning"><?php echo htmlspecialchars($inc['status'] ?? 'Recorded'); ?></span>
+                                    <div class="text-muted small mb-1"><?php echo $inc['incident_date']; ?></div><span class="modern-badge badge-soft-warning"><?php echo htmlspecialchars($inc['status'] ?? 'Recorded'); ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No incidents found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No incidents found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="incident_report.php"
-                        class="btn btn-warning text-white rounded-pill px-4">Full System</a><button type="button"
-                        class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="incident_report.php" class="btn btn-warning text-white rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1332,15 +953,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-danger"><i class="fas fa-smoking-ban me-2"></i>Recent Vaping
-                        Incidents</h5>
+                    <h5 class="modal-title fw-bold text-danger"><i class="fas fa-smoking-ban me-2"></i>Recent Vaping Incidents</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="vapingSearch"
-                            class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Case, Location..."></div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="vapingSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Case, Location..."></div>
                 </div>
                 <div class="modal-body" id="vapingContainer">
                     <?php if (!empty($recent_vaping)): ?>
@@ -1350,26 +967,19 @@ if ($conn) {
                                     <div class="list-avatar danger"><i class="fas fa-smoking-ban"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($vape['case_title']); ?></div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($vape['location']); ?></span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($vape['location']); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-muted small mb-1"><?php echo $vape['incident_date']; ?></div><span
-                                        class="modern-badge badge-soft-danger"><?php echo htmlspecialchars($vape['status'] ?? 'Recorded'); ?></span>
+                                    <div class="text-muted small mb-1"><?php echo $vape['incident_date']; ?></div><span class="modern-badge badge-soft-danger"><?php echo htmlspecialchars($vape['status'] ?? 'Recorded'); ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No vaping incidents found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No vaping incidents found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="vaping_incident.php"
-                        class="btn btn-danger text-white rounded-pill px-4">Full System</a><button type="button"
-                        class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="vaping_incident.php" class="btn btn-danger text-white rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1382,10 +992,7 @@ if ($conn) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="cctvSearch"
-                            class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Name, Location..."></div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="cctvSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name, Location..."></div>
                 </div>
                 <div class="modal-body" id="cctvRequestsContainer">
                     <?php if (!empty($recent_cctv_requests)): ?>
@@ -1394,29 +1001,20 @@ if ($conn) {
                                 <div class="d-flex align-items-center">
                                     <div class="list-avatar info"><i class="fas fa-video"></i></div>
                                     <div class="list-info">
-                                        <div class="list-title"><?php echo htmlspecialchars($req['requestor_name'] ?? 'N/A'); ?>
-                                        </div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($req['location'] ?? 'N/A'); ?></span>
-                                        </div>
+                                        <div class="list-title"><?php echo htmlspecialchars($req['requestor_name'] ?? 'N/A'); ?></div>
+                                        <div class="list-subtitle"><span><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($req['location'] ?? 'N/A'); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-muted small mb-1">
-                                        <?php echo htmlspecialchars($req['incident_date'] ?? ''); ?>
-                                    </div><span class="modern-badge badge-soft-info">Pending</span>
+                                    <div class="text-muted small mb-1"><?php echo htmlspecialchars($req['incident_date'] ?? ''); ?></div><span class="modern-badge badge-soft-info">Pending</span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-video-slash fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No recent CCTV records found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-video-slash fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No recent CCTV records found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="cctv_review_form.php"
-                        class="btn btn-info text-white rounded-pill px-4">Full System</a><button type="button"
-                        class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="cctv_review_form.php" class="btn btn-info text-white rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1425,15 +1023,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold" style="color: #9c27b0;"><i class="fas fa-tools me-2"></i>Recent
-                        Facilities Inspections</h5>
+                    <h5 class="modal-title fw-bold" style="color: #9c27b0;"><i class="fas fa-tools me-2"></i>Recent Facilities Inspections</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="facilitiesSearch"
-                            class="form-control form-control-themed border-start-0"
-                            placeholder="Filter by Item, Location..."></div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="facilitiesSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Item, Location..."></div>
                 </div>
                 <div class="modal-body" id="facilitiesContainer">
                     <?php if (!empty($recent_facilities)): ?>
@@ -1442,30 +1036,20 @@ if ($conn) {
                                 <div class="d-flex align-items-center">
                                     <div class="list-avatar purple"><i class="fas fa-tools"></i></div>
                                     <div class="list-info">
-                                        <div class="list-title"><?php echo htmlspecialchars($fac['title'] ?? 'Inspection'); ?>
-                                        </div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($fac['location'] ?? 'N/A'); ?></span>
-                                        </div>
+                                        <div class="list-title"><?php echo htmlspecialchars($fac['title'] ?? 'Inspection'); ?></div>
+                                        <div class="list-subtitle"><span><i class="fas fa-map-marker-alt me-1"></i><?php echo htmlspecialchars($fac['location'] ?? 'N/A'); ?></span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
-                                    <div class="text-muted small mb-1"><?php echo $fac['inspection_date'] ?? date('Y-m-d'); ?>
-                                    </div><span
-                                        class="modern-badge badge-soft-purple"><?php echo htmlspecialchars($fac['status'] ?? 'Checked'); ?></span>
+                                    <div class="text-muted small mb-1"><?php echo $fac['inspection_date'] ?? date('Y-m-d'); ?></div><span class="modern-badge badge-soft-purple"><?php echo htmlspecialchars($fac['status'] ?? 'Checked'); ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No inspection records found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No inspection records found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="facilities_and_inspection.php"
-                        class="btn text-white rounded-pill px-4" style="background-color: #9c27b0;">Full
-                        System</a><button type="button" class="btn btn-secondary rounded-pill"
-                        data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="facilities_and_inspection.php" class="btn text-white rounded-pill px-4" style="background-color: #9c27b0;">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1478,10 +1062,7 @@ if ($conn) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="parkingSearch"
-                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
-                    </div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="parkingSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name..."></div>
                 </div>
                 <div class="modal-body" id="parkingContainer">
                     <?php if (!empty($recent_parking)): ?>
@@ -1491,24 +1072,19 @@ if ($conn) {
                                     <div class="list-avatar success"><i class="fas fa-car-side"></i></div>
                                     <div class="list-info">
                                         <div class="list-title">
-                                            <?php echo htmlspecialchars($p['name'] ?? $p['applicant_name'] ?? 'Applicant'); ?>
+                                            <?php echo htmlspecialchars($p['applicant_name'] ?? $p['name'] ?? 'Applicant'); ?>
                                         </div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-id-card me-1"></i>Employee Application</span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-id-card me-1"></i>Employee Application</span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <div class="text-muted small mb-1"><?php echo $p['created_at'] ?? date('Y-m-d'); ?></div>
-                                    <span
-                                        class="modern-badge badge-soft-success"><?php echo htmlspecialchars($p['status'] ?? 'Submitted'); ?></span>
+                                    <span class="modern-badge badge-soft-success"><?php echo htmlspecialchars($p['status'] ?? 'Submitted'); ?></span>
                                 </div>
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-car-crash fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No employee parking records found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-car-crash fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No employee parking records found.</p></div>
                     <?php endif; ?>
                 </div>
                 <div class="modal-footer">
@@ -1540,7 +1116,7 @@ if ($conn) {
                                     <div class="list-avatar info"><i class="fas fa-car"></i></div>
                                     <div class="list-info">
                                         <div class="list-title">
-                                            <?php echo htmlspecialchars($p['name'] ?? $p['applicant_name'] ?? 'Applicant'); ?>
+                                            <?php echo htmlspecialchars($p['applicant_name'] ?? $p['name'] ?? 'Applicant'); ?>
                                         </div>
                                         <div class="list-subtitle">
                                             <span><i class="fas fa-id-card me-1"></i>Student Application</span>
@@ -1572,15 +1148,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-id-badge me-2"></i>Employee Permits
-                    </h5>
+                    <h5 class="modal-title fw-bold text-primary"><i class="fas fa-id-badge me-2"></i>Employee Permits</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="empPermitSearch"
-                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
-                    </div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="empPermitSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name..."></div>
                 </div>
                 <div class="modal-body" id="employeePermitsContainer">
                     <?php if (!empty($recent_emp_permits)): ?>
@@ -1590,8 +1162,7 @@ if ($conn) {
                                     <div class="list-avatar primary"><i class="fas fa-id-badge"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($p['name']); ?></div>
-                                        <div class="list-subtitle"><span><i class="fas fa-id-card me-1"></i>Employee</span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-id-card me-1"></i>Employee</span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -1601,14 +1172,10 @@ if ($conn) {
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No employee permits found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No employee permits found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="employee_permit.php" class="btn btn-primary rounded-pill px-4">Full
-                        System</a><button type="button" class="btn btn-secondary rounded-pill"
-                        data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="employee_permit.php" class="btn btn-primary rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1617,15 +1184,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-success"><i class="fas fa-user-graduate me-2"></i>Student
-                        Permits</h5>
+                    <h5 class="modal-title fw-bold text-success"><i class="fas fa-user-graduate me-2"></i>Student Permits</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="stuPermitSearch"
-                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
-                    </div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="stuPermitSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name..."></div>
                 </div>
                 <div class="modal-body" id="studentPermitsContainer">
                     <?php if (!empty($recent_student_permits)): ?>
@@ -1635,8 +1198,7 @@ if ($conn) {
                                     <div class="list-avatar success"><i class="fas fa-user-graduate"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($p['name']); ?></div>
-                                        <div class="list-subtitle"><span><i
-                                                    class="fas fa-graduation-cap me-1"></i>Student</span></div>
+                                        <div class="list-subtitle"><span><i class="fas fa-graduation-cap me-1"></i>Student</span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -1646,14 +1208,10 @@ if ($conn) {
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No student permits found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No student permits found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="student_permit.php" class="btn btn-success rounded-pill px-4">Full
-                        System</a><button type="button" class="btn btn-secondary rounded-pill"
-                        data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="student_permit.php" class="btn btn-success rounded-pill px-4">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1662,15 +1220,11 @@ if ($conn) {
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header border-bottom">
-                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-address-card me-2"></i>Non-Pro Permits
-                    </h5>
+                    <h5 class="modal-title fw-bold text-warning"><i class="fas fa-address-card me-2"></i>Non-Pro Permits</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="p-3 sticky-top modal-search-container">
-                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i
-                                class="fas fa-search"></i></span><input type="text" id="nonProPermitSearch"
-                            class="form-control form-control-themed border-start-0" placeholder="Filter by Name...">
-                    </div>
+                    <div class="input-group"><span class="input-group-text input-group-text-themed"><i class="fas fa-search"></i></span><input type="text" id="nonProPermitSearch" class="form-control form-control-themed border-start-0" placeholder="Filter by Name..."></div>
                 </div>
                 <div class="modal-body" id="nonProPermitsContainer">
                     <?php if (!empty($recent_non_pro_permits)): ?>
@@ -1680,8 +1234,7 @@ if ($conn) {
                                     <div class="list-avatar warning"><i class="fas fa-address-card"></i></div>
                                     <div class="list-info">
                                         <div class="list-title"><?php echo htmlspecialchars($p['name']); ?></div>
-                                        <div class="list-subtitle"><span><i class="fas fa-car me-1"></i>Non-Professional</span>
-                                        </div>
+                                        <div class="list-subtitle"><span><i class="fas fa-car me-1"></i>Non-Professional</span></div>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -1691,14 +1244,10 @@ if ($conn) {
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i>
-                            <p class="text-muted fw-bold">No non-pro permits found.</p>
-                        </div>
+                        <div class="text-center py-5"><i class="fas fa-folder-open fa-3x text-muted mb-3 opacity-50"></i><p class="text-muted fw-bold">No non-pro permits found.</p></div>
                     <?php endif; ?>
                 </div>
-                <div class="modal-footer"><a href="non_permit.php"
-                        class="btn btn-warning rounded-pill px-4 text-white">Full System</a><button type="button"
-                        class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
+                <div class="modal-footer"><a href="non_permit.php" class="btn btn-warning rounded-pill px-4 text-white">Full System</a><button type="button" class="btn btn-secondary rounded-pill" data-bs-dismiss="modal">Close</button></div>
             </div>
         </div>
     </div>
@@ -1707,18 +1256,12 @@ if ($conn) {
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Manage Event</h5><button type="button" class="btn-close"
-                        data-bs-dismiss="modal"></button>
+                    <h5 class="modal-title">Manage Event</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="eventForm"><input type="hidden" id="eventId"><input type="text" class="form-control mb-3"
-                            id="eventTitle" placeholder="Title"><input type="datetime-local" class="form-control mb-3"
-                            id="eventStart"><input type="datetime-local" class="form-control mb-3" id="eventEnd"><input
-                            type="color" class="form-control" id="eventColor"></form>
+                    <form id="eventForm"><input type="hidden" id="eventId"><input type="text" class="form-control mb-3" id="eventTitle" placeholder="Title"><input type="datetime-local" class="form-control mb-3" id="eventStart"><input type="datetime-local" class="form-control mb-3" id="eventEnd"><input type="color" class="form-control" id="eventColor"></form>
                 </div>
-                <div class="modal-footer"><button id="deleteEventBtn"
-                        class="btn btn-danger me-auto">Delete</button><button id="saveEventBtn"
-                        class="btn btn-primary">Save</button></div>
+                <div class="modal-footer"><button id="deleteEventBtn" class="btn btn-danger me-auto">Delete</button><button id="saveEventBtn" class="btn btn-primary">Save</button></div>
             </div>
         </div>
     </div>
@@ -1801,7 +1344,7 @@ if ($conn) {
         attachSearch('activeUserSearch', 'activeUsersContainer');
         attachSearch('pendingSearch', 'pendingRequestsContainer');
         attachSearch('parkingSearch', 'parkingContainer');
-        attachSearch('studentParkingSearch', 'studentParkingContainer'); // New Student Parking Search
+        attachSearch('studentParkingSearch', 'studentParkingContainer'); 
 
         document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('currentDateDisplay').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
