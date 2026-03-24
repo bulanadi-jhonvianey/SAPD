@@ -38,16 +38,16 @@ $table_sql = "CREATE TABLE IF NOT EXISTS violator_logs (
 )";
 $conn->query($table_sql);
 
-// Session Queue - Now using multi-page system
+// Session Queue - Using multi-page system
 if (!isset($_SESSION['log_print_queue'])) {
-    $_SESSION['log_print_queue'] = [[]]; // Start with one page
+    $_SESSION['log_print_queue'] = [[]]; // Start with one empty page
     $_SESSION['current_page'] = 0;
 }
 if (!isset($_SESSION['current_page'])) {
     $_SESSION['current_page'] = 0;
 }
 
-// Session Officer Name
+// Session Officer Name (default empty)
 if (!isset($_SESSION['current_officer'])) {
     $_SESSION['current_officer'] = '';
 }
@@ -74,22 +74,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_log'])) {
     $time = $conn->real_escape_string($_POST['report_time']);
     $officer = $conn->real_escape_string($_POST['officer_name']);
 
-    $_SESSION['current_officer'] = $officer;
+    // Determine which page to add to
+    $target_page = $current_page;
+    if (count($_SESSION['log_print_queue'][$current_page]) >= $MAX_LOG_ROWS) {
+        // Current page is full – create a new page and switch to it
+        $_SESSION['log_print_queue'][] = [];
+        $target_page = count($_SESSION['log_print_queue']) - 1;
+        $_SESSION['current_page'] = $target_page;
+        $current_page = $target_page; // update local variable
+        // Set the officer name for the new page (from form)
+        $_SESSION['current_officer'] = $officer;
+    }
 
+    // Insert into database
     $stmt = $conn->prepare("INSERT INTO violator_logs (report_date, student_name, location, violation, report_time, officer_name) VALUES (?, ?, ?, ?, ?, ?)");
-
     if ($stmt) {
         $stmt->bind_param("ssssss", $date, $student, $location, $violation, $time, $officer);
         if ($stmt->execute()) {
-            // Add to current page
-            $_SESSION['log_print_queue'][$current_page][] = [
+            // Add to queue on the determined page
+            $_SESSION['log_print_queue'][$target_page][] = [
                 'date' => $date,
                 'student' => $student,
                 'location' => $location,
                 'violation' => $violation,
                 'time' => $time
             ];
-            
             header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
             exit();
         } else {
@@ -122,6 +131,7 @@ if (isset($_GET['reprint_id'])) {
             $_SESSION['log_print_queue'][] = [];
             $page_to_add = count($_SESSION['log_print_queue']) - 1;
             $_SESSION['current_page'] = $page_to_add; // Switch to the new page
+            $current_page = $page_to_add; // update local variable
         }
         $_SESSION['log_print_queue'][$page_to_add][] = $entry;
         $_SESSION['auto_print'] = true; // Flag to auto print after reload
@@ -130,9 +140,9 @@ if (isset($_GET['reprint_id'])) {
     exit();
 }
 
-// HANDLE: EDIT (load data into form) - we do this via JavaScript, no server action needed
+// HANDLE: EDIT (load data into form) - done via JavaScript, no server action needed
 
-// HANDLE: NEW SHEET
+// HANDLE: NEW SHEET (manual)
 if (isset($_POST['new_sheet'])) {
     $_SESSION['log_print_queue'][] = []; // Add new page
     $_SESSION['current_page'] = count($_SESSION['log_print_queue']) - 1; // Set to new page
@@ -145,6 +155,7 @@ if (isset($_GET['page'])) {
     $page_num = intval($_GET['page']);
     if ($page_num >= 0 && $page_num < count($_SESSION['log_print_queue'])) {
         $_SESSION['current_page'] = $page_num;
+        $current_page = $page_num;
     }
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
@@ -202,7 +213,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -212,7 +222,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <style>
-        /* --- OLD ENGLISH TEXT MT FONT --- */
         @font-face {
             font-family: "Old English Text MT";
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
@@ -299,6 +308,19 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         }
 
         .btn-theme:hover { background: var(--accent); color: white; border-color: var(--accent); }
+
+            //* Match employee form action button sizes */
+        .table .btn-sm {
+            padding: 6px 12px !important; /* Rectangular padding */
+            width: auto;                  /* Removes the fixed square width */
+            height: auto;                 /* Removes the fixed square height */
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.875rem;          /* Standard icon size */
+            margin: 0 2px;                /* Keeps them from bumping into each other */
+        }
 
         /* --- LAYOUT --- */
         .main-container {
@@ -631,40 +653,32 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             <form method="POST" id="logForm">
                 <input type="text" name="student_name" id="in_student" class="form-control"
-                    placeholder="Name of Violator" required oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                    placeholder="Name of Violator" required oninput="updatePreview()">
 
                 <input type="text" name="location" id="in_location" class="form-control" placeholder="Location" required
-                    oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                    oninput="updatePreview()">
 
                 <input type="text" name="violation" id="in_violation" class="form-control" placeholder="Violation"
-                    required oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                    required oninput="updatePreview()">
 
                 <div class="row">
                     <div class="col-6">
                         <label class="time-date-label">Time</label>
                         <input type="time" name="report_time" id="in_time" class="form-control time-input" required
-                            onchange="updatePreview()" oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                            onchange="updatePreview()" oninput="updatePreview()">
                     </div>
                     <div class="col-6">
                         <label class="time-date-label">Date</label>
                         <input type="date" name="report_date" id="in_date" class="form-control date-input" required
-                            onchange="updatePreview()" oninput="updatePreview()" <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                            onchange="updatePreview()" oninput="updatePreview()">
                     </div>
                 </div>
 
                 <input type="text" name="officer_name" id="in_officer" class="form-control"
                     placeholder="Safety Officer (Signatory)" required oninput="updatePreview()">
 
-                <?php if ($is_page_full): ?>
-                    <div class="alert alert-warning text-center mb-3">
-                        <i class="fa fa-exclamation-triangle me-2"></i>
-                        <strong>Page Full!</strong> Create a new sheet to add more entries.
-                    </div>
-                <?php endif; ?>
-
                 <div class="d-flex gap-2">
-                    <button type="submit" name="add_to_log" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2"
-                        <?php echo $is_page_full ? 'disabled' : ''; ?>>
+                    <button type="submit" name="add_to_log" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO LOG SHEET
                     </button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2" id="resetBtn"
@@ -676,43 +690,33 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             <hr class="border-secondary my-4">
 
-            <div class="row g-2">
-                <?php if ($is_page_full): ?>
-                    <div class="col-12 mb-2">
-                        <form method="POST" class="m-0">
-                            <button type="submit" name="new_sheet" class="btn btn-purple w-100 fw-bold py-3 btn-new-sheet">
-                                <i class="fa fa-plus me-2"></i> NEW SHEET (Page <?php echo $total_pages + 1; ?>)
-                            </button>
-                        </form>
-                    </div>
-                <?php endif; ?>
-                
-                <div class="col-6">
-                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold py-3" <?php echo $total_queue_items == 0 ? 'disabled' : ''; ?>>
-                        <i class="fa fa-print me-2"></i> Print Queue 
-                        <?php if ($total_queue_items > 0): ?>
-                            (<?php echo $total_queue_items; ?>)
-                        <?php endif; ?>
+            <div class="mb-2">
+                <form method="POST" class="m-0">
+                    <button type="submit" name="new_sheet" class="btn btn-purple w-100 fw-bold py-2 btn-new-sheet d-flex align-items-center justify-content-center">
+                        <i class="fa fa-plus me-2"></i> NEW SHEET (PAGE <?php echo $total_pages + 1; ?>)
                     </button>
-                </div>
-                
-                <div class="col-6">
-                    <button onclick="printBlank()" class="btn btn-secondary w-100 fw-bold py-3 text-white">
-                        <i class="fa fa-file me-2"></i> Blank Form
-                    </button>
-                </div>
-                
-                <?php if ($total_queue_items > 0): ?>
-                    <div class="col-12 mt-2">
-                        <form method="POST" class="m-0">
-                            <button type="submit" name="clear_all_queues" class="btn btn-danger w-100 fw-bold py-3"
-                                onclick="return confirm('Clear ALL pages? This cannot be undone!')">
-                                <i class="fa fa-trash me-2"></i> Clear Queue
-                            </button>
-                        </form>
-                    </div>
-                <?php endif; ?>
+                </form>
             </div>
+
+            <div class="d-flex gap-2 mb-2">
+                <button type="button" onclick="printQueue()" class="btn btn-success flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center" <?php echo $total_queue_items == 0 ? 'disabled' : ''; ?>>
+                    <i class="fa fa-print me-2"></i> PRINT QUEUE <?php echo $total_queue_items > 0 ? "({$total_queue_items})" : ""; ?>
+                </button>
+                
+                <button type="button" onclick="printBlank()" class="btn btn-secondary flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center text-white">
+                    <i class="fa fa-file me-2"></i> BLANK FORM
+                </button>
+            </div>
+            
+            <?php if ($total_queue_items > 0): ?>
+                <form method="POST" class="m-0">
+                    <button type="submit" name="clear_all_queues" class="btn btn-danger w-100 fw-bold py-2 d-flex align-items-center justify-content-center"
+                        onclick="return confirm('Clear ALL pages? This cannot be undone!')">
+                        <i class="fa fa-trash me-2"></i> CLEAR QUEUE
+                    </button>
+                </form>
+            <?php endif; ?>
+            
         </div>
 
         <div class="right-panel">
@@ -843,7 +847,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
                 <table class="log-table">
                     <thead>
-                        32
+                        <tr>
                             <th class="col-date">DATE</th>
                             <th class="col-name">NAME OF VIOLATOR</th>
                             <th class="col-loc">LOCATION</th>
@@ -853,13 +857,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     </thead>
                     <tbody>
                         <?php for ($i = 0; $i < $MAX_LOG_ROWS; $i++): ?>
-                            <tr>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
+                            <tr><td></td><td></td><td></td><td></td><td></td></tr>
                         <?php endfor; ?>
                     </tbody>
                 </table>
@@ -894,12 +892,13 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
+                    <tr>
                         <th>ID</th>
                         <th>Student Name</th>
                         <th>Violation</th>
                         <th>Location</th>
                         <th>Date</th>
-                        <th>Actions</th>
+                        <th class="text-center">ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -911,23 +910,19 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                                 <td><?php echo htmlspecialchars($row['violation']); ?></td>
                                 <td><?php echo htmlspecialchars($row['location']); ?></td>
                                 <td><?php echo $row['report_date']; ?></td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <!-- View button (read-only modal) -->
                                         <button type="button" class="btn btn-sm btn-info text-white"
                                             onclick='showViewModal(<?php echo json_encode($row); ?>)' title="View">
                                             <i class="fa fa-eye"></i>
                                         </button>
-                                        <!-- Edit button (load into form) -->
                                         <button type="button" class="btn btn-sm btn-warning text-white"
                                             onclick='editRecord(<?php echo json_encode($row); ?>)' title="Edit">
                                             <i class="fa fa-pencil-alt"></i>
                                         </button>
-                                        <!-- Reprint button -->
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary text-white" title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </a>
-                                        <!-- Delete button -->
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                             onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
                                     </div>
@@ -948,7 +943,6 @@ foreach ($_SESSION['log_print_queue'] as $page) {
         </div>
     </div>
 
-    <!-- View Modal (Read-Only) -->
     <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background-color: var(--panel-bg); color: var(--text-main);">
@@ -957,30 +951,12 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Student Name:</div>
-                        <div class="col-md-9" id="view_student"></div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Location:</div>
-                        <div class="col-md-9" id="view_location"></div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Violation:</div>
-                        <div class="col-md-9" id="view_violation"></div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Date:</div>
-                        <div class="col-md-9" id="view_date"></div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Time:</div>
-                        <div class="col-md-9" id="view_time"></div>
-                    </div>
-                    <div class="row mb-2">
-                        <div class="col-md-3 fw-bold">Safety Officer:</div>
-                        <div class="col-md-9" id="view_officer"></div>
-                    </div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Student Name:</div><div class="col-md-9" id="view_student"></div></div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Location:</div><div class="col-md-9" id="view_location"></div></div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Violation:</div><div class="col-md-9" id="view_violation"></div></div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Date:</div><div class="col-md-9" id="view_date"></div></div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Time:</div><div class="col-md-9" id="view_time"></div></div>
+                    <div class="row mb-2"><div class="col-md-3 fw-bold">Safety Officer:</div><div class="col-md-9" id="view_officer"></div></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1012,15 +988,11 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             document.getElementById('view_location').innerText = data.location || '';
             document.getElementById('view_violation').innerText = data.violation || '';
             document.getElementById('view_date').innerText = data.report_date || '';
-            // Format time nicely
             let timeVal = data.report_time;
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
                 let ampm = 'AM';
-                if (h >= 12) {
-                    ampm = 'PM';
-                    if (h > 12) h = h - 12;
-                }
+                if (h >= 12) { ampm = 'PM'; if (h > 12) h = h - 12; }
                 if (h == 0) h = 12;
                 timeVal = `${h}:${m} ${ampm}`;
             }
@@ -1091,10 +1063,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 if (timeVal) {
                     let [h, m] = timeVal.split(':');
                     let ampm = 'AM';
-                    if (h >= 12) {
-                        ampm = 'PM';
-                        if (h > 12) h = h - 12;
-                    }
+                    if (h >= 12) { ampm = 'PM'; if (h > 12) h = h - 12; }
                     if (h == 0) h = 12;
                     document.getElementById('p_time').innerText = `${h}:${m} ${ampm}`;
                 } else {
@@ -1141,5 +1110,4 @@ foreach ($_SESSION['log_print_queue'] as $page) {
     </script>
 
 </body>
-
 </html>

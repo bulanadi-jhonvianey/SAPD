@@ -1280,7 +1280,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                         <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
                         <div class="officer-container">
                             <div class="officer-box">
-                                <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
+                                <div class="officer-name-line">JERRY R. MULDONG, SO2</div>
                                 <div class="officer-position">Safety and Protection Officer</div>
                             </div>
 
@@ -1432,7 +1432,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                             <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
                             <div class="officer-container">
                                 <div class="officer-box">
-                                    <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
+                                    <div class="officer-name-line">JERRY R. MULDONG, SO2</div>
                                     <div class="officer-position">Safety and Protection Officer</div>
                                 </div>
                                 <div class="officer-box">
@@ -1558,7 +1558,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the incident:</div>
                     <div class="officer-container">
                         <div class="officer-box">
-                            <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
+                            <div class="officer-name-line">JERRY R. MULDONG, SO2</div>
                             <div class="officer-position">Safety and Protection Officer</div>
                         </div>
                         <div class="officer-box">

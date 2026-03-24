@@ -1527,7 +1527,7 @@ try {
                         <th>DEPARTMENT</th>
                         <th>VEHICLE</th>
                         <th>CONTACT</th>
-                        <th>ACTIONS</th>
+                        <th class="text-center">ACTIONS</th>
                      </tr>
                 </thead>
                 <tbody>
@@ -1540,7 +1540,7 @@ try {
                                 <td><?php echo htmlspecialchars($row['department'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars(($row['vehicle_brand'] ?? '') . ' ' . ($row['vehicle_color'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars($row['contact_number'] ?? ''); ?></td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button onclick='showViewModal(<?php echo json_encode($row); ?>)' class="btn btn-sm btn-info text-white" title="View">
                                             <i class="fa fa-eye"></i>
@@ -1569,7 +1569,6 @@ try {
         </div>
     </div>
 
-    <!-- View Modal (Read-Only) -->
     <div class="modal fade" id="viewModal" tabindex="-1" aria-labelledby="viewModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content" style="background-color: var(--panel-bg); color: var(--text-main);">

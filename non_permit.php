@@ -97,8 +97,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_layout'])) {
     $_SESSION['np_layout_settings']['course_x'] = intval($_POST['course_x'] ?? 0);
     $_SESSION['np_layout_settings']['course_y'] = intval($_POST['course_y'] ?? 129);
     $_SESSION['np_layout_settings']['plate_size'] = intval($_POST['plate_size'] ?? 11);
-    $_SESSION['np_layout_settings']['plate_x'] = intval($_POST['plate_x'] ?? 45);
-    $_SESSION['np_layout_settings']['plate_y'] = intval($_POST['plate_y'] ?? 35);
+    $_SESSION['np_layout_settings']['plate_x'] = intval($_POST['plate_x'] ?? 6);
+    $_SESSION['np_layout_settings']['plate_y'] = intval($_POST['plate_y'] ?? 180);
     $_SESSION['np_layout_settings']['qr_size'] = intval($_POST['qr_size'] ?? 60);
     $_SESSION['np_layout_settings']['qr_x'] = intval($_POST['qr_x'] ?? 5);
     $_SESSION['np_layout_settings']['qr_y'] = intval($_POST['qr_y'] ?? 15);
@@ -138,14 +138,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_permit'])) {
                         VALUES ('$name', '$course', '$plate', '$fb_link', '$global_permit_no', '$sy')";
 
         $conn->query($insert_sql);
+        $new_id = $conn->insert_id;
 
         // 3. ADD TO PRINT QUEUE
         $_SESSION['np_print_queue'][] = [
+            'id' => $new_id,
             'name' => strtoupper($name),
             'course' => strtoupper($course),
             'plate' => strtoupper($plate),
             'permit_no' => $global_permit_no,
-            'qr_data' => $fb_link ? $fb_link : "NoData",
+            'qr_data' => $fb_link ?: "NoData",
             'sy' => $sy,
             'cw' => $_SESSION['np_layout_settings']['card_w'],
             'ch' => $_SESSION['np_layout_settings']['card_h'],
@@ -197,26 +199,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permit'])) {
                     WHERE id = $permit_id";
 
     if ($conn->query($update_sql)) {
+        // Also update queue if it exists
+        foreach ($_SESSION['np_print_queue'] as $key => $item) {
+            if (isset($item['id']) && $item['id'] == $permit_id) {
+                $_SESSION['np_print_queue'][$key]['name'] = strtoupper($name);
+                $_SESSION['np_print_queue'][$key]['course'] = strtoupper($course);
+                $_SESSION['np_print_queue'][$key]['plate'] = strtoupper($plate);
+                $_SESSION['np_print_queue'][$key]['qr_data'] = $fb_link ?: "NoData";
+                $_SESSION['np_print_queue'][$key]['sy'] = $sy;
+                break;
+            }
+        }
         echo "<script>alert('Permit updated successfully!'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
         exit;
     }
 }
 
-// HANDLE: REPRINT PERMIT
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reprint_permit'])) {
-    $permit_id = intval($_POST['permit_id']);
-
+// HANDLE: REPRINT PERMIT (GET)
+if (isset($_GET['reprint_id'])) {
+    $permit_id = intval($_GET['reprint_id']);
     $sql = "SELECT * FROM non_pro_permits WHERE id = $permit_id";
     $result = $conn->query($sql);
-
     if ($result && $result->num_rows > 0) {
         $permit = $result->fetch_assoc();
         $_SESSION['np_print_queue'][] = [
+            'id' => $permit['id'],
             'name' => strtoupper($permit['name']),
             'course' => strtoupper($permit['course']),
             'plate' => strtoupper($permit['plate_number']),
             'permit_no' => $permit['permit_number'],
-            'qr_data' => $permit['fb_link'] ? $permit['fb_link'] : "NoData",
+            'qr_data' => $permit['fb_link'] ?: "NoData",
             'sy' => $permit['school_year'],
             'cw' => $_SESSION['np_layout_settings']['card_w'],
             'ch' => $_SESSION['np_layout_settings']['card_h'],
@@ -250,6 +262,14 @@ if (isset($_GET['delete_id'])) {
     $delete_sql = "DELETE FROM non_pro_permits WHERE id = $delete_id";
 
     if ($conn->query($delete_sql)) {
+        // Remove from queue if present
+        foreach ($_SESSION['np_print_queue'] as $key => $item) {
+            if (isset($item['id']) && $item['id'] == $delete_id) {
+                unset($_SESSION['np_print_queue'][$key]);
+                break;
+            }
+        }
+        $_SESSION['np_print_queue'] = array_values($_SESSION['np_print_queue']);
         echo "<script>alert('Permit deleted successfully!'); window.location.href = '" . $_SERVER['PHP_SELF'] . "';</script>";
         exit;
     }
@@ -289,17 +309,17 @@ $row = $res->fetch_assoc();
 $next_display_id = ($row['max_id'] !== null) ? $row['max_id'] + 1 : 1;
 
 // --- SEARCH LOGIC ---
-$search_query = "";
+$sql = "SELECT * FROM non_pro_permits";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search = $conn->real_escape_string($_GET['search']);
-    $sql = "SELECT * FROM non_pro_permits WHERE name LIKE '%$search%' OR course LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
-} else {
-    try {
-        $sql = "SELECT * FROM non_pro_permits ORDER BY id DESC LIMIT 5";
-        $recent_permits = $conn->query($sql);
-    } catch (Exception $e) {
-        $recent_permits = false;
-    }
+    $sql .= " WHERE name LIKE '%$search%' OR course LIKE '%$search%' OR plate_number LIKE '%$search%'";
+}
+$sql .= " ORDER BY id DESC LIMIT 50";
+
+try {
+    $recent_permits = $conn->query($sql);
+} catch (Exception $e) {
+    $recent_permits = false;
 }
 ?>
 
@@ -446,6 +466,31 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             max-width: 450px;
             display: flex;
             flex-direction: column;
+        }
+
+        /* --- FORCE LEFT PANEL STYLES (MATCH EMPLOYEE FORM) --- */
+        .left-panel {
+            background-color: #13203c !important;
+            color: #ffffff !important;
+        }
+
+        .left-panel .panel-title,
+        .left-panel label,
+        .left-panel .form-check-label,
+        .left-panel small,
+        .left-panel span {
+            color: #ffffff !important;
+        }
+
+        .left-panel .form-control,
+        .left-panel .form-select {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
         }
 
         .right-panel {
@@ -695,33 +740,6 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             border-color: var(--border);
             background-color: transparent;
             color: var(--text-main);
-        }
-
-        .btn-reprint {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0;
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-edit {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-delete {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-            border: none;
         }
 
         #print-area {
@@ -1136,20 +1154,26 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
 
     <div class="bottom-panel">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT STUDENT ENTRIES</h5>
-            <span class="badge bg-dark">Total:
-                <?php echo $conn->query("SELECT COUNT(*) as total FROM non_pro_permits")->fetch_assoc()['total']; ?></span>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT STUDENT ENTRIES</h5>
+                <?php
+                $total_count = $conn->query("SELECT COUNT(*) as total FROM non_pro_permits")->fetch_assoc()['total'];
+                ?>
+                <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <form method="GET" class="d-flex gap-0" style="width: 300px;">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search..."
+                            value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="margin-bottom: 0;">
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
+                        <?php if (isset($_GET['search'])): ?>
+                            <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <form method="GET" class="mb-3 d-flex gap-2">
-            <input type="text" name="search" class="form-control mb-0" placeholder="Search by Name, Course, or Plate..."
-                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
-                style="max-width: 300px;">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-            <?php if (isset($_GET['search'])): ?>
-                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
-            <?php endif; ?>
-        </form>
 
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
@@ -1162,13 +1186,12 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
                         <th>Plate #</th>
                         <th>AY</th>
                         <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
+                        <th class="text-center">Actions</th>
+                    </thead>
                 <tbody>
-                    <?php if ($recent_permits->num_rows > 0): ?>
+                    <?php if ($recent_permits && $recent_permits->num_rows > 0): ?>
                         <?php while ($row = $recent_permits->fetch_assoc()): ?>
-                            <tr>
+                        
                                 <td><?php echo $row['id']; ?></td>
                                 <td><span class="badge bg-warning text-dark"><?php echo $row['permit_number']; ?></span></td>
                                 <td><?php echo strtoupper($row['name']); ?></td>
@@ -1176,31 +1199,24 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
                                 <td><?php echo strtoupper($row['plate_number']); ?></td>
                                 <td><?php echo strtoupper($row['school_year']); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                <td>
-                                    <div class="d-flex">
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="permit_id" value="<?php echo $row['id']; ?>">
-                                            <button type="submit" name="reprint_permit" class="btn btn-sm btn-info btn-reprint"
-                                                title="Reprint this permit">
-                                                <i class="fa fa-print"></i>
-                                            </button>
-                                        </form>
-                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary btn-edit"
-                                            title="Edit this permit">
-                                            <i class="fa fa-edit"></i>
+                                <td class="text-center" style="white-space: nowrap;">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning text-white" title="Edit this permit">
+                                            <i class="fa fa-pencil-alt"></i>
                                         </a>
-                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger btn-delete"
-                                            onclick="return confirm('Are you sure you want to delete this permit?')"
-                                            title="Delete this permit">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint this permit">
+                                            <i class="fa fa-print"></i>
+                                        </a>
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this permit?')" title="Delete this permit">
                                             <i class="fa fa-trash"></i>
                                         </a>
                                     </div>
                                 </td>
-                            </tr>
+                            
                         <?php endwhile; ?>
                     <?php else: ?>
                         <tr>
-                            <td colspan="8" class="text-center opacity-50">No records.</td>
+                            <td colspan="8" class="text-center opacity-50">No records found.</td>
                         </tr>
                     <?php endif; ?>
                 </tbody>
@@ -1221,7 +1237,7 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             $ny = $item['ny'];
             $cs = $item['cs'];
             $cx = $item['cx'];
-            $cy = $item['cy']; // Course size
+            $cy = $item['cy'];
             $ps = $item['ps'];
             $px = $item['px'];
             $py = $item['py'];
@@ -1230,8 +1246,7 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             $qy = $item['qy'];
             $cts = $item['cts'];
             $ctx = $item['ctx'];
-            $cty = $item['cty']; // Count size
-            // Year Settings
+            $cty = $item['cty'];
             $ss = $item['ss'];
             $sx = $item['sx'];
             $sy_pos = $item['sy_pos'];
@@ -1274,7 +1289,6 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             const isLight = document.body.classList.contains('light-mode');
             document.getElementById('themeBtn').innerHTML = isLight ? '<i class="fa fa-sun"></i>' : '<i class="fa fa-moon"></i>';
 
-            // Sync with Dashboard logic (appTheme)
             const themeValue = isLight ? 'light' : 'dark';
             localStorage.setItem('appTheme', themeValue);
             document.cookie = "theme=" + themeValue + "; path=/; max-age=31536000";
@@ -1293,8 +1307,7 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
         // Layout Toggle State Management
         let layoutVisible = false;
 
-        // Initialize layout panel state from localStorage
-        const savedLayoutState = localStorage.getItem('npLayoutVisible'); // Different key from employee
+        const savedLayoutState = localStorage.getItem('npLayoutVisible');
         if (savedLayoutState === 'true') {
             layoutVisible = true;
             document.getElementById('layoutSettingsPanel').classList.add('show');
@@ -1334,14 +1347,11 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
         }
 
         function updatePreview() {
-            // Sync hidden fields
             syncHiddenFields();
 
-            // --- 1. GET DATA ---
             let displayName = document.getElementById('in_name').value.toUpperCase() || "NAME";
             let displayAy = document.getElementById('in_sy').value || "Enter AY";
 
-            // Apply Text
             document.getElementById('out_name').innerText = displayName;
             document.getElementById('out_course').innerText = document.getElementById('in_course').value.toUpperCase() || "COURSE / YEAR";
             document.getElementById('out_plate').innerText = document.getElementById('in_plate').value.toUpperCase() || "-------";
@@ -1351,12 +1361,10 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             let qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=" + (link ? encodeURIComponent(link) : "Empty");
             document.getElementById('out_qr').src = qrUrl;
 
-            // Update count if not editing
             <?php if (!$editing_permit): ?>
                 document.getElementById('out_ctrl').innerText = <?php echo $next_display_id; ?>;
             <?php endif; ?>
 
-            // --- 3. LAYOUT UPDATES ---
             let cW = document.getElementById('card_w').value;
             let cH = document.getElementById('card_h').value;
             let card = document.getElementById('preview-card');

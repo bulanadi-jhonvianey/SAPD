@@ -704,35 +704,6 @@ $recent_permits = $conn->query($sql);
             color: var(--text-main);
         }
 
-        /* Reprint button in table */
-        .btn-reprint {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0;
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-            border: none;
-        }
-
-        /* Edit and Delete buttons */
-        .btn-edit {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-delete {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-            border: none;
-        }
-
         #print-area {
             display: none;
         }
@@ -764,6 +735,47 @@ $recent_permits = $conn->query($sql);
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+        }
+
+        /* --- Force left panel styling to match employee form --- */
+        .left-panel {
+            background-color: #13203c !important;
+            color: #ffffff !important;
+        }
+
+        .left-panel .panel-title,
+        .left-panel .form-label,
+        .left-panel .badge-next,
+        .left-panel .badge-queue,
+        .left-panel label,
+        .left-panel .form-check-label,
+        .left-panel small,
+        .left-panel span {
+            color: #ffffff !important;
+        }
+
+        .left-panel .form-control,
+        .left-panel .form-select {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .left-panel .form-control:focus,
+        .left-panel .form-select:focus {
+            background-color: #1f2f4e !important;
+            border-color: #007bff !important;
+            color: #ffffff !important;
+            box-shadow: none;
+        }
+
+        .left-panel .panel-header,
+        .left-panel .panel-title {
+            color: #ffffff !important;
         }
     </style>
 </head>
@@ -1116,21 +1128,26 @@ $recent_permits = $conn->query($sql);
     </div>
 
     <div class="bottom-panel">
+        <!-- Modified Header with Search on Right -->
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT DATABASE ENTRIES</h5>
-            <span class="badge bg-dark">Total:
-                <?php echo $conn->query("SELECT COUNT(*) as total FROM permits")->fetch_assoc()['total']; ?></span>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="fw-bold m-0" style="color: #ffffff;"><i class="fa fa-database me-2"></i> RECENT DATABASE ENTRIES</h5>
+                <span class="badge bg-dark">Total:
+                    <?php echo $conn->query("SELECT COUNT(*) as total FROM permits")->fetch_assoc()['total']; ?></span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <form method="GET" class="d-flex gap-0" style="width: 300px;">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search..."
+                            value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="margin-bottom: 0;">
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
+                        <?php if (isset($_GET['search'])): ?>
+                            <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <form method="GET" class="mb-3 d-flex gap-2">
-            <input type="text" name="search" class="form-control mb-0" placeholder="Search by Name, Dept, or Plate..."
-                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
-                style="max-width: 300px;">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-            <?php if (isset($_GET['search'])): ?>
-                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
-            <?php endif; ?>
-        </form>
 
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
@@ -1143,7 +1160,7 @@ $recent_permits = $conn->query($sql);
                         <th>Plate #</th>
                         <th>AY</th>
                         <th>Date</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1157,22 +1174,18 @@ $recent_permits = $conn->query($sql);
                                 <td><?php echo strtoupper($row['plate_number']); ?></td>
                                 <td><?php echo strtoupper($row['school_year']); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                <td>
-                                    <div class="d-flex">
+                                <td class="text-center" style="white-space: nowrap;">
+                                    <div class="d-flex gap-2 justify-content-center">
                                         <form method="POST" style="display: inline;">
                                             <input type="hidden" name="permit_id" value="<?php echo $row['id']; ?>">
-                                            <button type="submit" name="reprint_permit" class="btn btn-sm btn-info btn-reprint"
-                                                title="Reprint this permit">
+                                            <button type="submit" name="reprint_permit" class="btn btn-sm btn-info" title="Reprint this permit">
                                                 <i class="fa fa-print"></i>
                                             </button>
                                         </form>
-                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary btn-edit"
-                                            title="Edit this permit">
+                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary" title="Edit this permit">
                                             <i class="fa fa-edit"></i>
                                         </a>
-                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger btn-delete"
-                                            onclick="return confirm('Are you sure you want to delete this permit?')"
-                                            title="Delete this permit">
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this permit?')" title="Delete this permit">
                                             <i class="fa fa-trash"></i>
                                         </a>
                                     </div>

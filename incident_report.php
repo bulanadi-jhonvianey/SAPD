@@ -661,11 +661,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
             <hr class="border-secondary my-4">
 
+            <!-- BUTTONS SECTION: MODIFIED TO MATCH EMPLOYEE FORM -->
             <div class="row g-2">
                 <div class="col-6">
-                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" <?php echo count($_SESSION['incident_print_queue']) == 0 ? 'disabled' : ''; ?>>
+                    <button onclick="printQueue()" class="btn btn-success w-100 fw-bold h-100" id="printQueueBtn">
                         <i class="fa fa-print me-2"></i> Print Queue
-                        (<?php echo count($_SESSION['incident_print_queue']); ?>)
                     </button>
                 </div>
                 <div class="col-6">
@@ -676,14 +676,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 <?php if (count($_SESSION['incident_print_queue']) > 0): ?>
                     <div class="col-12">
                         <form method="POST" class="m-0">
-                            <button type="submit" name="clear_queue" class="btn btn-danger w-100 fw-bold"
-                                onclick="return confirm('Clear all items from print queue?')">
+                            <input type="hidden" name="clear_queue" value="1">
+                            <button type="submit" class="btn btn-danger w-100 fw-bold" onclick="return confirm('Clear queue?')">
                                 <i class="fa fa-trash me-2"></i> Clear Queue
                             </button>
                         </form>
                     </div>
                 <?php endif; ?>
             </div>
+            <!-- END BUTTONS SECTION -->
         </div>
 
         <div class="right-panel">
@@ -1177,6 +1178,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function printQueue() { document.body.classList.remove('print-blank'); window.print(); }
         function printBlank() { document.body.classList.add('print-blank'); window.print(); }
 
+        // Enable/disable Print Queue button based on queue count
+        function updatePrintButton() {
+            const btn = document.getElementById('printQueueBtn');
+            const queueCount = <?php echo count($_SESSION['incident_print_queue']); ?>;
+            if (btn) btn.disabled = queueCount === 0;
+        }
+
         // Trigger automatic printing when a specific record is added to the queue from Reprint
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
             window.addEventListener('load', function() {
@@ -1513,6 +1521,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         document.addEventListener('DOMContentLoaded', function () {
             updatePreview();
             updateImagePreview();
+            updatePrintButton(); // <-- new call to enable/disable Print Queue button
             setTimeout(() => {
                 const alerts = document.querySelectorAll('.alert');
                 alerts.forEach(alert => { new bootstrap.Alert(alert).close(); });

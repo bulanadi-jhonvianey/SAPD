@@ -58,8 +58,8 @@ $stats = [
     'guidance' => 0,
     'incident' => 0,
     'vaping' => 0,
-    'parking_form' => 0,
-    'student_parking_form' => 0, // NEW
+    'parking_form' => 0,          // Employee parking
+    'student_parking_form' => 0,  // Student parking
     'emp_permit' => 0,
     'student_permit' => 0,
     'non_pro_permit' => 0,
@@ -86,9 +86,9 @@ if ($conn) {
     $stats['incident'] = get_cnt($conn, "SELECT COUNT(*) as c FROM incident_reports");
     $stats['vaping'] = get_cnt($conn, "SELECT COUNT(*) as c FROM vaping_reports");
 
-    // FIXED: Separated database tables
-    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM employee_application");
-    $stats['student_parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM student_application");
+    // FIXED: Use correct table names (plural) that match the forms
+    $stats['parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM employee_applications");
+    $stats['student_parking_form'] = get_cnt($conn, "SELECT COUNT(*) as c FROM student_applications");
 
     $stats['cctv_req'] = get_cnt($conn, "SELECT COUNT(*) as c FROM cctv_requests");
 
@@ -204,20 +204,20 @@ if ($conn) {
     } catch (Exception $e) {
     }
 
-    // 10. FIXED: Employee Parking Applications
+    // 10. FIXED: Employee Parking Applications (table: employee_applications)
     $recent_parking = [];
     try {
-        $res = $conn->query("SELECT * FROM employee_application ORDER BY id DESC LIMIT 10");
+        $res = $conn->query("SELECT * FROM employee_applications ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_parking[] = $row;
     } catch (Exception $e) {
     }
 
-    // 11. FIXED: Student Parking Applications
+    // 11. FIXED: Student Parking Applications (table: student_applications)
     $recent_student_parking = [];
     try {
-        $res = $conn->query("SELECT * FROM student_application ORDER BY id DESC LIMIT 10");
+        $res = $conn->query("SELECT * FROM student_applications ORDER BY id DESC LIMIT 10");
         if ($res)
             while ($row = $res->fetch_assoc())
                 $recent_student_parking[] = $row;
@@ -238,6 +238,7 @@ if ($conn) {
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 
     <style>
+        /* --- CSS unchanged, same as original --- */
         @import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap");
         @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap");
 
@@ -682,9 +683,9 @@ if ($conn) {
             </div>
             
             <div class="col mini-card-col">
-                <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#employeeParkingModal">
+                <div class="mini-card cursor-pointer" data-bs-toggle="modal" data-bs-target="#parkingModal">
                     <div class="mini-icon text-success"><i class="fas fa-car-side"></i></div>
-                    <div class="mini-value"><?php echo $stats['employee_parking_form']; ?></div>
+                    <div class="mini-value"><?php echo $stats['parking_form']; ?></div>
                     <div class="mini-label">Emp. Parking</div>
                 </div>
             </div>

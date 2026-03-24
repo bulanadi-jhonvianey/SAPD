@@ -1544,7 +1544,7 @@ try {
                         <th>COURSE & YEAR</th>
                         <th>VEHICLE</th>
                         <th>CONTACT</th>
-                        <th>ACTIONS</th>
+                        <th class="text-center">ACTIONS</th>
                       </tr>
                 </thead>
                 <tbody>
@@ -1557,13 +1557,15 @@ try {
                                 <td><?php echo htmlspecialchars($row['course_year'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars(($row['vehicle_brand'] ?? '') . ' ' . ($row['vehicle_color'] ?? '')); ?></td>
                                 <td><?php echo htmlspecialchars($row['contact_number'] ?? ''); ?></td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary text-white"><i class="fa fa-print"></i></a>
-                                        <button onclick='loadData(<?php echo json_encode($row); ?>)'
-                                            class="btn btn-sm btn-info text-white"><i class="fa fa-eye"></i></button>
-                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
-                                            onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary text-white" title="Reprint"><i class="fa fa-print"></i></a>
+                                        
+                                        <button onclick='loadData(<?php echo json_encode($row); ?>)' class="btn btn-sm btn-info text-white" title="View"><i class="fa fa-eye"></i></button>
+                                        
+                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning text-dark" title="Edit"><i class="fa fa-edit"></i></a>
+                                        
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')" title="Delete"><i class="fa fa-trash"></i></a>
                                     </div>
                                 </td>
                               </tr>

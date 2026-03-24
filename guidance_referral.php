@@ -1088,22 +1088,23 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
 
                 <table class="info-table">
-
+                    <tr>
                         <td class="label-col">Student's/ Pupil's Name</td>
                         <td class="input-cell" id="out_student"></td>
                     </tr>
-
+                    <tr>
                         <td class="label-col">Grade/Year/Course/Section</td>
                         <td class="input-cell" id="out_grade"></td>
                     </tr>
-
+                    <tr>
                         <td class="label-col">Person making referral</td>
                         <td class="input-cell" id="out_referrer"></td>
                     </tr>
-
+                    <tr>
                         <td class="label-col">Time:</td>
                         <td class="input-cell" id="out_time"></td>
                     </tr>
+                    <tr>
                         <td class="label-col">Date:</td>
                         <td class="input-cell" id="out_date"></td>
                     </tr>
@@ -1200,11 +1201,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
             </div>
             <table class="info-table">
-                32<td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo htmlspecialchars($p['student']); ?></td></tr>
-                32<td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo htmlspecialchars($p['grade']); ?></td></tr>
-                32<td class="label-col">Person making referral</td><td class="input-cell"><?php echo htmlspecialchars($p['referrer']); ?></td></tr>
-                32<td class="label-col">Time:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
-                32<td class="label-col">Date:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
+                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"><?php echo htmlspecialchars($p['student']); ?></td></tr>
+                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"><?php echo htmlspecialchars($p['grade']); ?></td></tr>
+                <tr><td class="label-col">Person making referral</td><td class="input-cell"><?php echo htmlspecialchars($p['referrer']); ?></td></tr>
+                <tr><td class="label-col">Time:</td><td class="input-cell"><?php echo $print_time; ?></td></tr>
+                <tr><td class="label-col">Date:</td><td class="input-cell"><?php echo $p['date']; ?></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -1272,11 +1273,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                 </div>
             </div>
             <table class="info-table">
-                32<td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"></td></tr>
-                32<td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"></td></tr>
-                32<td class="label-col">Person making referral</td><td class="input-cell"></td></tr>
-                32<td class="label-col">Time:</td><td class="input-cell"></td></tr>
-                32<td class="label-col">Date:</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Student's/ Pupil's Name</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Grade/Year/Course/Section</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Person making referral</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Time:</td><td class="input-cell"></td></tr>
+                <tr><td class="label-col">Date:</td><td class="input-cell"></td></tr>
             </table>
             <div class="referral-reasons">
                 <div>Reason/s for referral (Please check all that apply):</div>
@@ -1319,7 +1320,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
-                    
+                    <tr>
                         <th>ID</th>
                         <th>Student Name</th>
                         <th>Level/Section</th>
@@ -1327,7 +1328,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                         <th>Date</th>
                         <th>Images</th>
                         <th>Reasons</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1374,6 +1375,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                             }
                             ?>
                             
+                            <tr>
                                 <td><?php echo $row['id']; ?></td>
                                 <td><?php echo htmlspecialchars($row['student_name']); ?></td>
                                 <td><?php echo htmlspecialchars($row['grade_section']); ?></td>
@@ -1381,22 +1383,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
                                 <td><?php echo $row['referral_date']; ?></td>
                                 <td><?php echo $img_html; ?></td>
                                 <td><small><?php echo mb_strimwidth($reason_display, 0, 40, "..."); ?></small></td>
-                                <td class="text-end">
+                                <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <!-- Reprint button -->
                                         <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success" title="Add to print queue"><i class="fa fa-print"></i></a>
-                                        <!-- View button (read-only modal) -->
                                         <button type="button" class="btn btn-sm btn-info text-white" onclick="showViewModal(<?php echo $preview_json; ?>)"><i class="fa fa-eye"></i></button>
-                                        <!-- Edit button (load into form) -->
                                         <button type="button" class="btn btn-sm btn-warning text-white" onclick="editRecord(<?php echo $preview_json; ?>)"><i class="fa fa-pencil-alt"></i></button>
-                                        <!-- Delete button -->
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')"><i class="fa fa-trash"></i></a>
                                     </div>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                        32<td colspan="8" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
+                        <tr><td colspan="8" class="text-center py-4"><i class="fa fa-database fa-2x mb-3"></i><br>No records found.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>

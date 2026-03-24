@@ -229,23 +229,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_permit'])) {
     }
 }
 
-// HANDLE: REPRINT STUDENT PERMIT
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reprint_permit'])) {
-    $permit_id = intval($_POST['permit_id']);
-
+// HANDLE: REPRINT STUDENT PERMIT (GET)
+if (isset($_GET['reprint_id'])) {
+    $permit_id = intval($_GET['reprint_id']);
     $sql = "SELECT * FROM student_permits WHERE id = $permit_id";
     $result = $conn->query($sql);
-
     if ($result && $result->num_rows > 0) {
         $permit = $result->fetch_assoc();
-
         $_SESSION['student_print_queue'][] = [
             'id' => $permit['id'],
             'name' => strtoupper($permit['name']),
             'dept' => strtoupper($permit['department']),
             'plate' => strtoupper($permit['plate_number']),
             'permit_no' => $permit['permit_number'],
-            'qr_data' => $permit['fb_link'] ? $permit['fb_link'] : "NoData",
+            'qr_data' => $permit['fb_link'] ?: "NoData",
             'sy' => $permit['school_year'],
             'valid_until' => $permit['valid_until'],
             'cw' => $_SESSION['student_layout_settings']['card_w'],
@@ -272,7 +269,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['reprint_permit'])) {
             'sx' => $_SESSION['student_layout_settings']['sy_x'],
             'sy_pos' => $_SESSION['student_layout_settings']['sy_y']
         ];
-
         header("Location: " . $_SERVER['PHP_SELF']);
         exit;
     }
@@ -341,6 +337,7 @@ $search_query = "";
 if (isset($_GET['search']) && !empty($_GET['search'])) {
     $search = $conn->real_escape_string($_GET['search']);
     $sql = "SELECT * FROM student_permits WHERE name LIKE '%$search%' OR department LIKE '%$search%' OR plate_number LIKE '%$search%' ORDER BY id DESC LIMIT 50";
+    $recent_permits = $conn->query($sql);
 } else {
     try {
         $sql = "SELECT * FROM student_permits ORDER BY id DESC LIMIT 10";
@@ -486,6 +483,8 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             color: white;
             border-color: var(--accent);
         }
+
+        /* REMOVED custom .btn-sm override to match employee form size */
 
         .main-container {
             display: flex;
@@ -784,35 +783,6 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             color: var(--text-main);
         }
 
-        /* Reprint button in table */
-        .btn-reprint {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0;
-            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
-            color: white;
-            border: none;
-        }
-
-        /* Edit and Delete buttons */
-        .btn-edit {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-delete {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            margin: 0 2px;
-            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
-            color: white;
-            border: none;
-        }
-
         #print-area {
             display: none;
         }
@@ -868,6 +838,47 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
                 opacity: 1;
                 transform: translateY(0);
             }
+        }
+
+        /* --- Force left panel styling to match employee form --- */
+        .left-panel {
+            background-color: #13203c !important;
+            color: #ffffff !important;
+        }
+
+        .left-panel .panel-title,
+        .left-panel .form-label,
+        .left-panel .badge-next,
+        .left-panel .badge-queue,
+        .left-panel label,
+        .left-panel .form-check-label,
+        .left-panel small,
+        .left-panel span {
+            color: #ffffff !important;
+        }
+
+        .left-panel .form-control,
+        .left-panel .form-select {
+            background-color: #1f2f4e !important;
+            color: #ffffff !important;
+            border-color: #2c3e50 !important;
+        }
+
+        .left-panel .form-control::placeholder {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        .left-panel .form-control:focus,
+        .left-panel .form-select:focus {
+            background-color: #1f2f4e !important;
+            border-color: #007bff !important;
+            color: #ffffff !important;
+            box-shadow: none;
+        }
+
+        .left-panel .panel-header,
+        .left-panel .panel-title {
+            color: #ffffff !important;
         }
     </style>
 </head>
@@ -1185,19 +1196,17 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
             <hr class="border-secondary my-4">
 
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="small opacity-75">Print Queue Management</span>
+                <span class="small opacity-75">Queue Management</span>
                 <span class="badge-queue">QUEUE: <?php echo count($_SESSION['student_print_queue']); ?> PERMITS</span>
             </div>
 
             <div class="d-flex gap-2">
                 <button onclick="window.print()" class="btn btn-primary flex-grow-1 fw-bold" <?php echo count($_SESSION['student_print_queue']) == 0 ? 'disabled' : ''; ?>>
-                    <i class="fa fa-print me-2"></i> Print Queue
+                    Print Queue
                 </button>
-
-                <a href="unified_print.php" class="btn btn-warning fw-bold">
-                    <i class="fa fa-layer-group me-2"></i> Unified Print
+                <a href="unified_print.php" class="btn btn-warning flex-grow-1 fw-bold">
+                    Unified Print
                 </a>
-
                 <?php if (count($_SESSION['student_print_queue']) > 0): ?>
                     <form method="POST" onsubmit="return confirm('Clear all permits from print queue?');">
                         <button type="submit" name="clear_queue" class="btn btn-danger fw-bold">
@@ -1261,23 +1270,27 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
 
     <div class="bottom-panel">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT STUDENT PERMIT ENTRIES</h5>
-            <?php
-            $count_res = $conn->query("SELECT COUNT(*) as total FROM student_permits");
-            $total_records = $count_res ? $count_res->fetch_assoc()['total'] : 0;
-            ?>
-            <span class="badge bg-dark">Total: <?php echo $total_records; ?></span>
+            <div class="d-flex align-items-center gap-3">
+                <h5 class="fw-bold m-0" style="color: #ffffff;"><i class="fa fa-database me-2"></i> RECENT STUDENT PERMIT ENTRIES</h5>
+                <?php
+                $count_res = $conn->query("SELECT COUNT(*) as total FROM student_permits");
+                $total_records = $count_res ? $count_res->fetch_assoc()['total'] : 0;
+                ?>
+                <span class="badge bg-dark">Total: <?php echo $total_records; ?></span>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <form method="GET" class="d-flex gap-0" style="width: 300px;">
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" placeholder="Search..."
+                            value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>" style="margin-bottom: 0;">
+                        <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
+                        <?php if (isset($_GET['search'])): ?>
+                            <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
+                        <?php endif; ?>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <form method="GET" class="mb-3 d-flex gap-2">
-            <input type="text" name="search" class="form-control mb-0" placeholder="Search by Name, Dept, or Plate..."
-                value="<?php echo isset($_GET['search']) ? htmlspecialchars($_GET['search']) : ''; ?>"
-                style="max-width: 300px;">
-            <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-            <?php if (isset($_GET['search'])): ?>
-                <a href="<?php echo $_SERVER['PHP_SELF']; ?>" class="btn btn-secondary"><i class="fa fa-times"></i></a>
-            <?php endif; ?>
-        </form>
 
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
@@ -1291,7 +1304,7 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
                         <th>AY</th>
                         <th>Valid Until</th>
                         <th>Date Added</th>
-                        <th>Actions</th>
+                        <th class="text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -1306,22 +1319,15 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
                                 <td><?php echo strtoupper($row['school_year']); ?></td>
                                 <td><?php echo htmlspecialchars($row['valid_until']); ?></td>
                                 <td><?php echo date('M d, Y', strtotime($row['created_at'])); ?></td>
-                                <td>
-                                    <div class="d-flex">
-                                        <form method="POST" style="display: inline;">
-                                            <input type="hidden" name="permit_id" value="<?php echo $row['id']; ?>">
-                                            <button type="submit" name="reprint_permit" class="btn btn-sm btn-info btn-reprint"
-                                                title="Reprint this permit">
-                                                <i class="fa fa-print"></i>
-                                            </button>
-                                        </form>
-                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary btn-edit"
-                                            title="Edit this permit">
-                                            <i class="fa fa-edit"></i>
+                                <td class="text-center" style="white-space: nowrap;">
+                                    <div class="d-flex gap-1 justify-content-center">
+                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning text-white" title="Edit this permit">
+                                            <i class="fa fa-pencil-alt"></i>
                                         </a>
-                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger btn-delete"
-                                            onclick="return confirm('Are you sure you want to delete this student permit?')"
-                                            title="Delete this permit">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint this permit">
+                                            <i class="fa fa-print"></i>
+                                        </a>
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student permit?')" title="Delete this permit">
                                             <i class="fa fa-trash"></i>
                                         </a>
                                     </div>
@@ -1659,4 +1665,5 @@ if (isset($_GET['search']) && !empty($_GET['search'])) {
     </script>
 
 </body>
+
 </html>
