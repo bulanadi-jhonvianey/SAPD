@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
         if (!empty($uploaded_files)) {
             $image_paths_json = json_encode($uploaded_files);
         }
-        
+
         $stmt = $conn->prepare("INSERT INTO incident_reports (case_title, location, incident_date, incident_time, description, student_name, level_section, parent_name, adviser, image_paths, image_size) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         if ($stmt === false) {
@@ -191,9 +191,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_report'])) {
 
     // If new images are uploaded, handle them here (simplified for space: assuming editing text only or overwriting)
     // For a complete robust system, you'd merge new images with old ones.
-    
+
     $stmt = $conn->prepare("UPDATE incident_reports SET case_title=?, location=?, incident_date=?, incident_time=?, description=?, student_name=?, level_section=?, parent_name=?, adviser=?, image_size=? WHERE id=?");
-    
+
     if ($stmt) {
         $stmt->bind_param("ssssssssssi", $case, $loc, $date, $time, $desc, $student, $level, $parent, $adviser, $img_size, $edit_id);
         if ($stmt->execute()) {
@@ -256,9 +256,12 @@ if (isset($_POST['clear_queue'])) {
     exit();
 }
 
-if (isset($_GET['success'])) $success_msg = "Incident recorded successfully!";
-if (isset($_GET['updated'])) $success_msg = "Incident updated successfully!";
-if (isset($_GET['error'])) $error_msg = "An error occurred.";
+if (isset($_GET['success']))
+    $success_msg = "Incident recorded successfully!";
+if (isset($_GET['updated']))
+    $success_msg = "Incident updated successfully!";
+if (isset($_GET['error']))
+    $error_msg = "An error occurred.";
 
 // --- SEARCH LOGIC ---
 $search_term = "";
@@ -289,10 +292,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             font-family: "Old English Text MT";
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
             font-weight: normal;
             font-style: normal;
         }
@@ -350,12 +353,35 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             filter: brightness(110%);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+            color: white;
+        }
 
         .btn-theme {
             background: var(--input-bg);
@@ -369,7 +395,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             justify-content: center;
         }
 
-        .btn-theme:hover { background: var(--accent); color: white; border-color: var(--accent); }
+        .btn-theme:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
 
         /* --- LAYOUT --- */
         .main-container {
@@ -379,7 +409,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             align-items: stretch;
         }
 
-        .left-panel, .right-panel, .bottom-panel {
+        .left-panel,
+        .right-panel,
+        .bottom-panel {
             background: var(--panel-bg);
             padding: 25px;
             border-radius: 10px;
@@ -387,15 +419,35 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border: 1px solid var(--border);
         }
 
-        .left-panel { flex: 1; max-width: 450px; display: flex; flex-direction: column; }
-        .right-panel { flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; position: relative; background-color: var(--panel-bg); overflow: hidden; }
-        .bottom-panel { margin: 20px; }
+        .left-panel {
+            flex: 1;
+            max-width: 450px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-panel {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            position: relative;
+            background-color: var(--panel-bg);
+            overflow: hidden;
+        }
+
+        .bottom-panel {
+            margin: 20px;
+        }
 
         /* SYNCED FONT COLORS FOR INPUTS */
-        .form-control, .form-range {
+        .form-control,
+        .form-range {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
-            color: var(--text-main) !important; /* Force Sync to Bright Font */
+            color: var(--text-main) !important;
+            /* Force Sync to Bright Font */
             font-weight: 500;
             margin-bottom: 10px;
             padding: 12px;
@@ -404,7 +456,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         .form-control::placeholder {
             color: rgba(255, 255, 255, 0.6);
         }
-        
+
         body.light-mode .form-control::placeholder {
             color: rgba(0, 0, 0, 0.5);
         }
@@ -416,7 +468,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             box-shadow: none;
         }
 
-        .left-panel label, .left-panel .small {
+        .left-panel label,
+        .left-panel .small {
             color: var(--text-main) !important;
             opacity: 0.9;
             font-weight: 600;
@@ -429,107 +482,669 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             border-left: none;
         }
 
-        .input-group .btn-outline-secondary:hover { background-color: var(--accent); color: white; border-color: var(--accent); }
+        .input-group .btn-outline-secondary:hover {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
 
-        .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .panel-title { color: #0d6efd; font-weight: 900; text-transform: uppercase; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
-        .badge-queue { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; padding: 5px 10px; border-radius: 4px; }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .panel-title {
+            color: #0d6efd;
+            font-weight: 900;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge-queue {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
 
         /* --- FORM IMAGE PREVIEWS --- */
-        .form-preview-item { position: relative; width: 80px; height: 80px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-        .form-preview-item img { width: 100%; height: 100%; object-fit: cover; }
-        .form-preview-item .btn-delete-img { position: absolute; top: 2px; right: 2px; background: rgba(220, 53, 69, 0.8); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: background 0.2s; padding: 0; }
-        .form-preview-item .btn-delete-img:hover { background: rgba(220, 53, 69, 1); }
+        .form-preview-item {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .form-preview-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .form-preview-item .btn-delete-img {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            background: rgba(220, 53, 69, 0.8);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+            padding: 0;
+        }
+
+        .form-preview-item .btn-delete-img:hover {
+            background: rgba(220, 53, 69, 1);
+        }
 
         /* ========== NEW HEADER STYLES ========== */
-        .new-header-wrapper { position: relative; width: calc(100% + 0.5in); margin-left: -0.25in; margin-right: -0.25in; margin-top: -0.25in; height: 1.5in; margin-bottom: 0; }
-        .fading-bar { position: absolute; bottom: 20px; left: 0; width: 100%; height: 40px; background: linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat, linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat; z-index: 1; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .header-content { position: relative; z-index: 2; display: flex; align-items: center; height: 100%; padding: 0 0.25in; }
-        .new-header-logo { width: 140px; height: auto; margin-right: 5px; flex-shrink: 0; object-fit: contain; }
-        .text-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100px; padding-bottom: 5px; }
-        .new-header-title { color: #002b7f; font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif; font-size: 32pt; letter-spacing: 0px; margin: 0; line-height: 1; }
-        .divider-line { height: 2px; background: linear-gradient(to right, #002b7f 0%, #002b7f 18%, rgba(0, 43, 127, 0.25) 24%, rgba(0, 43, 127, 0.25) 75%, #002b7f 80%, #002b7f 100%); width: 100%; margin-top: 2px; margin-bottom: 4px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .details { text-align: center; margin-left: 220px; color: #000000; font-size: 9pt; line-height: 1.2; font-family: Arial, sans-serif; }
-        
+        .new-header-wrapper {
+            position: relative;
+            width: calc(100% + 0.5in);
+            margin-left: -0.25in;
+            margin-right: -0.25in;
+            margin-top: -0.25in;
+            height: 1.5in;
+            margin-bottom: 0;
+        }
+
+        .fading-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat, linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
+            z-index: 1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            padding: 0 0.25in;
+        }
+
+        .new-header-logo {
+            width: 140px;
+            height: auto;
+            margin-right: 5px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
+
+        .text-content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            height: 100px;
+            padding-bottom: 5px;
+        }
+
+        .new-header-title {
+            color: #002b7f;
+            font-family: "Old English Text MT", "Engravers Old English", "UnifrakturMaguntia", serif;
+            font-size: 32pt;
+            letter-spacing: 0px;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .divider-line {
+            height: 2px;
+            background: linear-gradient(to right, #002b7f 0%, #002b7f 18%, rgba(0, 43, 127, 0.25) 24%, rgba(0, 43, 127, 0.25) 75%, #002b7f 80%, #002b7f 100%);
+            width: 100%;
+            margin-top: 2px;
+            margin-bottom: 4px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .details {
+            text-align: center;
+            margin-left: 220px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+        }
+
         /* --- PAPER FORM DESIGN --- */
-        .hcc-form { width: 8.5in; height: 14in; background: white; color: black; padding: 0.25in 0.25in 0.25in 0.25in; font-family: Arial, sans-serif; position: relative; box-sizing: border-box; box-shadow: 0 0 20px rgba(0, 0, 0, 0.5); transform: scale(0.65); transform-origin: top center; margin-bottom: -5in; margin-top: 10px; display: flex; flex-direction: column; }
-        .division-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-top: -5px; margin-bottom: 10px; position: relative; z-index: 60; }
-        .sapd-logo { width: 45px; height: auto; object-fit: contain; }
-        .division-title { text-align: center; margin-top: 5px; }
-        .division-title h2 { font-family: "Bookman Old Style", "Times New Roman", serif; font-weight: 900; font-size: 18px; margin: 0; text-transform: uppercase; }
-        .division-title h3 { font-family: "Arial", sans-serif; font-weight: bold; text-decoration: underline; font-size: 14px; margin: 2px 0 0 0; text-transform: uppercase; }
-        .form-table { width: 100%; border-collapse: collapse; border: 2px solid black; border-bottom: none; margin-bottom: 0px; table-layout: fixed; }
-        .form-table td { border: 2px solid black; padding: 4px 6px; vertical-align: middle; font-size: 11pt; color: black; }
-        .label-cell { font-weight: bold; width: 25%; background-color: white; text-transform: uppercase; color: black; }
-        .incident-box { border: 2px solid black; width: 100%; flex-grow: 1; min-height: 500px; margin-bottom: 0px; position: relative; padding: 0; display: flex; flex-direction: column; color: black; }
-        .incident-header { display: flex; border-bottom: 2px solid black; }
-        .incident-title { padding: 5px 10px; font-weight: bold; border-right: 2px solid black; white-space: nowrap; font-size: 12pt; }
-        .incident-subtitle { padding: 5px 10px; font-style: italic; font-size: 11pt; flex-grow: 1; }
-        .incident-content { padding: 5px 8px; font-family: Arial, sans-serif; font-size: 12pt; flex-grow: 1; overflow: hidden; word-wrap: break-word; overflow-wrap: break-word; position: relative; text-align: left; display: flex; flex-direction: column; }
-        .desc-text { white-space: pre-wrap; display: block; width: 100%; }
-        .image-section { display: none; width: 100%; margin-top: auto; padding: 5px 0; box-sizing: border-box; justify-content: center; align-items: flex-end; flex-wrap: wrap; gap: 15px; z-index: 10; }
+        .hcc-form {
+            width: 8.5in;
+            height: 14in;
+            background: white;
+            color: black;
+            padding: 0.25in 0.25in 0.25in 0.25in;
+            font-family: Arial, sans-serif;
+            position: relative;
+            box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+            transform: scale(0.65);
+            transform-origin: top center;
+            margin-bottom: -5in;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .division-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 60;
+        }
+
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
+            font-weight: 900;
+            font-size: 18px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 14px;
+            margin: 2px 0 0 0;
+            text-transform: uppercase;
+        }
+
+        .form-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            border-bottom: none;
+            margin-bottom: 0px;
+            table-layout: fixed;
+        }
+
+        .form-table td {
+            border: 2px solid black;
+            padding: 4px 6px;
+            vertical-align: middle;
+            font-size: 11pt;
+            color: black;
+        }
+
+        .label-cell {
+            font-weight: bold;
+            width: 25%;
+            background-color: white;
+            text-transform: uppercase;
+            color: black;
+        }
+
+        .incident-box {
+            border: 2px solid black;
+            width: 100%;
+            flex-grow: 1;
+            min-height: 500px;
+            margin-bottom: 0px;
+            position: relative;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            color: black;
+        }
+
+        .incident-header {
+            display: flex;
+            border-bottom: 2px solid black;
+        }
+
+        .incident-title {
+            padding: 5px 10px;
+            font-weight: bold;
+            border-right: 2px solid black;
+            white-space: nowrap;
+            font-size: 12pt;
+        }
+
+        .incident-subtitle {
+            padding: 5px 10px;
+            font-style: italic;
+            font-size: 11pt;
+            flex-grow: 1;
+        }
+
+        .incident-content {
+            padding: 5px 8px;
+            font-family: Arial, sans-serif;
+            font-size: 12pt;
+            flex-grow: 1;
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            position: relative;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .desc-text {
+            white-space: pre-wrap;
+            display: block;
+            width: 100%;
+        }
+
+        .image-section {
+            display: none;
+            width: 100%;
+            margin-top: auto;
+            padding: 5px 0;
+            box-sizing: border-box;
+            justify-content: center;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 15px;
+            z-index: 10;
+        }
 
         /* --- CUSTOM DRAG-TO-RESIZE --- */
-        .resize-wrapper { position: relative; display: inline-block; border: 2px dashed transparent; max-width: 100%; min-width: 10%; margin: 0; padding: 0; transition: border-color 0.2s; user-select: none; }
-        .resize-wrapper:hover, .resize-wrapper:active { border-color: rgba(0, 123, 255, 0.7); }
-        .paper-preview-img { width: 100%; height: auto; display: block; pointer-events: none; object-fit: contain; }
-        .resize-handle { position: absolute; background: #007bff; border-radius: 50%; opacity: 0; transition: opacity 0.2s; z-index: 10; }
-        .resize-wrapper:hover .resize-handle, .resize-wrapper:active .resize-handle { opacity: 1; }
-        .resizer-nw { top: -6px; left: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
-        .resizer-ne { top: -6px; right: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
-        .resizer-sw { bottom: -6px; left: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
-        .resizer-se { bottom: -6px; right: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
-        .resizer-n { top: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
-        .resizer-s { bottom: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
-        .resizer-e { top: 50%; right: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
-        .resizer-w { top: 50%; left: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
+        .resize-wrapper {
+            position: relative;
+            display: inline-block;
+            border: 2px dashed transparent;
+            max-width: 100%;
+            min-width: 10%;
+            margin: 0;
+            padding: 0;
+            transition: border-color 0.2s;
+            user-select: none;
+        }
 
-        .signatures-table { width: 100%; border-collapse: collapse; border: 2px solid black; border-top: none; margin-top: 0px; color: black; table-layout: fixed; }
-        .signatures-table td { border: 2px solid black; width: 50%; vertical-align: bottom; font-size: 10pt; font-weight: bold; text-align: center; height: 95px; padding-bottom: 8px; padding-left: 5px; padding-right: 5px; position: relative; }
-        .sig-line { border-bottom: 1px solid black; width: 90%; margin: 0 auto 5px auto; }
-        .sig-val { font-family: 'Courier New', Courier, monospace; font-size: 12pt; font-weight: bold; text-transform: uppercase; position: absolute; bottom: 25px; width: 100%; left: 0; text-align: center; }
-        .form-footer { margin-top: 10px; padding-bottom: 10px; background-color: white; }
-        .copy-furnished-table { width: 100%; border-collapse: collapse; border: 2px solid black; margin-top: 5px; color: black; }
-        .copy-furnished-table td { border: 2px solid black; padding: 4px; width: 33%; vertical-align: top; height: 40px; font-size: 8pt; }
-        
+        .resize-wrapper:hover,
+        .resize-wrapper:active {
+            border-color: rgba(0, 123, 255, 0.7);
+        }
+
+        .paper-preview-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            pointer-events: none;
+            object-fit: contain;
+        }
+
+        .resize-handle {
+            position: absolute;
+            background: #007bff;
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+
+        .resize-wrapper:hover .resize-handle,
+        .resize-wrapper:active .resize-handle {
+            opacity: 1;
+        }
+
+        .resizer-nw {
+            top: -6px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nwse-resize;
+        }
+
+        .resizer-ne {
+            top: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-sw {
+            bottom: -6px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-se {
+            bottom: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nwse-resize;
+        }
+
+        .resizer-n {
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ns-resize;
+        }
+
+        .resizer-s {
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ns-resize;
+        }
+
+        .resizer-e {
+            top: 50%;
+            right: -6px;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ew-resize;
+        }
+
+        .resizer-w {
+            top: 50%;
+            left: -6px;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ew-resize;
+        }
+
+        .signatures-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            border-top: none;
+            margin-top: 0px;
+            color: black;
+            table-layout: fixed;
+        }
+
+        .signatures-table td {
+            border: 2px solid black;
+            width: 50%;
+            vertical-align: bottom;
+            font-size: 10pt;
+            font-weight: bold;
+            text-align: center;
+            height: 95px;
+            padding-bottom: 8px;
+            padding-left: 5px;
+            padding-right: 5px;
+            position: relative;
+        }
+
+        .sig-line {
+            border-bottom: 1px solid black;
+            width: 90%;
+            margin: 0 auto 5px auto;
+        }
+
+        .sig-val {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            position: absolute;
+            bottom: 25px;
+            width: 100%;
+            left: 0;
+            text-align: center;
+        }
+
+        .form-footer {
+            margin-top: 10px;
+            padding-bottom: 10px;
+            background-color: white;
+        }
+
+        .copy-furnished-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 2px solid black;
+            margin-top: 5px;
+            color: black;
+        }
+
+        .copy-furnished-table td {
+            border: 2px solid black;
+            padding: 4px;
+            width: 33%;
+            vertical-align: top;
+            height: 40px;
+            font-size: 8pt;
+        }
+
         /* ===== OFFICER SECTION ===== */
-        .officer-section { margin-top: 15px; font-size: 9pt; color: black; }
-        .officer-title { font-weight: bold; margin-bottom: 8px; text-transform: uppercase; font-size: 8.5pt; }
-        .officer-container { display: flex; justify-content: space-between; align-items: flex-end; width: 100%; margin-bottom: 15px; }
-        .officer-box { width: 220px; text-align: center; }
-        .officer-name-line { font-weight: bold; text-transform: uppercase; font-size: 9pt; }
-        .officer-position { font-size: 8.5pt; }
-        .noted-section { margin-top: 15px; font-size: 9pt; color: black; }
-        .noted-title { font-weight: bold; margin-bottom: 10px; font-size: 8.5pt; }
+        .officer-section {
+            margin-top: 15px;
+            font-size: 9pt;
+            color: black;
+        }
+
+        .officer-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-size: 8.5pt;
+        }
+
+        .officer-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .officer-box {
+            width: 220px;
+            text-align: center;
+        }
+
+        .officer-name-line {
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 9pt;
+        }
+
+        .officer-position {
+            font-size: 8.5pt;
+        }
+
+        .noted-section {
+            margin-top: 15px;
+            font-size: 9pt;
+            color: black;
+        }
+
+        .noted-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 8.5pt;
+        }
 
         /* --- PRINT MEDIA QUERIES --- */
-        @page { size: auto; margin: 0; }
-        #print-area, #print-blank-area { display: none; }
+        @page {
+            size: auto;
+            margin: 0;
+        }
+
+        #print-area,
+        #print-blank-area {
+            display: none;
+        }
+
         @media print {
-            body { margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-            .navbar, .main-container, .bottom-panel, .btn, .alert, .d-print-none { display: none !important; }
-            #print-area { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-            #print-area .hcc-form { transform: none !important; box-shadow: none !important; margin: 0 auto !important; width: 100% !important; height: 100% !important; min-height: 100vh !important; padding: 0.25in 0.25in 0.25in 0.25in !important; }
-            .print-blank #print-area { display: none !important; }
-            .print-blank #print-blank-area { display: block !important; position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
-            .print-blank #print-blank-area .hcc-form { transform: none !important; box-shadow: none !important; margin: 0 auto !important; width: 100% !important; height: 100% !important; min-height: 100vh !important; padding: 0.25in 0.25in 0.25in 0.25in !important; }
-            .new-header-wrapper { margin-top: -0.25in !important; margin-left: -0.25in !important; margin-right: -0.25in !important; padding-top: 0 !important; }
-            .fading-bar, .divider-line { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
-            .image-section { display: flex !important; }
-            .resize-wrapper { border: none !important; }
-            .resize-handle { display: none !important; }
+            body {
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .navbar,
+            .main-container,
+            .bottom-panel,
+            .btn,
+            .alert,
+            .d-print-none {
+                display: none !important;
+            }
+
+            #print-area {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            #print-area .hcc-form {
+                transform: none !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.25in 0.25in 0.25in 0.25in !important;
+            }
+
+            .print-blank #print-area {
+                display: none !important;
+            }
+
+            .print-blank #print-blank-area {
+                display: block !important;
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+            }
+
+            .print-blank #print-blank-area .hcc-form {
+                transform: none !important;
+                box-shadow: none !important;
+                margin: 0 auto !important;
+                width: 100% !important;
+                height: 100% !important;
+                min-height: 100vh !important;
+                padding: 0.25in 0.25in 0.25in 0.25in !important;
+            }
+
+            .new-header-wrapper {
+                margin-top: -0.25in !important;
+                margin-left: -0.25in !important;
+                margin-right: -0.25in !important;
+                padding-top: 0 !important;
+            }
+
+            .fading-bar,
+            .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+            }
+
+            .image-section {
+                display: flex !important;
+            }
+
+            .resize-wrapper {
+                border: none !important;
+            }
+
+            .resize-handle {
+                display: none !important;
+            }
         }
 
         /* THEME TABLES */
-        .table-custom { color: var(--text-main); --bs-table-bg: transparent; --bs-table-striped-bg: rgba(255, 255, 255, 0.03); --bs-table-hover-bg: var(--input-bg); }
-        body.light-mode .table-custom { --bs-table-striped-bg: rgba(0, 0, 0, 0.02); }
-        .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
-        .table-custom td { color: #ffffff !important; border-color: var(--border); }
-        body.light-mode .table-custom td { color: #212529 !important; }
-        .table-custom tbody tr:hover { background-color: var(--input-bg); }
-        .table-img-preview { width: 40px; height: 40px; object-fit: cover; border-radius: 4px; border: 1px solid var(--border); }
-        .text-center.py-4 { color: var(--text-main); opacity: 0.7; }
-        .badge.bg-dark { background-color: var(--input-bg) !important; color: var(--text-main); border: 1px solid var(--border); }
+        .table-custom {
+            color: var(--text-main);
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+            --bs-table-hover-bg: var(--input-bg);
+        }
+
+        body.light-mode .table-custom {
+            --bs-table-striped-bg: rgba(0, 0, 0, 0.02);
+        }
+
+        .table-custom th {
+            background-color: var(--input-bg);
+            color: var(--accent);
+            border-color: var(--border);
+        }
+
+        .table-custom td {
+            color: #ffffff !important;
+            border-color: var(--border);
+        }
+
+        body.light-mode .table-custom td {
+            color: #212529 !important;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: var(--input-bg);
+        }
+
+        .table-img-preview {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .text-center.py-4 {
+            color: var(--text-main);
+            opacity: 0.7;
+        }
+
+        .badge.bg-dark {
+            background-color: var(--input-bg) !important;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
     </style>
 </head>
 
@@ -573,15 +1188,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
                 <input type="hidden" name="edit_id" id="edit_id" value="">
-                
+
                 <label class="small mb-1">Case</label>
                 <input type="text" name="case_title" id="in_case" class="form-control"
                     placeholder="Case (e.g., Bullying, Theft)" required oninput="updatePreview()">
-                
+
                 <label class="small mb-1">Location</label>
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
                     oninput="updatePreview()">
-                    
+
                 <div class="row g-2 mb-2">
                     <div class="col-6">
                         <label class="small mb-1">Student</label>
@@ -634,7 +1249,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <label class="small mb-2 d-block">
                         <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
                         <br>
-                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip:
+                            Drag any edge or corner of the image in the Preview Panel to resize it.</span>
                     </label>
 
                     <input type="file" name="incident_images[]" id="in_images" class="d-none"
@@ -649,7 +1265,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" id="submit_btn" name="submit_report" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
+                    <button type="submit" id="submit_btn" name="submit_report"
+                        class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE
                     </button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"
@@ -677,7 +1294,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <div class="col-12">
                         <form method="POST" class="m-0">
                             <input type="hidden" name="clear_queue" value="1">
-                            <button type="submit" class="btn btn-danger w-100 fw-bold" onclick="return confirm('Clear queue?')">
+                            <button type="submit" class="btn btn-danger w-100 fw-bold"
+                                onclick="return confirm('Clear queue?')">
                                 <i class="fa fa-trash me-2"></i> Clear Queue
                             </button>
                         </form>
@@ -774,7 +1392,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </table>
 
                 <div class="form-footer">
-                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                        to the office of:</div>
                     <table class="copy-furnished-table">
                         <tr>
                             <td>Principal/Dean</td>
@@ -804,7 +1423,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     <div class="noted-section">
                         <div class="noted-title">Noted by:</div>
                         <div style="text-align: left;">
-                            <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                            <div
+                                style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                                 <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                 <div class="officer-position">CHIEF, Safety and Protection</div>
                             </div>
@@ -820,15 +1440,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         <?php if (count($_SESSION['incident_print_queue']) > 0):
             foreach ($_SESSION['incident_print_queue'] as $p):
                 $t = strtotime($p['time']);
-                $print_time = date("h:i A", $t); 
-                
+                $print_time = date("h:i A", $t);
+
                 $print_sizes = [];
                 if (!empty($p['image_size'])) {
                     $decoded_sizes = json_decode($p['image_size'], true);
                     if (is_array($decoded_sizes)) {
                         $print_sizes = $decoded_sizes;
                     } else {
-                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                        $print_sizes = array_fill(0, max(1, count((array) $p['image_paths'])), intval($p['image_size']));
                     }
                 }
                 ?>
@@ -885,11 +1505,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                 <div class="image-section" style="display:flex!important;">
                                     <?php foreach ($p['image_paths'] as $idx => $path): ?>
-                                        <?php 
+                                        <?php
                                         $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 50;
-                                        if (file_exists($path)): 
-                                        ?>
-                                            <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                        if (file_exists($path)):
+                                            ?>
+                                            <div class="resize-wrapper"
+                                                style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
                                                 <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
                                             </div>
                                         <?php endif; ?>
@@ -923,7 +1544,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                     </table>
 
                     <div class="form-footer">
-                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
+                            the office of:</div>
                         <table class="copy-furnished-table">
                             <tr>
                                 <td>Principal/Dean</td>
@@ -952,7 +1574,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                         <div class="noted-section">
                             <div class="noted-title">Noted by:</div>
                             <div style="text-align: left;">
-                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                                <div
+                                    style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                                     <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                     <div class="officer-position">CHIEF, Safety and Protection</div>
                                 </div>
@@ -990,10 +1613,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 </div>
             </div>
             <table class="form-table">
-                <tr><td class="label-cell">CASE</td><td class="input-cell">&nbsp;</td></tr>
-                <tr><td class="label-cell">LOCATION</td><td class="input-cell">&nbsp;</td></tr>
-                <tr><td class="label-cell">DATE</td><td class="input-cell">&nbsp;</td></tr>
-                <tr><td class="label-cell">TIME</td><td class="input-cell">&nbsp;</td></tr>
+                <tr>
+                    <td class="label-cell">CASE</td>
+                    <td class="input-cell">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="label-cell">LOCATION</td>
+                    <td class="input-cell">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="label-cell">DATE</td>
+                    <td class="input-cell">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td class="label-cell">TIME</td>
+                    <td class="input-cell">&nbsp;</td>
+                </tr>
             </table>
             <div class="incident-box">
                 <div class="incident-header">
@@ -1004,34 +1639,53 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             </div>
             <table class="signatures-table">
                 <tr>
-                    <td><div class="sig-line"></div>Student's Name/ Signature</td>
-                    <td><div class="sig-line"></div>Parent's Name/Signature/ Contact Number</td>
+                    <td>
+                        <div class="sig-line"></div>Student's Name/ Signature
+                    </td>
+                    <td>
+                        <div class="sig-line"></div>Parent's Name/Signature/ Contact Number
+                    </td>
                 </tr>
                 <tr>
-                    <td><div class="sig-line"></div>Level/ Section</td>
-                    <td><div class="sig-line"></div>Adviser</td>
+                    <td>
+                        <div class="sig-line"></div>Level/ Section
+                    </td>
+                    <td>
+                        <div class="sig-line"></div>Adviser
+                    </td>
                 </tr>
             </table>
             <div class="form-footer">
-                <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to
+                    the office of:</div>
                 <table class="copy-furnished-table">
                     <tr>
                         <td>Principal/Dean</td>
-                        <td style="text-align: center;">Prefect of Discipline<div style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">Charles Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div></td>
+                        <td style="text-align: center;">Prefect of Discipline<div
+                                style="font-size: 7pt; margin-top: 10px; font-weight: bold; text-align: center;">Charles
+                                Daniel E. Dela Cruz<br>CHIEF, Prefect of Discipline</div>
+                        </td>
                         <td>Others (Specify)</td>
                     </tr>
                 </table>
                 <div class="officer-section">
                     <div class="officer-title">Officer in charge of the incident:</div>
                     <div class="officer-container">
-                        <div class="officer-box"><div class="officer-name-line">JERRY R. MULDONG, SO2</div><div class="officer-position">Safety and Protection Officer</div></div>
-                        <div class="officer-box"><div class="officer-name-line">LESTER P. LUMBANG, SO2</div><div class="officer-position">Safety and Protection Officer</div></div>
+                        <div class="officer-box">
+                            <div class="officer-name-line">JERRY R. MULDONG, SO2</div>
+                            <div class="officer-position">Safety and Protection Officer</div>
+                        </div>
+                        <div class="officer-box">
+                            <div class="officer-name-line">LESTER P. LUMBANG, SO2</div>
+                            <div class="officer-position">Safety and Protection Officer</div>
+                        </div>
                     </div>
                 </div>
                 <div class="noted-section">
                     <div class="noted-title">Noted by:</div>
                     <div style="text-align: left;">
-                        <div style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
+                        <div
+                            style="border-top: 1px solid black; width: 250px; padding-top: 5px; display: inline-block; text-align: center;">
                             <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
                             <div class="officer-position">CHIEF, Safety and Protection</div>
                         </div>
@@ -1123,16 +1777,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                                 <td class="text-end">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button type="button" class="btn btn-sm btn-info text-white"
-                                            onclick="viewPreviewOnly(<?php echo $preview_json; ?>)"
-                                            title="View Record Only">
+                                            onclick="viewPreviewOnly(<?php echo $preview_json; ?>)" title="View Record Only">
                                             <i class="fa fa-eye"></i>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-warning text-white"
-                                            onclick="loadToEdit(<?php echo $preview_json; ?>)"
-                                            title="Edit Record">
+                                            onclick="loadToEdit(<?php echo $preview_json; ?>)" title="Edit Record">
                                             <i class="fa fa-edit"></i>
                                         </button>
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-success text-white" title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </a>
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
@@ -1187,7 +1840,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
         // Trigger automatic printing when a specific record is added to the queue from Reprint
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 printQueue();
             });
             <?php unset($_SESSION['auto_print']); ?>
@@ -1195,26 +1848,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
 
         function autoFitAllTexts() {
             const containers = document.querySelectorAll('.incident-content');
-            
+
             containers.forEach(container => {
                 const textEl = container.querySelector('.desc-text');
                 const imgEl = container.querySelector('.image-section');
-                
+
                 if (!textEl) return;
-                
+
                 textEl.style.fontSize = '12pt';
-                
+
                 const availableHeight = container.clientHeight;
                 if (availableHeight === 0) return;
-                
+
                 let imgHeight = 0;
                 if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
                     imgHeight = imgEl.offsetHeight;
                 }
-                
+
                 let currentSize = 12;
                 const minSize = 7;
-                
+
                 while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
                     currentSize -= 0.5;
                     textEl.style.fontSize = currentSize + 'pt';
@@ -1258,22 +1911,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             try {
                 sizeArray = JSON.parse(savedSizesVal);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
-            } catch(e) {
+            } catch (e) {
                 sizeArray = [parseInt(savedSizesVal) || 50];
             }
 
             function appendImage(src, index) {
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
-                
+
                 let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 50;
                 wrapper.style.width = initialSize + '%';
-                
+
                 let img = document.createElement('img');
                 img.src = src;
                 img.className = 'paper-preview-img';
-                img.onload = function() { autoFitAllTexts(); };
-                
+                img.onload = function () { autoFitAllTexts(); };
+
                 wrapper.appendChild(img);
 
                 const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -1290,16 +1943,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 let original_mouse_x = 0;
                 let original_mouse_y = 0;
 
-                resizers.forEach(function(resizer) {
-                    resizer.addEventListener('mousedown', function(e) {
+                resizers.forEach(function (resizer) {
+                    resizer.addEventListener('mousedown', function (e) {
                         e.preventDefault();
                         original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
                         original_mouse_x = e.pageX;
                         original_mouse_y = e.pageY;
-                        
+
                         function resize(e) {
                             let width = original_width;
-                            
+
                             if (resizer.classList.contains('resizer-e') || resizer.classList.contains('resizer-se') || resizer.classList.contains('resizer-ne')) {
                                 width = original_width + (e.pageX - original_mouse_x);
                             } else if (resizer.classList.contains('resizer-w') || resizer.classList.contains('resizer-sw') || resizer.classList.contains('resizer-nw')) {
@@ -1309,31 +1962,31 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                             } else if (resizer.classList.contains('resizer-n')) {
                                 width = original_width - (e.pageY - original_mouse_y);
                             }
-                            
+
                             let percent = (width / paperImageContainer.clientWidth) * 100;
-                            if(percent > 100) percent = 100;
-                            if(percent < 10) percent = 10;
+                            if (percent > 100) percent = 100;
+                            if (percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
                         }
-                        
+
                         function stopResize() {
                             window.removeEventListener('mousemove', resize);
                             window.removeEventListener('mouseup', stopResize);
-                            
+
                             let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
-                            if(percent > 100) percent = 100;
-                            if(percent < 10) percent = 10;
+                            if (percent > 100) percent = 100;
+                            if (percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
-                            
+
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
                                 updatedSizes.push(parseFloat(w.style.width) || 50);
                             });
                             document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
-                            
+
                             autoFitAllTexts();
                         }
-                        
+
                         window.addEventListener('mousemove', resize);
                         window.addEventListener('mouseup', stopResize);
                     });
@@ -1368,7 +2021,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('out_case').innerText = data.case;
             document.getElementById('out_loc').innerText = data.loc;
             document.getElementById('out_date').innerText = data.date;
-            
+
             let timeVal = data.time;
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
@@ -1378,7 +2031,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             } else {
                 document.getElementById('out_time').innerText = '';
             }
-            
+
             document.getElementById('out_desc').innerText = data.desc;
             document.getElementById('out_student').innerText = data.student || '';
             document.getElementById('out_level').innerText = data.level || '';
@@ -1389,9 +2042,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             loadedImages = data.images || [];
             let savedSize = data.image_size || '[]';
             if (typeof savedSize === 'number') savedSize = JSON.stringify([savedSize]);
-            document.getElementById('in_img_size').value = savedSize; 
-            
-            updateImagePreview(); 
+            document.getElementById('in_img_size').value = savedSize;
+
+            updateImagePreview();
             setTimeout(autoFitAllTexts, 200);
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1420,7 +2073,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('in_images').value = "";
             document.getElementById('form-image-previews').innerHTML = "";
             const formPreviewContainer = document.getElementById('form-image-previews');
-            
+
             if (loadedImages.length > 0) {
                 loadedImages.forEach((src, index) => {
                     let item = document.createElement('div');
@@ -1447,7 +2100,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
             document.getElementById('edit_id').value = "";
             document.getElementById('in_images').value = "";
             document.getElementById('in_img_size').value = "[]";
-            
+
             // Revert Update button back to Add button
             const submitBtn = document.getElementById('submit_btn');
             submitBtn.innerHTML = '<i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE';
@@ -1478,10 +2131,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
                 dt.items.add(file);
             }
             this.files = dt.files;
-            
+
             let currentSizes = [];
-            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-            while(currentSizes.length < this.files.length) currentSizes.push(50);
+            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch (e) { }
+            while (currentSizes.length < this.files.length) currentSizes.push(50);
             document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
             renderFormPreviews();
@@ -1505,14 +2158,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
         function removeFile(index) {
             dt.items.remove(index);
             fileInput.files = dt.files;
-            
+
             try {
                 let sizeArray = JSON.parse(document.getElementById('in_img_size').value);
                 if (Array.isArray(sizeArray)) {
                     sizeArray.splice(index, 1);
                     document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             renderFormPreviews();
             updateImagePreview();
@@ -1530,4 +2183,5 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM incident_reports")->f
     </script>
 
 </body>
+
 </html>

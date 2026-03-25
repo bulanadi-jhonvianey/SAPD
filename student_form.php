@@ -59,7 +59,7 @@ try {
                 image_paths TEXT DEFAULT NULL, 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )";
-    
+
     if (!$conn->query($table_sql)) {
         throw new Exception("Table creation failed: " . $conn->error);
     }
@@ -76,9 +76,10 @@ try {
     // Clean corrupted old sessions
     if (isset($_SESSION['student_print_queue'])) {
         foreach ($_SESSION['student_print_queue'] as $k => $v) {
-            if (!is_array($v) || !isset($v['applicant_name'])) unset($_SESSION['student_print_queue'][$k]);
+            if (!is_array($v) || !isset($v['applicant_name']))
+                unset($_SESSION['student_print_queue'][$k]);
         }
-        $_SESSION['student_print_queue'] = array_values($_SESSION['student_print_queue']); 
+        $_SESSION['student_print_queue'] = array_values($_SESSION['student_print_queue']);
     }
 
     if (!isset($_SESSION['student_print_queue'])) {
@@ -86,15 +87,15 @@ try {
     }
 
     // Helper to print arrays safely
-    $getVal = function($arr, $key) {
+    $getVal = function ($arr, $key) {
         return isset($arr[$key]) ? htmlspecialchars($arr[$key]) : '';
     };
 
     // --- FORM HANDLERS ---
-    
+
     // 1. Submit Application (Using Hidden Input trigger)
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_application') {
-        
+
         // Capture all standard fields (they may be empty)
         $d = [];
         $standard_fields = ['applicant_type', 'applicant_name', 'course_year', 'address', 'contact_number', 'license_no', 'email', 'fb_account', 'vehicle_type', 'vehicle_brand', 'vehicle_color', 'or_no', 'cr_no', 'emerg_name', 'emerg_address', 'emerg_relation', 'emerg_contact'];
@@ -115,7 +116,7 @@ try {
         // Secondary vehicles and violations are not present in the form anymore, so store empty JSON
         $sec_vehicles_json = "[]";
         $violation_json = "[]";
-        $image_paths_json = "[]"; 
+        $image_paths_json = "[]";
 
         // Insert using prepared statement
         $stmt = $conn->prepare("INSERT INTO student_applications 
@@ -126,30 +127,47 @@ try {
             throw new Exception("Database Prepare Failed: " . $conn->error);
         }
 
-        $stmt->bind_param("sssssssssssssssssssss", 
-            $d['applicant_type'], $d['applicant_name'], $d['course_year'], $d['address'], 
-            $d['contact_number'], $d['license_no'], $d['email'], $d['fb_account'], 
-            $d['vehicle_type'], $d['vehicle_brand'], $d['vehicle_color'], $d['or_no'], 
-            $d['cr_no'], $d['emerg_name'], $d['emerg_address'], $d['emerg_relation'], 
-            $d['emerg_contact'], $checklist_json, $sec_vehicles_json, $violation_json, $image_paths_json
+        $stmt->bind_param(
+            "sssssssssssssssssssss",
+            $d['applicant_type'],
+            $d['applicant_name'],
+            $d['course_year'],
+            $d['address'],
+            $d['contact_number'],
+            $d['license_no'],
+            $d['email'],
+            $d['fb_account'],
+            $d['vehicle_type'],
+            $d['vehicle_brand'],
+            $d['vehicle_color'],
+            $d['or_no'],
+            $d['cr_no'],
+            $d['emerg_name'],
+            $d['emerg_address'],
+            $d['emerg_relation'],
+            $d['emerg_contact'],
+            $checklist_json,
+            $sec_vehicles_json,
+            $violation_json,
+            $image_paths_json
         );
 
         if ($stmt->execute()) {
             $last_id = $stmt->insert_id;
             error_log("Inserted student application with ID: $last_id");
-            
+
             // Add to print queue
             $_SESSION['student_print_queue'][] = array_merge($d, $checklist, [
-                'secondary_vehicles' => $sec_vehicles_json, 
-                'violation_data' => $violation_json, 
+                'secondary_vehicles' => $sec_vehicles_json,
+                'violation_data' => $violation_json,
                 'image_paths' => '[]'
             ]);
-            
+
             $stmt->close();
-            
+
             // Force session write before redirect
             session_write_close();
-            
+
             header("Location: " . strtok($_SERVER["REQUEST_URI"], '?') . "?success=1");
             exit();
         } else {
@@ -180,7 +198,7 @@ try {
         if ($res && $res->num_rows > 0) {
             $row_data = $res->fetch_assoc();
             $checks = json_decode($row_data['checklist_data'] ?? '{}', true);
-            if(is_array($checks)) {
+            if (is_array($checks)) {
                 $row_data = array_merge($row_data, $checks);
             }
             $_SESSION['student_print_queue'][] = $row_data;
@@ -286,12 +304,35 @@ try {
             filter: brightness(110%);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+        }
 
         .btn-theme {
             background: var(--input-bg);
@@ -434,13 +475,13 @@ try {
 
         .form-slide {
             flex: 0 0 8.5in;
-            height: 14in; 
+            height: 14in;
             position: relative;
             background: transparent;
             transform: scale(0.6);
             transform-origin: top left;
             margin-right: -3in;
-            margin-bottom: -5.6in; 
+            margin-bottom: -5.6in;
         }
 
         .bottom-panel {
@@ -467,7 +508,7 @@ try {
         .form-control::placeholder {
             color: rgba(128, 128, 128, 0.7);
         }
-        
+
         input[readonly].form-control {
             background-color: var(--input-bg);
             color: var(--text-main);
@@ -502,7 +543,7 @@ try {
         /* --- FORM DESIGN (SCREEN & PRINT SHARED) --- */
         .hcc-form {
             width: 8.5in;
-            height: 14in; 
+            height: 14in;
             background: white;
             color: black;
             padding: 0.35in 0.5in;
@@ -519,9 +560,9 @@ try {
             width: calc(100% + 1in);
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: -0.25in; 
-            height: 1.4in; 
-            margin-bottom: -10px; 
+            margin-top: -0.25in;
+            height: 1.4in;
+            margin-bottom: -10px;
         }
 
         .fading-bar {
@@ -529,8 +570,8 @@ try {
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 40px; 
-            background: 
+            height: 40px;
+            background:
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
@@ -540,17 +581,17 @@ try {
 
         .header-content {
             position: relative;
-            z-index: 2; 
+            z-index: 2;
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 0.5in; 
+            padding: 0 0.5in;
         }
 
         .new-header-logo {
             width: 140px;
             height: auto;
-            margin-right: 5px; 
+            margin-right: 5px;
             flex-shrink: 0;
             object-fit: contain;
         }
@@ -559,8 +600,8 @@ try {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; 
-            height: 100px; 
+            justify-content: flex-end;
+            height: 100px;
             padding-bottom: 5px;
         }
 
@@ -575,14 +616,13 @@ try {
 
         .divider-line {
             height: 2px;
-            background: linear-gradient(to right, 
-                #002b7f 0%, 
-                #002b7f 18%, 
-                rgba(0, 43, 127, 0.25) 24%, 
-                rgba(0, 43, 127, 0.25) 75%, 
-                #002b7f 80%, 
-                #002b7f 100%
-            );
+            background: linear-gradient(to right,
+                    #002b7f 0%,
+                    #002b7f 18%,
+                    rgba(0, 43, 127, 0.25) 24%,
+                    rgba(0, 43, 127, 0.25) 75%,
+                    #002b7f 80%,
+                    #002b7f 100%);
             width: 100%;
             margin-top: 2px;
             margin-bottom: 4px;
@@ -591,7 +631,7 @@ try {
         }
 
         .details {
-            text-align: center; 
+            text-align: center;
             margin-left: 220px;
             color: #000000;
             font-size: 9pt;
@@ -605,7 +645,7 @@ try {
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-bottom: 10px; 
+            margin-bottom: 10px;
             position: relative;
             z-index: 60;
         }
@@ -728,7 +768,7 @@ try {
             border-bottom: none;
             font-size: 9pt;
             padding: 4px;
-            margin-top: 5px; 
+            margin-top: 5px;
             font-family: Arial, sans-serif;
         }
 
@@ -769,7 +809,7 @@ try {
             width: 100%;
             border-collapse: collapse;
             border: 1px solid black;
-            margin-top: 5px; 
+            margin-top: 5px;
             font-size: 8pt;
             text-align: center;
         }
@@ -799,7 +839,7 @@ try {
         .docs-table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 5px; 
+            margin-top: 5px;
         }
 
         .docs-table td {
@@ -819,15 +859,15 @@ try {
         }
 
         .id-cell {
-            width: 2.2in; 
+            width: 2.2in;
             text-align: right;
             vertical-align: top;
             padding-right: 5px;
         }
 
         .id-box {
-            width: 2in; 
-            height: 2in; 
+            width: 2in;
+            height: 2in;
             border: 1px solid black;
             display: flex;
             align-items: center;
@@ -839,7 +879,7 @@ try {
 
         .sig-table {
             width: 100%;
-            margin-top: 10px; 
+            margin-top: 10px;
             font-size: 10pt;
             font-family: Arial, sans-serif;
             border-collapse: collapse;
@@ -847,7 +887,7 @@ try {
 
         .sig-table td {
             vertical-align: top;
-            padding-bottom: 0px; 
+            padding-bottom: 0px;
         }
 
         /* VIOLATION TABLE (BACK) */
@@ -870,25 +910,25 @@ try {
             font-family: "Courier New", monospace;
             font-weight: bold;
             color: black;
-            height: 25px; 
+            height: 25px;
         }
 
         /* WAIVER SPACING ADJUSTMENTS */
         .waiver-text {
-            font-size: 17px; 
+            font-size: 17px;
             text-align: justify;
-            margin-top: 5px; 
-            line-height: 1.1; 
+            margin-top: 5px;
+            line-height: 1.1;
         }
 
         .waiver-text ol {
             padding-left: 25px;
-            margin-top: 0px; 
-            margin-bottom: 0px; 
+            margin-top: 0px;
+            margin-bottom: 0px;
         }
 
         .waiver-text li {
-            margin-bottom: 0px; 
+            margin-bottom: 0px;
         }
 
         .table-custom {
@@ -918,6 +958,7 @@ try {
         }
 
         @media screen {
+
             #print-area,
             #print-blank-area {
                 display: none !important;
@@ -930,8 +971,8 @@ try {
         /* --- PRINT SETTINGS --- */
         @media print {
             @page {
-                size: legal; 
-                margin: 0; 
+                size: legal;
+                margin: 0;
             }
 
             body {
@@ -968,10 +1009,10 @@ try {
 
             .hcc-form {
                 width: 100% !important;
-                height: auto !important; 
+                height: auto !important;
                 min-height: 100% !important;
                 margin: 0 auto !important;
-                padding: 0.25in 0.4in !important; 
+                padding: 0.25in 0.4in !important;
                 box-shadow: none !important;
                 transform: none !important;
                 page-break-after: always !important;
@@ -986,54 +1027,105 @@ try {
             .hcc-form:last-child {
                 page-break-after: auto !important;
             }
-            
+
             .new-header-wrapper {
-                margin-top: -0.25in !important; 
-                margin-bottom: -15px !important; 
-                margin-left: -0.4in !important; 
-                margin-right: -0.4in !important; 
+                margin-top: -0.25in !important;
+                margin-bottom: -15px !important;
+                margin-left: -0.4in !important;
+                margin-right: -0.4in !important;
                 padding-top: 0 !important;
             }
 
             /* --- OVERRIDE FONT SIZES FOR PRINTOUT --- */
-            .data-grid td, .label, .value, 
-            .emerg-table td, .emerg-label, .emerg-val,
-            .mv-table th, .mv-table td, 
-            .docs-table td, .checklist, 
-            .sig-table td, .sig-table div,
-            .violation-table th, .violation-table td, 
-            .details, .status-checkboxes, .file-info {
+            .data-grid td,
+            .label,
+            .value,
+            .emerg-table td,
+            .emerg-label,
+            .emerg-val,
+            .mv-table th,
+            .mv-table td,
+            .docs-table td,
+            .checklist,
+            .sig-table td,
+            .sig-table div,
+            .violation-table th,
+            .violation-table td,
+            .details,
+            .status-checkboxes,
+            .file-info {
                 font-size: 11pt !important;
             }
 
-            .waiver-text, .waiver-text li, .waiver-text p {
+            .waiver-text,
+            .waiver-text li,
+            .waiver-text p {
                 font-size: 17px !important;
                 line-height: 1.1 !important;
                 margin-bottom: 0 !important;
             }
 
-            .new-header-title { font-size: 28pt !important; }
-            .division-title h2 { font-size: 14pt !important; }
-            .division-title h3 { font-size: 11pt !important; }
-            .employee-title { font-size: 16pt !important; }
-            
-            .division-header { margin-bottom: 5px !important; }
-            .violation-table { margin-top: 10px !important; }
-            
-            .data-grid td { height: 25px !important; padding: 4px 5px !important; }
-            .violation-table td { height: 20px !important; padding: 4px !important; }
-            
-            .emerg-header { margin-top: 5px !important; padding: 2px !important; }
-            .mv-table { margin-top: 5px !important; }
-            .docs-table { margin-top: 5px !important; }
-            .sig-table { margin-top: 10px !important; } 
-            .sig-table td { padding-bottom: 0px !important; } 
-
-            .waiver-text { 
-                margin-top: 5px !important; 
+            .new-header-title {
+                font-size: 28pt !important;
             }
-            
-            .fading-bar, .divider-line {
+
+            .division-title h2 {
+                font-size: 14pt !important;
+            }
+
+            .division-title h3 {
+                font-size: 11pt !important;
+            }
+
+            .employee-title {
+                font-size: 16pt !important;
+            }
+
+            .division-header {
+                margin-bottom: 5px !important;
+            }
+
+            .violation-table {
+                margin-top: 10px !important;
+            }
+
+            .data-grid td {
+                height: 25px !important;
+                padding: 4px 5px !important;
+            }
+
+            .violation-table td {
+                height: 20px !important;
+                padding: 4px !important;
+            }
+
+            .emerg-header {
+                margin-top: 5px !important;
+                padding: 2px !important;
+            }
+
+            .mv-table {
+                margin-top: 5px !important;
+            }
+
+            .docs-table {
+                margin-top: 5px !important;
+            }
+
+            .sig-table {
+                margin-top: 10px !important;
+            }
+
+            .sig-table td {
+                padding-bottom: 0px !important;
+            }
+
+            .waiver-text {
+                margin-top: 5px !important;
+            }
+
+            .fading-bar,
+            .divider-line {
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
@@ -1096,8 +1188,9 @@ try {
             <?php endif; ?>
 
             <?php if (!empty($error_msg)): ?>
-                <div class='alert alert-danger alert-dismissible fade show' style="background-color: #ffcccc; color: #cc0000; border: 2px solid #cc0000;">
-                    <strong><i class="fa fa-exclamation-triangle me-2"></i> CRITICAL ERROR DETECTED:</strong><br> 
+                <div class='alert alert-danger alert-dismissible fade show'
+                    style="background-color: #ffcccc; color: #cc0000; border: 2px solid #cc0000;">
+                    <strong><i class="fa fa-exclamation-triangle me-2"></i> CRITICAL ERROR DETECTED:</strong><br>
                     <?php echo $error_msg; ?>
                     <button type='button' class='btn-close' data-bs-dismiss='alert'></button>
                 </div>
@@ -1105,7 +1198,7 @@ try {
 
             <form method="POST" action="" enctype="multipart/form-data" id="appForm">
                 <input type="hidden" name="action" value="save_application">
-                
+
                 <label class="small opacity-75 fw-bold mb-1">APPLICATION STATUS</label>
                 <div class="d-flex gap-3 mb-2">
                     <div class="form-check"><input class="form-check-input" type="checkbox" name="chk_approved"
@@ -1117,7 +1210,8 @@ try {
                 </div>
 
                 <label class="small opacity-75 fw-bold mb-1">APPLICATION TYPE</label>
-                <input type="text" name="applicant_type" id="in_type" class="form-control fw-bold" value="STUDENT" readonly>
+                <input type="text" name="applicant_type" id="in_type" class="form-control fw-bold" value="STUDENT"
+                    readonly>
 
                 <label class="small opacity-75 fw-bold mb-1">APPLICANT DETAILS</label>
                 <input type="text" name="applicant_name" id="in_name" class="form-control"
@@ -1219,7 +1313,8 @@ try {
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
-                    <button type="submit" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2"><i class="fa fa-plus-circle me-2"></i> ADD
+                    <button type="submit" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2"><i
+                            class="fa fa-plus-circle me-2"></i> ADD
                         TO QUEUE</button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"><i
                             class="fa fa-rotate-right"></i></button>
@@ -1238,7 +1333,9 @@ try {
                     <div class="col-12">
                         <form method="POST" class="m-0">
                             <input type="hidden" name="action" value="clear_queue">
-                            <button type="submit" class="btn btn-danger w-100 fw-bold" onclick="return confirm('Clear queue?')"><i class="fa fa-trash me-2"></i> Clear Queue</button>
+                            <button type="submit" class="btn btn-danger w-100 fw-bold"
+                                onclick="return confirm('Clear queue?')"><i class="fa fa-trash me-2"></i> Clear
+                                Queue</button>
                         </form>
                     </div>
                 <?php endif; ?>
@@ -1253,7 +1350,7 @@ try {
             <div class="preview-track">
                 <div class="form-slide">
                     <div class="hcc-form">
-                        
+
                         <div class="new-header-wrapper">
                             <div class="fading-bar"></div>
                             <div class="header-content">
@@ -1276,53 +1373,56 @@ try {
                                 <h3>APPLICATION FOR STUDENTS VEHICLE PARKING SPACE (SY 2026-2027)</h3>
                                 <h1 class="employee-title" id="out_type_preview">STUDENT</h1>
                                 <div class="status-checkboxes"><span class="checkbox-box" id="view_chk_approved"></span>
-                                    Approved &nbsp;&nbsp;&nbsp; <span class="checkbox-box" id="view_chk_disapproved"></span>
+                                    Approved &nbsp;&nbsp;&nbsp; <span class="checkbox-box"
+                                        id="view_chk_disapproved"></span>
                                     Disapproved</div>
                             </div>
                         </div>
 
-                        <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
+                        <div class="file-info"><span>File Application # ____________</span><span>Date:
+                                ___________</span></div>
                         <table class="data-grid">
-                              <tr>
-                                <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span></td>
+                            <tr>
+                                <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First,
+                                        MI)</span></td>
                                 <td class="value" colspan="2" id="out_name"></td>
                                 <td class="label">COURSE & YEAR</td>
                                 <td class="value" id="out_course"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td class="label">ADDRESS</td>
                                 <td class="value" colspan="2" id="out_address"></td>
                                 <td class="label">MOTORIZED VEHICLE TYPE</td>
                                 <td class="value" id="out_vtype"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td class="label">CEL. NO.</td>
                                 <td class="value" colspan="2" id="out_cel"></td>
                                 <td class="label">MOTORIZED VEHICLE BRAND</td>
                                 <td class="value" id="out_vbrand"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td class="label">LICENSE #</td>
                                 <td class="value" colspan="2" id="out_license"></td>
                                 <td class="label">MOTORIZED VEHICLE COLOR</td>
                                 <td class="value" id="out_vcolor"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td class="label">OR #</td>
                                 <td class="value" colspan="2" id="out_or"></td>
                                 <td class="label">CR #</td>
                                 <td class="value" id="out_cr"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td class="label">E-MAIL</td>
                                 <td class="value" colspan="2" id="out_email"></td>
                                 <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
                                 <td class="value" id="out_fb"></td>
-                              </tr>
-                          </table>
+                            </tr>
+                        </table>
                         <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
                         <table class="emerg-table">
-                              <tr>
+                            <tr>
                                 <td style="width: 60%; padding-left: 10px;">
                                     <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
                                             class="emerg-val" id="out_ename"></span></div>
@@ -1330,48 +1430,57 @@ try {
                                             class="emerg-val" id="out_eaddress"></span></div>
                                     <div><span class="emerg-label">Relation:</span> <span class="emerg-val"
                                             id="out_erelation"></span></div>
-                                  </td>
+                                </td>
                                 <td style="width: 40%; vertical-align: top;">
-                                    <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):</div>
+                                    <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):
+                                    </div>
                                     <div id="out_econtact"
                                         style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
                                     </div>
-                                  </td>
-                              </tr>
-                          </table>
+                                </td>
+                            </tr>
+                        </table>
                         <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">
                             Fill up the table below if you are using more than one vehicle:</div>
                         <table class="mv-table">
-                              <tr>
+                            <tr>
                                 <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                                 <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                                 <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                                 <th style="width: 15%;">OR #</th>
                                 <th style="width: 15%;">CR #</th>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td id="out_sec_type_0"></td>
                                 <td id="out_sec_brand_0"></td>
                                 <td id="out_sec_color_0"></td>
                                 <td id="out_sec_or_0"></td>
                                 <td id="out_sec_cr_0"></td>
-                              </tr>
-                              <tr>
+                            </tr>
+                            <tr>
                                 <td id="out_sec_type_1"></td>
                                 <td id="out_sec_brand_1"></td>
                                 <td id="out_sec_color_1"></td>
                                 <td id="out_sec_or_1"></td>
                                 <td id="out_sec_cr_1"></td>
-                              </tr>
-                              <tr>
-                                <td></td><td></td><td></td><td></td><td></td>
-                              </tr>
-                              <tr>
-                                <td></td><td></td><td></td><td></td><td></td>
-                              </tr>
-                          </table>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
+                        </table>
                         <table class="docs-table">
-                              <tr>
+                            <tr>
                                 <td class="checklist">
                                     <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
                                     <div class="mb-1"><span class="checkbox-box" id="view_chk_cr"></span> Certificate of
@@ -1391,32 +1500,34 @@ try {
                                         background)</div>
                                     <div class="mb-1"><span class="checkbox-box" id="view_chk_id_1x1"></span> Updated 1
                                         1"x1" colored ID picture (White background)</div>
-                                  </td>
+                                </td>
                                 <td class="id-cell">
                                     <div class="id-box"></div>
-                                  </td>
-                              </tr>
-                          </table>
+                                </td>
+                            </tr>
+                        </table>
                         <table class="sig-table">
-                              <tr>
+                            <tr>
                                 <td style="text-align: left;">
                                     <div style="width: 300px; margin-left: 0;">
-                                        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;" id="out_sig_name"></div>
+                                        <div style="text-align: center; font-weight: bold; margin-bottom: 5px;"
+                                            id="out_sig_name"></div>
                                         <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
-                                        <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <span id="out_sig_preview">student</span></div>
+                                        <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature
+                                            over printed name of <span id="out_sig_preview">student</span></div>
                                     </div>
                                     <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                                     <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                     <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                                  </td>
-                              </tr>
-                          </table>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
 
                 <div class="form-slide">
                     <div class="hcc-form">
-                        
+
                         <div class="new-header-wrapper">
                             <div class="fading-bar"></div>
                             <div class="header-content">
@@ -1435,28 +1546,28 @@ try {
                         <table class="violation-table"
                             style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                             <thead>
-                                  <tr>
+                                <tr>
                                     <th>Date</th>
                                     <th>Time</th>
                                     <th>Location</th>
                                     <th>Violation</th>
                                     <th>Action Taken</th>
                                     <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                                  </tr>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php for ($i = 0; $i < 5; $i++): ?>
-                                      <tr>
+                                    <tr>
                                         <td id="out_vio_date_<?php echo $i; ?>"></td>
                                         <td id="out_vio_time_<?php echo $i; ?>"></td>
                                         <td id="out_vio_loc_<?php echo $i; ?>"></td>
                                         <td id="out_vio_desc_<?php echo $i; ?>"></td>
                                         <td id="out_vio_action_<?php echo $i; ?>"></td>
                                         <td id="out_vio_officer_<?php echo $i; ?>"></td>
-                                      </tr>
+                                    </tr>
                                 <?php endfor; ?>
                             </tbody>
-                          </table>
+                        </table>
                         <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                             <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga
                                 Patakaran ng Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
@@ -1465,7 +1576,8 @@ try {
                         <div class="waiver-text">
                             <ol>
                                 <li>Ang Gate 2 ay para sa entrance at Gate 1 ay para sa exit.</li>
-                                <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)</li>
+                                <li>Kailangan gamitin ang signal lights tuwing lumiliko (left and right signal lights)
+                                </li>
                                 <li>Bawal ipahiram ng estudyante ang kanilang sasakyan sa mga estudyante o kapwa
                                     empleyado na walang parking permit.</li>
                                 <li>Ang pagpark ay pinapahintulutan lang habang kayo ay nasa eskwelahan, ibig sabihin ay
@@ -1474,17 +1586,20 @@ try {
                                 <li>Wag makipag unahan pagpasok ng eskwelahan. Siguraduhin paupuin ang mga tumatawid sa
                                     daanan.</li>
                                 <li>Siguraduhin magpark sa designated parking slots para sa mga estudyante.</li>
-                                <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.</li>
+                                <li>Ang mga sasakyan na naka-open muffler ay di pwedeng mag-ingay sa loob ng eskwelahan.
+                                </li>
                                 <li>Para sa mga 4-wheels, ang parking permit ay dapat nakadikit sa kaliwang bahagi ng
                                     windshield. Samantalang sa mga single na motorsiklo at may sidecar ay nakalagay sa
-                                    company ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan.</li>
+                                    company ID. Ang walang parking permit ay di makakapasok sa parking ng eskwelahan.
+                                </li>
                                 <li>Ang mga motorsiklo ay dapat may side mirror (left and right)</li>
                                 <li>Sundin ang 15-20 kph speed limit sa loob ng eskwelahan.</li>
                                 <li>Ang paggamit ng busina ay ipinagbabawal sa loob ng paaralan. Sa panahon ng emergency
                                     lang maaring gamitin.</li>
                                 <li>Ang headlight, flashers, stoplight ay dapat gumagana.</li>
                                 <li>Ang estudyante na walang driver's license ay di maaring magpark sa loob ng
-                                    eskwelahan. Ang estudyante na student lang ang lisensya ay bibigyan ng dalawang buwan
+                                    eskwelahan. Ang estudyante na student lang ang lisensya ay bibigyan ng dalawang
+                                    buwan
                                     para makakuha ng non-pro/professional license. Kung hindi makakakuha ay matatangalan
                                     ng pribilehiyo na magpark.</li>
                                 <li>Ang eskwelahan ay walang pananagutan sa mga sasakyan kaya siguraduhin wag mag iwan
@@ -1500,15 +1615,18 @@ try {
                                     pribilehiyo na magpark sa loob ng eskwelahan. Bibigyan din ng kopya ng inyong
                                     violation ang HR. (With accordance to Admin and Faculty Handbook Chapter 8
                                     Violations and Sanctions Section D. 4.)</li>
-                                <li>Ang mga estudyante na ma-aapprove ang parking application ay isasali sa GC(Group Chat
+                                <li>Ang mga estudyante na ma-aapprove ang parking application ay isasali sa GC(Group
+                                    Chat
                                     ng parking)</li>
                                 <li>Ang mga safety officers at school guards ang mag momonitor sa mga di susunod sa
                                     patakaran ng parking.</li>
                             </ol>
                         </div>
                         <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
-                            <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                            <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                            <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng
+                                parking sa Holy Cross College.</p>
+                            <div
+                                style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
                                 Pangalan at lagda ng <span id="out_sig_fil_preview">Estudyante</span>
                             </div>
                         </div>
@@ -1537,7 +1655,7 @@ try {
         <div class="table-responsive">
             <table class="table table-custom table-striped table-hover mb-0">
                 <thead>
-                      <tr>
+                    <tr>
                         <th>ID</th>
                         <th>TYPE</th>
                         <th>NAME</th>
@@ -1545,39 +1663,49 @@ try {
                         <th>VEHICLE</th>
                         <th>CONTACT</th>
                         <th class="text-center">ACTIONS</th>
-                      </tr>
+                    </tr>
                 </thead>
                 <tbody>
                     <?php if ($recent_reports->num_rows > 0): ?>
                         <?php while ($row = $recent_reports->fetch_assoc()): ?>
-                              <tr>
+                            <tr>
                                 <td>#<?php echo $row['id']; ?></td>
-                                <td><span class="badge bg-info text-white"><?php echo htmlspecialchars($row['applicant_type'] ?? 'STUDENT'); ?></span></td>
+                                <td><span
+                                        class="badge bg-info text-white"><?php echo htmlspecialchars($row['applicant_type'] ?? 'STUDENT'); ?></span>
+                                </td>
                                 <td class="fw-bold"><?php echo htmlspecialchars($row['applicant_name'] ?? ''); ?></td>
                                 <td><?php echo htmlspecialchars($row['course_year'] ?? ''); ?></td>
-                                <td><?php echo htmlspecialchars(($row['vehicle_brand'] ?? '') . ' ' . ($row['vehicle_color'] ?? '')); ?></td>
+                                <td><?php echo htmlspecialchars(($row['vehicle_brand'] ?? '') . ' ' . ($row['vehicle_color'] ?? '')); ?>
+                                </td>
                                 <td><?php echo htmlspecialchars($row['contact_number'] ?? ''); ?></td>
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary text-white" title="Reprint"><i class="fa fa-print"></i></a>
-                                        
-                                        <button onclick='loadData(<?php echo json_encode($row); ?>)' class="btn btn-sm btn-info text-white" title="View"><i class="fa fa-eye"></i></button>
-                                        
-                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning text-dark" title="Edit"><i class="fa fa-edit"></i></a>
-                                        
-                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Delete this record?')" title="Delete"><i class="fa fa-trash"></i></a>
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-primary text-white" title="Reprint"><i
+                                                class="fa fa-print"></i></a>
+
+                                        <button onclick='loadData(<?php echo json_encode($row); ?>)'
+                                            class="btn btn-sm btn-info text-white" title="View"><i
+                                                class="fa fa-eye"></i></button>
+
+                                        <a href="?edit_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-warning text-dark"
+                                            title="Edit"><i class="fa fa-edit"></i></a>
+
+                                        <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
+                                            onclick="return confirm('Delete this record?')" title="Delete"><i
+                                                class="fa fa-trash"></i></a>
                                     </div>
                                 </td>
-                              </tr>
+                            </tr>
                         <?php endwhile; ?>
                     <?php else: ?>
-                          <tr>
+                        <tr>
                             <td colspan="7" class="text-center py-4 text-muted"><i
                                     class="fa fa-database fa-2x mb-3"></i><br>No records found.</td>
-                          </tr>
+                        </tr>
                     <?php endif; ?>
                 </tbody>
-              </table>
+            </table>
         </div>
     </div>
 
@@ -1586,7 +1714,7 @@ try {
             <?php foreach ($_SESSION['student_print_queue'] as $p): ?>
 
                 <div class="hcc-form">
-                    
+
                     <div class="new-header-wrapper">
                         <div class="fading-bar"></div>
                         <div class="header-content">
@@ -1609,9 +1737,11 @@ try {
                             <h3>APPLICATION FOR STUDENTS VEHICLE PARKING SPACE (SY 2026-2027)</h3>
                             <h1 class="employee-title"><?php echo strtoupper($getVal($p, 'applicant_type')); ?></h1>
                             <div class="status-checkboxes">
-                                <span class="checkbox-box <?php echo $getVal($p, 'chk_approved') == '1' ? 'checked' : ''; ?>"></span>
+                                <span
+                                    class="checkbox-box <?php echo $getVal($p, 'chk_approved') == '1' ? 'checked' : ''; ?>"></span>
                                 Approved &nbsp;&nbsp;&nbsp;
-                                <span class="checkbox-box <?php echo $getVal($p, 'chk_disapproved') == '1' ? 'checked' : ''; ?>"></span>
+                                <span
+                                    class="checkbox-box <?php echo $getVal($p, 'chk_disapproved') == '1' ? 'checked' : ''; ?>"></span>
                                 Disapproved
                             </div>
                         </div>
@@ -1620,47 +1750,48 @@ try {
                     <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
 
                     <table class="data-grid">
-                          <tr>
-                            <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span></td>
+                        <tr>
+                            <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span>
+                            </td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'applicant_name'); ?></td>
                             <td class="label">COURSE & YEAR</td>
                             <td class="value"><?php echo $getVal($p, 'course_year'); ?></td>
-                          </tr>
-                          <tr>
+                        </tr>
+                        <tr>
                             <td class="label">ADDRESS</td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'address'); ?></td>
                             <td class="label">MOTORIZED VEHICLE TYPE</td>
                             <td class="value"><?php echo $getVal($p, 'vehicle_type'); ?></td>
-                          </tr>
-                          <tr>
+                        </tr>
+                        <tr>
                             <td class="label">CEL. NO.</td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'contact_number'); ?></td>
                             <td class="label">MOTORIZED VEHICLE BRAND</td>
                             <td class="value"><?php echo $getVal($p, 'vehicle_brand'); ?></td>
-                          </tr>
-                          <tr>
+                        </tr>
+                        <tr>
                             <td class="label">LICENSE #</td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'license_no'); ?></td>
                             <td class="label">MOTORIZED VEHICLE COLOR</td>
                             <td class="value"><?php echo $getVal($p, 'vehicle_color'); ?></td>
-                          </tr>
-                          <tr>
+                        </tr>
+                        <tr>
                             <td class="label">OR #</td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'or_no'); ?></td>
                             <td class="label">CR #</td>
                             <td class="value"><?php echo $getVal($p, 'cr_no'); ?></td>
-                          </tr>
-                          <tr>
+                        </tr>
+                        <tr>
                             <td class="label">E-MAIL</td>
                             <td class="value" colspan="2"><?php echo $getVal($p, 'email'); ?></td>
                             <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
                             <td class="value"><?php echo $getVal($p, 'fb_account'); ?></td>
-                          </tr>
-                      </table>
+                        </tr>
+                    </table>
 
                     <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
                     <table class="emerg-table">
-                          <tr>
+                        <tr>
                             <td style="width: 60%; padding-left: 10px;">
                                 <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
                                         class="emerg-val"><?php echo $getVal($p, 'emerg_name'); ?></span></div>
@@ -1668,27 +1799,27 @@ try {
                                         class="emerg-val"><?php echo $getVal($p, 'emerg_address'); ?></span></div>
                                 <div><span class="emerg-label">Relation:</span> <span
                                         class="emerg-val"><?php echo $getVal($p, 'emerg_relation'); ?></span></div>
-                              </td>
+                            </td>
                             <td style="width: 40%; vertical-align: top;">
                                 <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):</div>
                                 <div
                                     style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
                                     <?php echo $getVal($p, 'emerg_contact'); ?>
                                 </div>
-                              </td>
-                          </tr>
-                      </table>
+                            </td>
+                        </tr>
+                    </table>
 
                     <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">Fill up the
                         table below if you are using more than one vehicle:</div>
                     <table class="mv-table">
-                          <tr>
+                        <tr>
                             <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                             <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                             <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                             <th style="width: 15%;">OR #</th>
                             <th style="width: 15%;">CR #</th>
-                          </tr>
+                        </tr>
                         <?php
                         $sec_v = isset($p['secondary_vehicles']) ? json_decode($p['secondary_vehicles'], true) : [];
                         for ($i = 0; $i < 4; $i++) {
@@ -1702,45 +1833,62 @@ try {
                             echo "</tr>";
                         }
                         ?>
-                      </table>
+                    </table>
 
                     <table class="docs-table">
-                          <tr>
+                        <tr>
                             <td class="checklist">
                                 <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_cr') == '1' ? 'checked' : ''; ?>"></span> Certificate of Registration (CR)</div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_or') == '1' ? 'checked' : ''; ?>"></span> Official Receipt (OR)</div>
-                                <div style="margin-top: 10px; margin-bottom: 5px;"><strong>Updated/registered drivers License:</strong></div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_student_lic') == '1' ? 'checked' : ''; ?>"></span> Student Drivers License</div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_nonpro_lic') == '1' ? 'checked' : ''; ?>"></span> Non-Pro Drivers License</div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_pro_lic') == '1' ? 'checked' : ''; ?>"></span> Professional Drivers License</div>
-                                <div style="margin-top: 10px; margin-bottom: 2px;"><span class="checkbox-box <?php echo $getVal($p, 'chk_id_2x2') == '1' ? 'checked' : ''; ?>"></span> Updated 1 2"x2" colored ID picture (White background)</div>
-                                <div class="mb-1"><span class="checkbox-box <?php echo $getVal($p, 'chk_id_1x1') == '1' ? 'checked' : ''; ?>"></span> Updated 1 1"x1" colored ID picture (White background)</div>
-                              </td>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_cr') == '1' ? 'checked' : ''; ?>"></span>
+                                    Certificate of Registration (CR)</div>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_or') == '1' ? 'checked' : ''; ?>"></span>
+                                    Official Receipt (OR)</div>
+                                <div style="margin-top: 10px; margin-bottom: 5px;"><strong>Updated/registered drivers
+                                        License:</strong></div>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_student_lic') == '1' ? 'checked' : ''; ?>"></span>
+                                    Student Drivers License</div>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_nonpro_lic') == '1' ? 'checked' : ''; ?>"></span>
+                                    Non-Pro Drivers License</div>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_pro_lic') == '1' ? 'checked' : ''; ?>"></span>
+                                    Professional Drivers License</div>
+                                <div style="margin-top: 10px; margin-bottom: 2px;"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_id_2x2') == '1' ? 'checked' : ''; ?>"></span>
+                                    Updated 1 2"x2" colored ID picture (White background)</div>
+                                <div class="mb-1"><span
+                                        class="checkbox-box <?php echo $getVal($p, 'chk_id_1x1') == '1' ? 'checked' : ''; ?>"></span>
+                                    Updated 1 1"x1" colored ID picture (White background)</div>
+                            </td>
                             <td class="id-cell">
                                 <div class="id-box"></div>
-                              </td>
-                          </tr>
-                      </table>
+                            </td>
+                        </tr>
+                    </table>
 
                     <table class="sig-table">
-                          <tr>
+                        <tr>
                             <td style="text-align: left;">
                                 <div style="width: 300px; margin-left: 0;">
-                                    <div style="text-align: center; font-weight: bold; margin-bottom: 5px;"><?php echo $getVal($p, 'applicant_name'); ?></div>
+                                    <div style="text-align: center; font-weight: bold; margin-bottom: 5px;">
+                                        <?php echo $getVal($p, 'applicant_name'); ?></div>
                                     <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
-                                    <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <?php echo strtolower($getVal($p, 'applicant_type')); ?></div>
+                                    <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over
+                                        printed name of <?php echo strtolower($getVal($p, 'applicant_type')); ?></div>
                                 </div>
                                 <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                                 <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                                 <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                              </td>
-                          </tr>
-                      </table>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
 
                 <div class="hcc-form">
-                    
+
                     <div class="new-header-wrapper">
                         <div class="fading-bar"></div>
                         <div class="header-content">
@@ -1759,14 +1907,14 @@ try {
                     <table class="violation-table"
                         style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                         <thead>
-                              <tr>
+                            <tr>
                                 <th>Date</th>
                                 <th>Time</th>
                                 <th>Location</th>
                                 <th>Violation</th>
                                 <th>Action Taken</th>
                                 <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                              </tr>
+                            </tr>
                         </thead>
                         <tbody>
                             <?php
@@ -1784,7 +1932,7 @@ try {
                             }
                             ?>
                         </tbody>
-                      </table>
+                    </table>
                     <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                         <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                             Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
@@ -1832,8 +1980,10 @@ try {
                         </ol>
                     </div>
                     <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
-                        <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                        <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                        <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa
+                            Holy Cross College.</p>
+                        <div
+                            style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
                             Pangalan at lagda ng <span id="out_sig_fil_blank">Estudyante</span>
                         </div>
                     </div>
@@ -1846,7 +1996,7 @@ try {
     <div id="print-blank-area">
 
         <div class="hcc-form">
-            
+
             <div class="new-header-wrapper">
                 <div class="fading-bar"></div>
                 <div class="header-content">
@@ -1875,78 +2025,103 @@ try {
 
             <div class="file-info"><span>File Application # ____________</span><span>Date: ___________</span></div>
             <table class="data-grid">
-                  <tr>
-                    <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span></td>
+                <tr>
+                    <td class="label">NAME <br><span style="font-size:7pt; font-weight:normal">(Last, First, MI)</span>
+                    </td>
                     <td class="value" colspan="2"></td>
                     <td class="label">COURSE & YEAR</td>
                     <td class="value"></td>
-                  </tr>
-                  <tr>
+                </tr>
+                <tr>
                     <td class="label">ADDRESS</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE TYPE</td>
                     <td class="value"></td>
-                  </tr>
-                  <tr>
+                </tr>
+                <tr>
                     <td class="label">CEL. NO.</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE BRAND</td>
                     <td class="value"></td>
-                  </tr>
-                  <tr>
+                </tr>
+                <tr>
                     <td class="label">LICENSE #</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">MOTORIZED VEHICLE COLOR</td>
                     <td class="value"></td>
-                  </tr>
-                  <tr>
+                </tr>
+                <tr>
                     <td class="label">OR #</td>
                     <td class="value" colspan="2"></td>
                     <td class="label">CR #</td>
                     <td class="value"></td>
-                  </tr>
-                  <tr>
+                </tr>
+                <tr>
                     <td class="label">E-MAIL</td>
                     <td class="value" colspan="2"></td>
                     <td class="label" style="font-size: 7pt;">VALID/WORKING FACEBOOK ACCOUNT</td>
                     <td class="value"></td>
-                  </tr>
-              </table>
+                </tr>
+            </table>
             <div class="emerg-header">PERSON TO NOTIFY IN CASE OF EMERGENCY</div>
             <table class="emerg-table">
-                  <tr>
+                <tr>
                     <td style="width: 60%; padding-left: 10px;">
                         <div style="margin-bottom: 5px;"><span class="emerg-label">Name:</span> <span
                                 class="emerg-val"></span></div>
                         <div style="margin-bottom: 5px;"><span class="emerg-label">Address:</span> <span
                                 class="emerg-val"></span></div>
                         <div><span class="emerg-label">Relation:</span> <span class="emerg-val"></span></div>
-                      </td>
+                    </td>
                     <td style="width: 40%; vertical-align: top;">
                         <div style="font-weight:bold; font-size:8pt; margin-bottom:5px;">Contact number(s):</div>
                         <div
                             style="font-family:'Calibri', 'Arial', sans-serif; font-weight:bold; font-size:12pt; text-align:center; padding-top:15px;">
                         </div>
-                      </td>
-                  </tr>
-              </table>
+                    </td>
+                </tr>
+            </table>
             <div style="font-size:9pt; margin-top:10px; font-weight:bold; font-family: Arial, sans-serif;">Fill up the
                 table below if you are using more than one vehicle:</div>
             <table class="mv-table">
-                  <tr>
+                <tr>
                     <th style="width: 20%;">MOTORIZED<br>VEHICLE TYPE</th>
                     <th style="width: 25%;">MOTORIZED<br>VEHICLE BRAND</th>
                     <th style="width: 25%;">MOTORIZED<br>VEHICLE COLOR</th>
                     <th style="width: 15%;">OR #</th>
                     <th style="width: 15%;">CR #</th>
-                  </tr>
-                  <tr><td></td><td></td><td></td><td></td><td></td></tr>
-                  <tr><td></td><td></td><td></td><td></td><td></td></tr>
-                  <tr><td></td><td></td><td></td><td></td><td></td></tr>
-                  <tr><td></td><td></td><td></td><td></td><td></td></tr>
-              </table>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            </table>
             <table class="docs-table">
-                  <tr>
+                <tr>
                     <td class="checklist">
                         <div style="margin-bottom: 5px;"><strong>Documents Submitted:</strong></div>
                         <div class="mb-1"><span class="checkbox-box"></span> Certificate of Registration (CR)</div>
@@ -1960,30 +2135,31 @@ try {
                             2"x2" colored ID picture (White background)</div>
                         <div class="mb-1"><span class="checkbox-box"></span> Updated 1 1"x1" colored ID picture (White
                             background)</div>
-                      </td>
+                    </td>
                     <td class="id-cell">
                         <div class="id-box"></div>
-                      </td>
-                  </tr>
-              </table>
+                    </td>
+                </tr>
+            </table>
             <table class="sig-table">
-                  <tr>
+                <tr>
                     <td style="text-align: left;">
                         <div style="width: 300px; margin-left: 0;">
                             <div style="text-align: center; font-weight: bold; margin-bottom: 5px;"></div>
                             <div style="border-top: 1px solid black; margin-bottom: 5px;"></div>
-                            <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over printed name of <span id="out_sig_blank">student</span></div>
+                            <div style="margin-bottom: 15px; font-size: 10pt; text-align: center;">Signature over
+                                printed name of <span id="out_sig_blank">student</span></div>
                         </div>
                         <div style="margin-bottom: 10px; font-weight: bold;">Approved by:</div>
                         <div style="font-weight:bold; font-size: 11pt;">PAUL JEFFREY T. LANSANGAN, SO3</div>
                         <div style="font-size: 10pt;">CHIEF, Safety and Protection</div>
-                      </td>
-                  </tr>
-              </table>
+                    </td>
+                </tr>
+            </table>
         </div>
 
         <div class="hcc-form">
-            
+
             <div class="new-header-wrapper">
                 <div class="fading-bar"></div>
                 <div class="header-content">
@@ -2002,23 +2178,58 @@ try {
             <table class="violation-table"
                 style="width:100%; border-collapse:collapse; margin-top:10px; font-size:9pt;">
                 <thead>
-                      <tr>
+                    <tr>
                         <th>Date</th>
                         <th>Time</th>
                         <th>Location</th>
                         <th>Violation</th>
                         <th>Action Taken</th>
                         <th>Apprehending<br>Safety Officer<br>/Security Officer</th>
-                      </tr>
+                    </tr>
                 </thead>
                 <tbody>
-                      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
-                      <tr><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
                 </tbody>
-              </table>
+            </table>
             <div style="text-align:center; margin-top:10px; font-family:Arial, sans-serif;">
                 <h4 style="margin:0; font-weight:bold; text-decoration:underline; font-size: 11pt;">Mga Patakaran ng
                     Parking sa Holy Cross College, Sta. Ana, Pampanga</h4>
@@ -2066,8 +2277,10 @@ try {
                 </ol>
             </div>
             <div style="margin-top:45px; font-size:10pt; font-family:Arial, sans-serif;">
-                <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa Holy Cross College.</p>
-                <div style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
+                <p style="margin-left: 20px; margin-bottom: 5px;">Ako ay sumasang-ayon sa mga patakaran ng parking sa
+                    Holy Cross College.</p>
+                <div
+                    style="margin-top:60px; margin-left: 20px; width:300px; border-top:1px solid black; text-align:center; padding-top: 5px;">
                     Pangalan at lagda ng <span id="out_sig_fil_blank">Estudyante</span>
                 </div>
             </div>
@@ -2221,7 +2434,7 @@ try {
 
         function updatePrintButton() {
             const queueCount = <?php echo count($_SESSION['student_print_queue']); ?>;
-            const btn = document.getElementById('printQueueBtn'); 
+            const btn = document.getElementById('printQueueBtn');
             if (btn) btn.disabled = queueCount === 0;
         }
 
@@ -2237,7 +2450,7 @@ try {
 
         // Auto print if reprint was triggered
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 printQueue();
             });
             <?php unset($_SESSION['auto_print']); ?>

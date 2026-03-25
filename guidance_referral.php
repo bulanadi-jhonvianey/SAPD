@@ -547,11 +547,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM guidance_referrals")-
 
         .details {
             text-align: center;
-            margin-left: 30px;
+            margin-left: 220px;
             color: #000000;
             font-size: 9pt;
             line-height: 1.2;
             font-family: Arial, sans-serif;
+            
         }
         /* ========== END NEW HEADER STYLES ========== */
 

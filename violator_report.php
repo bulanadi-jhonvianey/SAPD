@@ -53,7 +53,7 @@ if (!isset($_SESSION['current_officer'])) {
 }
 
 // --- CONSTANTS ---
-$MAX_LOG_ROWS = 37; 
+$MAX_LOG_ROWS = 37;
 $current_page = $_SESSION['current_page'];
 
 // Ensure current page exists
@@ -99,6 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_to_log'])) {
                 'violation' => $violation,
                 'time' => $time
             ];
+
+            // AUTO-PRINT TRIGGER: If this entry just filled the page, trigger the print popup automatically
+            if (count($_SESSION['log_print_queue'][$target_page]) >= $MAX_LOG_ROWS) {
+                $_SESSION['auto_print'] = true;
+            }
+
             header("Location: " . $_SERVER['PHP_SELF'] . "?success=1");
             exit();
         } else {
@@ -123,7 +129,7 @@ if (isset($_GET['reprint_id'])) {
             'violation' => $row['violation'],
             'time' => $row['report_time']
         ];
-        
+
         // Determine which page to add to (current page if not full, else new page)
         $page_to_add = $current_page;
         if (count($_SESSION['log_print_queue'][$current_page]) >= $MAX_LOG_ROWS) {
@@ -134,7 +140,11 @@ if (isset($_GET['reprint_id'])) {
             $current_page = $page_to_add; // update local variable
         }
         $_SESSION['log_print_queue'][$page_to_add][] = $entry;
-        $_SESSION['auto_print'] = true; // Flag to auto print after reload
+
+        // AUTO-PRINT TRIGGER: If reprint filled the page
+        if (count($_SESSION['log_print_queue'][$page_to_add]) >= $MAX_LOG_ROWS) {
+            $_SESSION['auto_print'] = true; 
+        }
     }
     header("Location: " . $_SERVER['PHP_SELF']);
     exit();
@@ -213,6 +223,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -226,10 +237,10 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             font-family: "Old English Text MT";
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
             font-weight: normal;
             font-style: normal;
         }
@@ -287,13 +298,40 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             filter: brightness(110%);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
-        .btn-purple { background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+        }
+
+        .btn-purple {
+            background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%);
+            color: white;
+        }
 
         .btn-theme {
             background: var(--input-bg);
@@ -307,19 +345,10 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             justify-content: center;
         }
 
-        .btn-theme:hover { background: var(--accent); color: white; border-color: var(--accent); }
-
-            //* Match employee form action button sizes */
-        .table .btn-sm {
-            padding: 6px 12px !important; /* Rectangular padding */
-            width: auto;                  /* Removes the fixed square width */
-            height: auto;                 /* Removes the fixed square height */
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 6px;
-            font-size: 0.875rem;          /* Standard icon size */
-            margin: 0 2px;                /* Keeps them from bumping into each other */
+        .btn-theme:hover {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
         }
 
         /* --- LAYOUT --- */
@@ -330,7 +359,9 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             align-items: stretch;
         }
 
-        .left-panel, .right-panel, .bottom-panel {
+        .left-panel,
+        .right-panel,
+        .bottom-panel {
             background: var(--panel-bg);
             padding: 25px;
             border-radius: 10px;
@@ -353,12 +384,15 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             justify-content: flex-start;
             position: relative;
             background-color: var(--panel-bg);
-            overflow: visible; 
+            overflow: visible;
         }
 
-        .bottom-panel { margin: 20px; }
+        .bottom-panel {
+            margin: 20px;
+        }
 
-        .form-control, .form-select {
+        .form-control,
+        .form-select {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
             color: var(--text-main);
@@ -366,7 +400,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             padding: 12px;
         }
 
-        .form-control:focus, .form-select:focus {
+        .form-control:focus,
+        .form-select:focus {
             background-color: var(--input-bg);
             border-color: var(--accent);
             color: var(--text-main);
@@ -390,13 +425,51 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             gap: 10px;
         }
 
-        .badge-queue { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; padding: 5px 10px; border-radius: 4px; }
-        .badge-page { background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.9rem; }
+        .badge-queue {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
 
-        .page-tabs { display: flex; gap: 5px; margin-bottom: 15px; flex-wrap: wrap; }
-        .page-tab { padding: 8px 15px; background: var(--input-bg); border: 1px solid var(--border); border-radius: 6px; cursor: pointer; transition: all 0.3s; font-size: 0.9rem; text-decoration: none; color: var(--text-main); }
-        .page-tab:hover { background: var(--accent); color: white; text-decoration: none; }
-        .page-tab.active { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; border-color: #224abe; }
+        .badge-page {
+            background: linear-gradient(135deg, #6f42c1 0%, #4e2a8c 100%);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .page-tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .page-tab {
+            padding: 8px 15px;
+            background: var(--input-bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            text-decoration: none;
+            color: var(--text-main);
+        }
+
+        .page-tab:hover {
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+        }
+
+        .page-tab.active {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            border-color: #224abe;
+        }
 
         /* ========== HEADER STYLES ========== */
         .new-header-wrapper {
@@ -404,7 +477,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             width: calc(100% + 1in);
             margin-left: -0.5in;
             margin-right: -0.5in;
-            margin-top: 0.2in; 
+            margin-top: 0.2in;
             height: 1.5in;
             margin-bottom: 10px;
         }
@@ -414,8 +487,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 40px; 
-            background: 
+            height: 40px;
+            background:
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
@@ -425,21 +498,27 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
         .header-content {
             position: relative;
-            z-index: 2; 
+            z-index: 2;
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 0.5in; 
+            padding: 0 0.5in;
         }
 
-        .new-header-logo { width: 165px; height: auto; margin-right: 5px; flex-shrink: 0; object-fit: contain; }
+        .new-header-logo {
+            width: 165px;
+            height: auto;
+            margin-right: 5px;
+            flex-shrink: 0;
+            object-fit: contain;
+        }
 
         .text-content {
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; 
-            height: 100px; 
+            justify-content: flex-end;
+            height: 100px;
             padding-bottom: 5px;
         }
 
@@ -462,14 +541,54 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             print-color-adjust: exact;
         }
 
-        .details { text-align: center; margin-left: 30px; color: #000000; font-size: 9pt; line-height: 1.2; font-family: Arial, sans-serif; }
+        .details {
+            text-align: center;
+            margin-left: 210px;
+            color: #000000;
+            font-size: 9pt;
+            line-height: 1.2;
+            font-family: Arial, sans-serif;
+            
+        }
 
         /* Form Sub-Header (SAPD) */
-        .division-header { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; position: relative; z-index: 60; }
-        .sapd-logo { width: 45px; height: auto; object-fit: contain; }
-        .division-title { text-align: center; margin-top: 5px; }
-        .division-title h2 { font-family: "Bookman Old Style", "Times New Roman", serif; font-weight: 900; font-size: 18px; margin: 0; text-transform: uppercase; }
-        .division-title h3 { font-family: "Arial", sans-serif; font-weight: bold; text-decoration: underline; font-size: 14px; margin: 2px 0 0 0; text-transform: uppercase; }
+        .division-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 60;
+        }
+
+        .sapd-logo {
+            width: 45px;
+            height: auto;
+            object-fit: contain;
+        }
+
+        .division-title {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .division-title h2 {
+            font-family: "Bookman Old Style", "Times New Roman", serif;
+            font-weight: 900;
+            font-size: 18px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .division-title h3 {
+            font-family: "Arial", sans-serif;
+            font-weight: bold;
+            text-decoration: underline;
+            font-size: 14px;
+            margin: 2px 0 0 0;
+            text-transform: uppercase;
+        }
 
         /* Sheet Top Row for Safety Officer */
         .sheet-top-row {
@@ -491,7 +610,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             margin-top: 5px;
         }
 
-        .log-table th, .log-table td {
+        .log-table th,
+        .log-table td {
             border: 1px solid black;
             padding: 4px 6px;
             font-size: 9pt;
@@ -500,12 +620,36 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             white-space: nowrap;
         }
 
-        .log-table th { font-weight: bold; text-align: center; background: white; border-bottom: 2px solid black; font-family: Arial, sans-serif; }
-        .col-date { width: 12%; text-align: center; }
-        .col-name { width: 28%; }
-        .col-loc { width: 18%; text-align: center; }
-        .col-viol { width: 28%; }
-        .col-time { width: 14%; text-align: center; }
+        .log-table th {
+            font-weight: bold;
+            text-align: center;
+            background: white;
+            border-bottom: 2px solid black;
+            font-family: Arial, sans-serif;
+        }
+
+        .col-date {
+            width: 12%;
+            text-align: center;
+        }
+
+        .col-name {
+            width: 28%;
+        }
+
+        .col-loc {
+            width: 18%;
+            text-align: center;
+        }
+
+        .col-viol {
+            width: 28%;
+        }
+
+        .col-time {
+            width: 14%;
+            text-align: center;
+        }
 
         /* --- PRINT AREA CONTAINER (PORTRAIT LEGAL) --- */
         .print-area-container {
@@ -528,11 +672,33 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             margin-bottom: -5.5in;
         }
 
-        #print-area, #print-blank-area { width: 100%; height: 100%; display: flex; flex-direction: column; }
-        #print-blank-area { display: none; }
+        #print-area,
+        #print-blank-area {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
 
-        .sheet-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 10px; padding-bottom: 10px; font-size: 10pt; }
-        .officer-line { border-bottom: 1px solid black; min-width: 250px; display: inline-block; }
+        #print-blank-area {
+            display: none;
+        }
+
+        .sheet-footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            font-size: 10pt;
+        }
+
+        .officer-line {
+            border-bottom: 1px solid black;
+            min-width: 250px;
+            display: inline-block;
+        }
 
         /* --- PRINT MEDIA (PORTRAIT LEGAL) --- */
         @media print {
@@ -541,13 +707,45 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 margin: 0;
             }
 
-            .navbar, .left-panel, .bottom-panel, .panel-header, .btn, .d-print-none, #resetBtn, form, .page-tabs, .page-indicator {
+            .navbar,
+            .left-panel,
+            .bottom-panel,
+            .panel-header,
+            .btn,
+            .d-print-none,
+            #resetBtn,
+            form,
+            .page-tabs,
+            .page-indicator {
                 display: none !important;
             }
 
-            body { background: white !important; padding: 0 !important; margin: 0 !important; overflow: visible !important; }
-            .main-container { display: block !important; padding: 0 !important; margin: 0 !important; width: 100% !important; height: auto !important; }
-            .right-panel { display: block !important; width: 100% !important; margin: 0 !important; padding: 0 !important; border: none !important; box-shadow: none !important; background: white !important; flex: none !important; overflow: visible !important; }
+            body {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+
+            .main-container {
+                display: block !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                height: auto !important;
+            }
+
+            .right-panel {
+                display: block !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                background: white !important;
+                flex: none !important;
+                overflow: visible !important;
+            }
 
             .print-area-container {
                 transform: none !important;
@@ -562,24 +760,75 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                 page-break-after: always;
             }
 
-            .print-area-container:last-child { page-break-after: avoid; }
-            
-            .new-header-wrapper { margin-top: 0.2in !important; margin-left: -0.5in !important; margin-right: -0.5in !important; padding-top: 0 !important; }
-            
-            .fading-bar, .divider-line { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
-            .new-header-logo { width: 165px; }
-            .new-header-title, .divider-line, .details { color: #002b7f !important; }
+            .print-area-container:last-child {
+                page-break-after: avoid;
+            }
+
+            .new-header-wrapper {
+                margin-top: 0.2in !important;
+                margin-left: -0.5in !important;
+                margin-right: -0.5in !important;
+                padding-top: 0 !important;
+            }
+
+            .fading-bar,
+            .divider-line {
+                print-color-adjust: exact !important;
+                -webkit-print-color-adjust: exact !important;
+            }
+
+            .new-header-logo {
+                width: 165px;
+            }
+
+            .new-header-title,
+            .divider-line,
+            .details {
+                color: black !important;
+            }
         }
 
         /* TABLES (Dashboard) */
-        .table-custom { color: var(--text-main); --bs-table-bg: transparent; --bs-table-striped-bg: rgba(255, 255, 255, 0.03); --bs-table-hover-bg: var(--input-bg); }
-        body.light-mode .table-custom { --bs-table-striped-bg: rgba(0, 0, 0, 0.02); }
-        .table-custom th { background-color: var(--input-bg); color: var(--accent); border-color: var(--border); }
-        .table-custom td { color: #ffffff !important; border-color: var(--border); }
-        body.light-mode .table-custom td { color: #212529 !important; }
-        .table-custom tbody tr:hover { background-color: var(--input-bg); }
-        .text-center.py-4 { color: var(--text-main); opacity: 0.7; }
-        .badge.bg-dark { background-color: var(--input-bg) !important; color: var(--text-main); border: 1px solid var(--border); }
+        .table-custom {
+            color: var(--text-main);
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: rgba(255, 255, 255, 0.03);
+            --bs-table-hover-bg: var(--input-bg);
+        }
+
+        body.light-mode .table-custom {
+            --bs-table-striped-bg: rgba(0, 0, 0, 0.02);
+        }
+
+        .table-custom th {
+            background-color: var(--input-bg);
+            color: var(--accent);
+            border-color: var(--border);
+        }
+
+        .table-custom td {
+            color: #ffffff !important;
+            border-color: var(--border);
+        }
+
+        body.light-mode .table-custom td {
+            color: #212529 !important;
+        }
+
+        .table-custom tbody tr:hover {
+            background-color: var(--input-bg);
+        }
+
+        .text-center.py-4 {
+            color: var(--text-main);
+            opacity: 0.7;
+        }
+
+        .badge.bg-dark {
+            background-color: var(--input-bg) !important;
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
 
         /* Left panel input overrides to match employee form white text */
         .left-panel .form-control,
@@ -589,22 +838,40 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             color: #ffffff !important;
             border-color: #2c3e50 !important;
         }
+
         .left-panel .form-control::placeholder {
             color: rgba(255, 255, 255, 0.7) !important;
         }
+
         .left-panel .time-date-label {
             color: #ffffff !important;
         }
 
-        .time-input, .date-input {
+        .time-input,
+        .date-input {
             background-color: var(--input-bg) !important;
             border: 1px solid var(--border) !important;
             padding: 12px !important;
             margin-bottom: 10px !important;
         }
 
-        .btn-new-sheet { animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(111, 66, 193, 0); } 100% { box-shadow: 0 0 0 0 rgba(111, 66, 193, 0); } }
+        .btn-new-sheet {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(111, 66, 193, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(111, 66, 193, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(111, 66, 193, 0);
+            }
+        }
     </style>
 </head>
 
@@ -628,7 +895,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             <div class="panel-header">
                 <div class="panel-title"><i class="fa fa-pen-to-square"></i> ENTRY DETAILS</div>
                 <div class="d-flex gap-2">
-                    <div class="badge-queue">QUEUE: <?php echo $current_page_count; ?>/<?php echo $MAX_LOG_ROWS; ?></div>
+                    <div class="badge-queue">QUEUE: <?php echo $current_page_count; ?>/<?php echo $MAX_LOG_ROWS; ?>
+                    </div>
                     <div class="badge-page">PAGE: <?php echo $current_page + 1; ?>/<?php echo $total_pages; ?></div>
                 </div>
             </div>
@@ -692,31 +960,37 @@ foreach ($_SESSION['log_print_queue'] as $page) {
 
             <div class="mb-2">
                 <form method="POST" class="m-0">
-                    <button type="submit" name="new_sheet" class="btn btn-purple w-100 fw-bold py-2 btn-new-sheet d-flex align-items-center justify-content-center">
+                    <button type="submit" name="new_sheet"
+                        class="btn btn-purple w-100 fw-bold py-2 btn-new-sheet d-flex align-items-center justify-content-center">
                         <i class="fa fa-plus me-2"></i> NEW SHEET (PAGE <?php echo $total_pages + 1; ?>)
                     </button>
                 </form>
             </div>
 
             <div class="d-flex gap-2 mb-2">
-                <button type="button" onclick="printQueue()" class="btn btn-success flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center" <?php echo $total_queue_items == 0 ? 'disabled' : ''; ?>>
-                    <i class="fa fa-print me-2"></i> PRINT QUEUE <?php echo $total_queue_items > 0 ? "({$total_queue_items})" : ""; ?>
+                <button type="button" onclick="printQueue()"
+                    class="btn btn-success flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center"
+                    <?php echo !$is_page_full ? 'disabled title="Sheet must be full (37 items) to print"' : ''; ?>>
+                    <i class="fa fa-print me-2"></i> PRINT QUEUE
+                    <?php echo $total_queue_items > 0 ? "({$total_queue_items}/{$MAX_LOG_ROWS})" : ""; ?>
                 </button>
-                
-                <button type="button" onclick="printBlank()" class="btn btn-secondary flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center text-white">
+
+                <button type="button" onclick="printBlank()"
+                    class="btn btn-secondary flex-grow-1 fw-bold py-2 d-flex align-items-center justify-content-center text-white">
                     <i class="fa fa-file me-2"></i> BLANK FORM
                 </button>
             </div>
-            
+
             <?php if ($total_queue_items > 0): ?>
                 <form method="POST" class="m-0">
-                    <button type="submit" name="clear_all_queues" class="btn btn-danger w-100 fw-bold py-2 d-flex align-items-center justify-content-center"
+                    <button type="submit" name="clear_all_queues"
+                        class="btn btn-danger w-100 fw-bold py-2 d-flex align-items-center justify-content-center"
                         onclick="return confirm('Clear ALL pages? This cannot be undone!')">
                         <i class="fa fa-trash me-2"></i> CLEAR QUEUE
                     </button>
                 </form>
             <?php endif; ?>
-            
+
         </div>
 
         <div class="right-panel">
@@ -857,7 +1131,13 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     </thead>
                     <tbody>
                         <?php for ($i = 0; $i < $MAX_LOG_ROWS; $i++): ?>
-                            <tr><td></td><td></td><td></td><td></td><td></td></tr>
+                            <tr>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                                <td></td>
+                            </tr>
                         <?php endfor; ?>
                     </tbody>
                 </table>
@@ -878,12 +1158,14 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT LOGS</h5>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
-                
+
                 <form method="GET" class="d-flex gap-0" style="width: 300px;">
                     <div class="input-group">
-                        <input type="text" name="search" class="form-control" placeholder="Search Name/Location..." value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
+                        <input type="text" name="search" class="form-control" placeholder="Search Name/Location..."
+                            value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
                         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-                        <?php if ($search_term): ?><a href="?" class="btn btn-secondary"><i class="fa fa-times"></i></a><?php endif; ?>
+                        <?php if ($search_term): ?><a href="?" class="btn btn-secondary"><i
+                                    class="fa fa-times"></i></a><?php endif; ?>
                     </div>
                 </form>
             </div>
@@ -920,7 +1202,8 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                                             onclick='editRecord(<?php echo json_encode($row); ?>)' title="Edit">
                                             <i class="fa fa-pencil-alt"></i>
                                         </button>
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-primary text-white" title="Reprint">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-primary text-white" title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </a>
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
@@ -933,7 +1216,7 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                         <tr>
                             <td colspan="6" class="text-center py-4">
                                 <i class="fa fa-database fa-2x mb-3"></i><br>
-                                No records found. 
+                                No records found.
                                 <?php echo $search_term ? 'Try a different search.' : ''; ?>
                             </td>
                         </tr>
@@ -951,12 +1234,30 @@ foreach ($_SESSION['log_print_queue'] as $page) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Student Name:</div><div class="col-md-9" id="view_student"></div></div>
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Location:</div><div class="col-md-9" id="view_location"></div></div>
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Violation:</div><div class="col-md-9" id="view_violation"></div></div>
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Date:</div><div class="col-md-9" id="view_date"></div></div>
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Time:</div><div class="col-md-9" id="view_time"></div></div>
-                    <div class="row mb-2"><div class="col-md-3 fw-bold">Safety Officer:</div><div class="col-md-9" id="view_officer"></div></div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Student Name:</div>
+                        <div class="col-md-9" id="view_student"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Location:</div>
+                        <div class="col-md-9" id="view_location"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Violation:</div>
+                        <div class="col-md-9" id="view_violation"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Date:</div>
+                        <div class="col-md-9" id="view_date"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Time:</div>
+                        <div class="col-md-9" id="view_time"></div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-md-3 fw-bold">Safety Officer:</div>
+                        <div class="col-md-9" id="view_officer"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
@@ -1100,9 +1401,9 @@ foreach ($_SESSION['log_print_queue'] as $page) {
             }, 5000);
         });
 
-        // Auto print if reprint was triggered
+        // Auto print if reprint was triggered OR if auto-print flag is set from the server
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 printQueue();
             });
             <?php unset($_SESSION['auto_print']); ?>
@@ -1110,4 +1411,5 @@ foreach ($_SESSION['log_print_queue'] as $page) {
     </script>
 
 </body>
+
 </html>

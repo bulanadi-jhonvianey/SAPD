@@ -285,12 +285,35 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+        }
 
         /* Theme Toggle */
         .btn-theme {
@@ -372,6 +395,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         .form-control::placeholder {
             color: rgba(255, 255, 255, 0.6);
         }
+
         body.light-mode .form-control::placeholder {
             color: rgba(0, 0, 0, 0.5);
         }
@@ -411,7 +435,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         /* --- CCTV FORM PAPER DESIGN (LEGAL SIZE) --- */
         .hcc-form {
             width: 8.5in;
-            height: 14in; /* Legal size */
+            height: 14in;
+            /* Legal size */
             background: white;
             color: black;
             padding: 0.35in 0.5in 0.5in 0.5in;
@@ -441,8 +466,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 40px; 
-            background: 
+            height: 40px;
+            background:
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
@@ -452,17 +477,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
         .header-content {
             position: relative;
-            z-index: 2; 
+            z-index: 2;
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 0.5in; 
+            padding: 0 0.5in;
         }
 
         .new-header-logo {
             width: 140px;
             height: auto;
-            margin-right: 5px; 
+            margin-right: 5px;
             flex-shrink: 0;
             object-fit: contain;
         }
@@ -471,8 +496,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; 
-            height: 100px; 
+            justify-content: flex-end;
+            height: 100px;
             padding-bottom: 5px;
         }
 
@@ -487,14 +512,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
         .divider-line {
             height: 2px;
-            background: linear-gradient(to right, 
-                #002b7f 0%, 
-                #002b7f 18%, 
-                rgba(0, 43, 127, 0.25) 24%, 
-                rgba(0, 43, 127, 0.25) 75%, 
-                #002b7f 80%, 
-                #002b7f 100%
-            );
+            background: linear-gradient(to right,
+                    #002b7f 0%,
+                    #002b7f 18%,
+                    rgba(0, 43, 127, 0.25) 24%,
+                    rgba(0, 43, 127, 0.25) 75%,
+                    #002b7f 80%,
+                    #002b7f 100%);
             width: 100%;
             margin-top: 2px;
             margin-bottom: 4px;
@@ -503,7 +527,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
         }
 
         .details {
-            text-align: center; 
+            text-align: center;
             margin-left: 220px;
             color: #000000;
             font-size: 9pt;
@@ -695,7 +719,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 padding-top: 0 !important;
             }
 
-            .fading-bar, .divider-line {
+            .fading-bar,
+            .divider-line {
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
@@ -764,7 +789,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 <label class="small text-secondary mb-1">Requestor Name</label>
                 <input type="text" name="requestor_name" id="in_name" class="form-control" placeholder="Requestor Name"
                     required oninput="updatePreview()">
-                
+
                 <label class="small text-secondary mb-1">Level / Section</label>
                 <input type="text" name="level_section" id="in_lvl" class="form-control" placeholder="Level / Section"
                     required oninput="updatePreview()">
@@ -785,14 +810,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                 <label class="small text-secondary mb-1">Location of Incident</label>
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location of Incident"
                     required oninput="updatePreview()">
-                
+
                 <label class="small text-secondary mb-1">Reason for Review</label>
                 <textarea name="reason" id="in_reason" class="form-control" rows="3" placeholder="Reason for Review"
                     required oninput="updatePreview()"></textarea>
-                
+
                 <label class="small text-secondary mb-1">Evaluation (Optional)</label>
-                <textarea name="evaluation" id="in_eval" class="form-control" rows="3"
-                    placeholder="Evaluation" oninput="updatePreview()"></textarea>
+                <textarea name="evaluation" id="in_eval" class="form-control" rows="3" placeholder="Evaluation"
+                    oninput="updatePreview()"></textarea>
 
                 <div class="row mt-2">
                     <div class="col-6">
@@ -953,15 +978,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
             <h5 class="fw-bold m-0"><i class="fa fa-database me-2"></i> RECENT DATABASE ENTRIES</h5>
             <div class="d-flex align-items-center gap-3">
                 <span class="badge bg-dark">Total: <?php echo $total_count; ?></span>
-                
+
                 <form method="GET" class="d-flex gap-0" style="width: 300px;">
                     <div class="input-group">
-                        <input type="text" name="search" class="form-control" placeholder="Search Name/Location..." value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
+                        <input type="text" name="search" class="form-control" placeholder="Search Name/Location..."
+                            value="<?php echo htmlspecialchars($search_term); ?>" style="margin-bottom: 0;">
                         <button type="submit" class="btn btn-primary"><i class="fa fa-search"></i></button>
-                        <?php if ($search_term): ?><a href="?" class="btn btn-secondary"><i class="fa fa-times"></i></a><?php endif; ?>
+                        <?php if ($search_term): ?><a href="?" class="btn btn-secondary"><i
+                                    class="fa fa-times"></i></a><?php endif; ?>
                     </div>
                 </form>
-                
+
             </div>
         </div>
 
@@ -1001,8 +1028,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                                             onclick='editRecord(<?php echo htmlspecialchars(json_encode($row), ENT_QUOTES, 'UTF-8'); ?>)'>
                                             <i class="fa fa-edit"></i>
                                         </button>
-                                        
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-success text-white" title="Reprint">
+
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>"
+                                            class="btn btn-sm btn-success text-white" title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </a>
 
@@ -1085,7 +1113,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
                         </tr>
                         <tr>
                             <td class="label-cell">REASON FOR CCTV REVIEW</td>
-                            <td class="input-cell" style="height: 60px; vertical-align: top;"><?php echo nl2br($p['reason']); ?></td>
+                            <td class="input-cell" style="height: 60px; vertical-align: top;"><?php echo nl2br($p['reason']); ?>
+                            </td>
                         </tr>
                     </table>
                     <div class="eval-section">
@@ -1253,7 +1282,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM cctv_requests")->fetc
 
         // Auto print if reprint was triggered
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 printQueue();
             });
             <?php unset($_SESSION['auto_print']); ?>

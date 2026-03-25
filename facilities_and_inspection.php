@@ -101,7 +101,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_report'])) {
 
     // Retrieve previously kept images during an edit
     $kept_images = isset($_POST['kept_images']) ? json_decode($_POST['kept_images'], true) : [];
-    if (!is_array($kept_images)) $kept_images = [];
+    if (!is_array($kept_images))
+        $kept_images = [];
 
     $image_paths_json = null;
     $uploaded_files = [];
@@ -216,8 +217,10 @@ if (isset($_POST['clear_queue'])) {
 }
 
 if (isset($_GET['success'])) {
-    if ($_GET['success'] == 1) $success_msg = "Inspection recorded successfully!";
-    if ($_GET['success'] == 2) $success_msg = "Inspection updated successfully!";
+    if ($_GET['success'] == 1)
+        $success_msg = "Inspection recorded successfully!";
+    if ($_GET['success'] == 2)
+        $success_msg = "Inspection updated successfully!";
 }
 if (isset($_GET['error']))
     $error_msg = "An error occurred.";
@@ -236,6 +239,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -311,12 +315,35 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             filter: brightness(110%);
         }
 
-        .btn-primary { background: linear-gradient(135deg, #4e73df 0%, #224abe 100%); color: white; }
-        .btn-secondary { background: linear-gradient(135deg, #858796 0%, #60616f 100%); color: white; }
-        .btn-success { background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%); color: white; }
-        .btn-danger { background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%); color: white; }
-        .btn-info { background: linear-gradient(135deg, #36b9cc 0%, #258391 100%); color: white; }
-        .btn-warning { background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%); color: white; }
+        .btn-primary {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #858796 0%, #60616f 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e74a3b 0%, #be2617 100%);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #36b9cc 0%, #258391 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f6c23e 0%, #dda20a 100%);
+            color: white;
+        }
 
         .btn-theme {
             background: var(--input-bg);
@@ -380,7 +407,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         .form-select {
             background-color: var(--input-bg);
             border: 1px solid var(--border);
-            color: #ffffff !important; /* Forces white text */
+            color: #ffffff !important;
+            /* Forces white text */
             margin-bottom: 10px;
             padding: 12px;
         }
@@ -389,14 +417,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         .form-control::placeholder,
         .form-select::placeholder {
             color: #ffffff !important;
-            opacity: 0.8; 
+            opacity: 0.8;
         }
 
         .form-control:focus,
         .form-select:focus {
             background-color: var(--input-bg);
             border-color: var(--accent);
-            color: #ffffff !important; /* Forces white text on focus */
+            color: #ffffff !important;
+            /* Forces white text on focus */
             box-shadow: none;
         }
 
@@ -421,7 +450,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         }
 
         .panel-title {
-            color: #0d6efd; 
+            color: #0d6efd;
             font-weight: 900;
             text-transform: uppercase;
             font-size: 1.1rem;
@@ -482,7 +511,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             height: 14in;
             background: white;
             color: black;
-            padding: 0; 
+            padding: 0;
             margin: 0 auto;
             font-family: Arial, sans-serif;
             position: relative;
@@ -521,8 +550,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 40px; 
-            background: 
+            height: 40px;
+            background:
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
@@ -532,17 +561,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
         .header-content {
             position: relative;
-            z-index: 2; 
+            z-index: 2;
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 0.25in; 
+            padding: 0 0.25in;
         }
 
         .new-header-logo {
             width: 140px;
             height: auto;
-            margin-right: 5px; 
+            margin-right: 5px;
             flex-shrink: 0;
             object-fit: contain;
         }
@@ -551,8 +580,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; 
-            height: 100px; 
+            justify-content: flex-end;
+            height: 100px;
             padding-bottom: 5px;
         }
 
@@ -567,14 +596,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
         .divider-line {
             height: 2px;
-            background: linear-gradient(to right, 
-                #002b7f 0%, 
-                #002b7f 18%, 
-                rgba(0, 43, 127, 0.25) 24%, 
-                rgba(0, 43, 127, 0.25) 75%, 
-                #002b7f 80%, 
-                #002b7f 100%
-            );
+            background: linear-gradient(to right,
+                    #002b7f 0%,
+                    #002b7f 18%,
+                    rgba(0, 43, 127, 0.25) 24%,
+                    rgba(0, 43, 127, 0.25) 75%,
+                    #002b7f 80%,
+                    #002b7f 100%);
             width: 100%;
             margin-top: 2px;
             margin-bottom: 4px;
@@ -583,7 +611,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         }
 
         .details {
-            text-align: center; 
+            text-align: center;
             color: #000000;
             font-size: 10pt;
             line-height: 1.5;
@@ -616,7 +644,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         .division-title h2 {
             font-family: "Bookman Old Style", "Times New Roman", serif;
             font-weight: 900;
-            font-size: 14pt; 
+            font-size: 14pt;
             margin: 0;
             text-transform: uppercase;
         }
@@ -625,7 +653,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             font-family: "Arial", sans-serif;
             font-weight: bold;
             text-decoration: underline;
-            font-size: 13pt; 
+            font-size: 13pt;
             margin: 2px 0 0 0;
             text-transform: uppercase;
         }
@@ -634,7 +662,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             width: 100%;
             border-collapse: collapse;
             border: 2px solid black;
-            margin-bottom: 0; 
+            margin-bottom: 0;
             table-layout: fixed;
         }
 
@@ -648,7 +676,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
         .label-cell {
             font-weight: bold;
-            width: 38%; 
+            width: 38%;
             background-color: white;
             text-transform: uppercase;
             color: black;
@@ -656,26 +684,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
         /* --- STABLE LAYOUT FOR DESCRIPTION --- */
         .desc-section {
-            margin-top: 0; 
+            margin-top: 0;
             color: black;
             display: flex;
             flex-direction: column;
-            flex-grow: 1; 
+            flex-grow: 1;
         }
 
         .desc-box {
             border: 2px solid black;
-            border-top: none; 
-            margin-top: 0; 
+            border-top: none;
+            margin-top: 0;
             width: 100%;
-            padding: 10px; 
-            line-height: 1.5; 
+            padding: 10px;
+            line-height: 1.5;
             font-size: 11pt;
             font-family: Arial, sans-serif;
             white-space: pre-wrap;
             overflow-wrap: break-word;
             word-break: break-all;
-            flex-grow: 1; 
+            flex-grow: 1;
             min-height: 450px;
             display: flex;
             flex-direction: column;
@@ -714,8 +742,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             user-select: none;
             box-sizing: border-box;
         }
-        
-        .resize-wrapper:hover, .resize-wrapper:active {
+
+        .resize-wrapper:hover,
+        .resize-wrapper:active {
             border-color: rgba(0, 123, 255, 0.7);
         }
 
@@ -737,22 +766,80 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             z-index: 10;
         }
 
-        .resize-wrapper:hover .resize-handle, 
+        .resize-wrapper:hover .resize-handle,
         .resize-wrapper:active .resize-handle {
             opacity: 1;
         }
 
         /* Corners */
-        .resizer-nw { top: -6px; left: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
-        .resizer-ne { top: -6px; right: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
-        .resizer-sw { bottom: -6px; left: -6px; width: 12px; height: 12px; cursor: nesw-resize; }
-        .resizer-se { bottom: -6px; right: -6px; width: 12px; height: 12px; cursor: nwse-resize; }
-        
+        .resizer-nw {
+            top: -6px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nwse-resize;
+        }
+
+        .resizer-ne {
+            top: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-sw {
+            bottom: -6px;
+            left: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-se {
+            bottom: -6px;
+            right: -6px;
+            width: 12px;
+            height: 12px;
+            cursor: nwse-resize;
+        }
+
         /* Edges */
-        .resizer-n { top: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
-        .resizer-s { bottom: -6px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; cursor: ns-resize; }
-        .resizer-e { top: 50%; right: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
-        .resizer-w { top: 50%; left: -6px; transform: translateY(-50%); width: 12px; height: 12px; cursor: ew-resize; }
+        .resizer-n {
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ns-resize;
+        }
+
+        .resizer-s {
+            bottom: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ns-resize;
+        }
+
+        .resizer-e {
+            top: 50%;
+            right: -6px;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ew-resize;
+        }
+
+        .resizer-w {
+            top: 50%;
+            left: -6px;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            cursor: ew-resize;
+        }
 
         .form-footer {
             margin-top: 15px;
@@ -875,11 +962,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 width: 100% !important;
                 height: 100% !important;
                 min-height: 100vh !important;
-                padding: 0 !important; 
-                page-break-after: always !important; 
+                padding: 0 !important;
+                page-break-after: always !important;
             }
 
-            .print-blank #print-area, .print-single-mode #print-area {
+            .print-blank #print-area,
+            .print-single-mode #print-area {
                 display: none !important;
             }
 
@@ -906,7 +994,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 padding-top: 0 !important;
             }
 
-            .fading-bar, .divider-line {
+            .fading-bar,
+            .divider-line {
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
@@ -919,6 +1008,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             .resize-wrapper {
                 border: none !important;
             }
+
             .resize-handle {
                 display: none !important;
             }
@@ -1051,14 +1141,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                     <label class="small mb-2 d-block" style="color: #ffffff;">
                         <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
                         <br>
-                        <span class="fw-bold" style="font-size: 11px; color: #ffffff;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                        <span class="fw-bold" style="font-size: 11px; color: #ffffff;"><i class="fa fa-lightbulb"></i>
+                            Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
                     </label>
 
                     <input type="file" name="inspection_images[]" id="in_images" class="d-none"
-                    accept="image/png, image/gif, image/jpeg" multiple>
+                        accept="image/png, image/gif, image/jpeg" multiple>
 
                     <button type="button" id="btn_add_images" class="btn btn-outline-primary w-100 dashed-border"
-                    onclick="document.getElementById('in_images').click()">
+                        onclick="document.getElementById('in_images').click()">
                         <i class="fa fa-plus-circle me-1"></i> Add Images
                     </button>
                     <div id="form-image-previews" class="mt-3 d-flex flex-wrap gap-2"></div>
@@ -1152,29 +1243,36 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
                     <div class="desc-section">
                         <div class="desc-box">
-                            <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS / INSPECTION:</strong>
+                            <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS /
+                                INSPECTION:</strong>
                             <span id="out_desc" class="desc-text"></span>
                             <div class="image-section" id="out_images_container"></div>
                         </div>
                     </div>
 
                     <div class="form-footer">
-                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                        <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy
+                            furnished
                             to the office of:</div>
                         <table class="copy-furnished-table">
                             <tr>
                                 <td>Principal/Dean</td>
                                 <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
-                                    <div style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;"></div>
-                                    <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG, LPT</div>
-                                    <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager for<br>Administrative Office</div>
+                                    <div
+                                        style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                                    </div>
+                                    <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C.
+                                        LUMBANG, LPT</div>
+                                    <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                        for<br>Administrative Office</div>
                                 </td>
                                 <td>Others (Specify)</td>
                             </tr>
                         </table>
 
                         <div class="officer-section">
-                            <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
+                            <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:
+                            </div>
                             <div class="officer-container">
                                 <div class="officer-box">
                                     <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1214,14 +1312,14 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         <?php if (count($_SESSION['facility_print_queue']) > 0):
             foreach ($_SESSION['facility_print_queue'] as $p):
                 $t = strtotime($p['time']);
-                $print_time = date("h:i A", $t); 
+                $print_time = date("h:i A", $t);
                 $print_sizes = [];
                 if (!empty($p['image_size'])) {
                     $decoded_sizes = json_decode($p['image_size'], true);
                     if (is_array($decoded_sizes)) {
                         $print_sizes = $decoded_sizes;
                     } else {
-                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                        $print_sizes = array_fill(0, max(1, count((array) $p['image_paths'])), intval($p['image_size']));
                     }
                 }
                 ?>
@@ -1271,16 +1369,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
                         <div class="desc-section">
                             <div class="desc-box">
-                                <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS / INSPECTION:</strong>
+                                <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS /
+                                    INSPECTION:</strong>
                                 <span class="desc-text"><?php echo nl2br(htmlspecialchars($p['desc'])); ?></span>
                                 <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                     <div class="image-section" style="display:flex!important;">
                                         <?php foreach ($p['image_paths'] as $idx => $path): ?>
-                                            <?php 
+                                            <?php
                                             $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 48;
-                                            if (file_exists($path)): 
-                                            ?>
-                                                <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                            if (file_exists($path)):
+                                                ?>
+                                                <div class="resize-wrapper"
+                                                    style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
                                                     <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
                                                 </div>
                                             <?php endif; ?>
@@ -1291,20 +1391,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                         </div>
 
                         <div class="form-footer">
-                            <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                            <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                                to the office of:</div>
                             <table class="copy-furnished-table">
                                 <tr>
                                     <td>Principal/Dean</td>
                                     <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
-                                        <div style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;"></div>
-                                        <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG, LPT</div>
-                                        <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager for<br>Administrative Office</div>
+                                        <div
+                                            style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                                        </div>
+                                        <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C.
+                                            LUMBANG, LPT</div>
+                                        <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                            for<br>Administrative Office</div>
                                     </td>
                                     <td>Others (Specify)</td>
                                 </tr>
                             </table>
                             <div class="officer-section">
-                                <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
+                                <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:
+                                </div>
                                 <div class="officer-container">
                                     <div class="officer-box">
                                         <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
@@ -1338,7 +1444,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                     </div>
                 </div>
             <?php endforeach; else: ?>
-            <div class="hcc-form"><div class="form-inner"><h2>NO ITEMS IN QUEUE</h2></div></div><?php endif; ?>
+            <div class="hcc-form">
+                <div class="form-inner">
+                    <h2>NO ITEMS IN QUEUE</h2>
+                </div>
+            </div><?php endif; ?>
     </div>
 
     <div id="print-blank-area">
@@ -1366,38 +1476,81 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                         <h3>FACILITIES AND EQUIPMENT INSPECTION REPORT</h3>
                     </div>
                 </div>
-                
+
                 <table class="form-table">
-                    <tr><td class="label-cell">NAME OF FACILITY/EQUIPMENT/ITEM</td><td class="input-cell">&nbsp;</td></tr>
-                    <tr><td class="label-cell">LOCATION</td><td class="input-cell">&nbsp;</td></tr>
-                    <tr><td class="label-cell">DATE OF INSPECTION</td><td class="input-cell">&nbsp;</td></tr>
-                    <tr><td class="label-cell">TIME OF INSPECTION</td><td class="input-cell">&nbsp;</td></tr>
+                    <tr>
+                        <td class="label-cell">NAME OF FACILITY/EQUIPMENT/ITEM</td>
+                        <td class="input-cell">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">LOCATION</td>
+                        <td class="input-cell">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">DATE OF INSPECTION</td>
+                        <td class="input-cell">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">TIME OF INSPECTION</td>
+                        <td class="input-cell">&nbsp;</td>
+                    </tr>
                 </table>
-                
+
                 <div class="desc-section">
                     <div class="desc-box">
-                        <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS / INSPECTION:</strong>
+                        <strong style="margin-bottom: 8px; display: block;">DESCRIPTION OF FINDINGS /
+                            INSPECTION:</strong>
                     </div>
                 </div>
 
                 <div class="form-footer">
-                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished to the office of:</div>
+                    <div style="font-size: 8pt; font-weight: bold; font-style: italic; margin-top: 5px;">Copy furnished
+                        to the office of:</div>
                     <table class="copy-furnished-table">
-                        <tr><td>Principal/Dean</td><td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;"><div style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;"></div><div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C. LUMBANG, LPT</div><div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager for<br>Administrative Office</div></td><td>Others (Specify)</td></tr>
+                        <tr>
+                            <td>Principal/Dean</td>
+                            <td style="text-align: center; vertical-align: bottom; padding-bottom: 5px;">
+                                <div
+                                    style="border-bottom: 1px solid black; width: 90%; margin: 0 auto 3px auto; height: 15px;">
+                                </div>
+                                <div style="font-weight: bold; font-size: 8pt; text-transform: uppercase;">JORGE C.
+                                    LUMBANG, LPT</div>
+                                <div style="font-size: 6.5pt; line-height: 1.1;">HRD Officer / Acting Manager
+                                    for<br>Administrative Office</div>
+                            </td>
+                            <td>Others (Specify)</td>
+                        </tr>
                     </table>
                     <div class="officer-section">
-                        <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:</div>
+                        <div class="officer-title" style="margin-bottom: 25px;">Officer in charge of the inspection:
+                        </div>
                         <div class="officer-container">
-                            <div class="officer-box"><div class="officer-name-line">JERRY R. MULDONG, SO1</div><div class="officer-position">Safety and Protection Officer</div></div>
-                            <div class="officer-box"><div class="officer-name-line">LESTER P. LUMBANG, SO2</div><div class="officer-position">Safety and Protection Officer</div></div>
+                            <div class="officer-box">
+                                <div class="officer-name-line">JERRY R. MULDONG, SO1</div>
+                                <div class="officer-position">Safety and Protection Officer</div>
+                            </div>
+                            <div class="officer-box">
+                                <div class="officer-name-line">LESTER P. LUMBANG, SO2</div>
+                                <div class="officer-position">Safety and Protection Officer</div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="noted-section" style="margin-top: 30px;">
                         <div class="noted-title" style="margin-bottom: 30px;">Noted by:</div>
                         <div style="display: flex; justify-content: space-between; width: 100%;">
-                            <div style="text-align: center;"><div style="border-top: 1px solid black; width: 250px; padding-top: 5px;"><div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div><div class="officer-position">CHIEF, Safety and Protection</div></div></div>
-                            <div style="text-align: center;"><div style="border-top: 1px solid black; width: 250px; padding-top: 5px;"><div class="officer-name-line">EDWIN GUEVARRA</div><div class="officer-position">Supervisor</div></div></div>
+                            <div style="text-align: center;">
+                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                    <div class="officer-name-line">PAUL JEFFREY T. LANSANGAN, SO3</div>
+                                    <div class="officer-position">CHIEF, Safety and Protection</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="border-top: 1px solid black; width: 250px; padding-top: 5px;">
+                                    <div class="officer-name-line">EDWIN GUEVARRA</div>
+                                    <div class="officer-position">Supervisor</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1483,23 +1636,20 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                                 <td class="text-center" style="white-space: nowrap;">
                                     <div class="d-flex gap-2 justify-content-center">
                                         <button type="button" class="btn btn-sm btn-info text-white"
-                                            onclick='loadToPreview(<?php echo $preview_json; ?>)'
-                                            title="View Only">
+                                            onclick='loadToPreview(<?php echo $preview_json; ?>)' title="View Only">
                                             <i class="fa fa-eye"></i>
                                         </button>
-                                        
+
                                         <button type="button" class="btn btn-sm btn-primary text-white"
-                                            onclick='editRecord(<?php echo $preview_json; ?>)'
-                                            title="Edit">
+                                            onclick='editRecord(<?php echo $preview_json; ?>)' title="Edit">
                                             <i class="fa fa-edit"></i>
                                         </button>
 
                                         <button type="button" class="btn btn-sm btn-success text-white"
-                                            onclick='reprintRecord(<?php echo $preview_json; ?>)'
-                                            title="Reprint">
+                                            onclick='reprintRecord(<?php echo $preview_json; ?>)' title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </button>
-                                        
+
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
                                             onclick="return confirm('Delete this record?')" title="Delete">
                                             <i class="fa fa-trash"></i>
@@ -1570,22 +1720,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             try {
                 sizeArray = JSON.parse(savedSizesVal);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
-            } catch(e) {
+            } catch (e) {
                 sizeArray = [parseInt(savedSizesVal) || 48];
             }
 
             function appendImage(src, index) {
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
-                
+
                 let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
                 wrapper.style.width = initialSize + '%';
-                
+
                 let img = document.createElement('img');
                 img.src = src;
                 img.className = 'paper-preview-img';
-                img.onload = function() { autoFitAllTexts(); };
-                
+                img.onload = function () { autoFitAllTexts(); };
+
                 wrapper.appendChild(img);
 
                 const handles = ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'];
@@ -1602,16 +1752,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                 let original_mouse_x = 0;
                 let original_mouse_y = 0;
 
-                resizers.forEach(function(resizer) {
-                    resizer.addEventListener('mousedown', function(e) {
+                resizers.forEach(function (resizer) {
+                    resizer.addEventListener('mousedown', function (e) {
                         e.preventDefault();
                         original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
                         original_mouse_x = e.pageX;
                         original_mouse_y = e.pageY;
-                        
+
                         function resize(e) {
                             let width = original_width;
-                            
+
                             if (resizer.classList.contains('resizer-e') || resizer.classList.contains('resizer-se') || resizer.classList.contains('resizer-ne')) {
                                 width = original_width + (e.pageX - original_mouse_x);
                             } else if (resizer.classList.contains('resizer-w') || resizer.classList.contains('resizer-sw') || resizer.classList.contains('resizer-nw')) {
@@ -1621,31 +1771,31 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                             } else if (resizer.classList.contains('resizer-n')) {
                                 width = original_width - (e.pageY - original_mouse_y);
                             }
-                            
+
                             let percent = (width / paperImageContainer.clientWidth) * 100;
-                            if(percent > 100) percent = 100;
-                            if(percent < 10) percent = 10;
+                            if (percent > 100) percent = 100;
+                            if (percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
                         }
-                        
+
                         function stopResize() {
                             window.removeEventListener('mousemove', resize);
                             window.removeEventListener('mouseup', stopResize);
-                            
+
                             let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
-                            if(percent > 100) percent = 100;
-                            if(percent < 10) percent = 10;
+                            if (percent > 100) percent = 100;
+                            if (percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
-                            
+
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
                                 updatedSizes.push(parseFloat(w.style.width) || 48);
                             });
                             document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
-                            
+
                             autoFitAllTexts();
                         }
-                        
+
                         window.addEventListener('mousemove', resize);
                         window.addEventListener('mouseup', stopResize);
                     });
@@ -1653,9 +1803,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             }
 
             let kept = [];
-            try { kept = JSON.parse(document.getElementById('kept_images').value); } catch(e){}
+            try { kept = JSON.parse(document.getElementById('kept_images').value); } catch (e) { }
             let currentIndex = 0;
-            
+
             kept.forEach(src => {
                 appendImage(src, currentIndex++);
             });
@@ -1687,9 +1837,9 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             const formPreviewContainer = document.getElementById('form-image-previews');
             if (!formPreviewContainer) return;
             formPreviewContainer.innerHTML = '';
-            
+
             let kept = [];
-            try { kept = JSON.parse(document.getElementById('kept_images').value); } catch(e){}
+            try { kept = JSON.parse(document.getElementById('kept_images').value); } catch (e) { }
             kept.forEach((src, index) => {
                 let item = document.createElement('div');
                 item.className = 'form-preview-item';
@@ -1724,7 +1874,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                     sizeArray.splice(keptCount + index, 1);
                     document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             renderFormPreviews();
             updateImagePreview();
@@ -1741,7 +1891,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                     sizeArray.splice(index, 1);
                     document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             renderFormPreviews();
             updateImagePreview();
@@ -1764,7 +1914,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
             isLoadedMode = false;
             document.getElementById('in_images').value = "";
-            dt = new DataTransfer(); 
+            dt = new DataTransfer();
 
             renderFormPreviews();
             updateTextPreview();
@@ -1773,19 +1923,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             const fieldsToEnable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
             fieldsToEnable.forEach(id => {
                 let el = document.getElementById(id);
-                if(el) el.disabled = false;
+                if (el) el.disabled = false;
             });
-            
+
             let submitBtn = document.querySelector('button[name="submit_report"]');
-            if(submitBtn) {
+            if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa fa-save me-2"></i> UPDATE RECORD';
                 submitBtn.classList.remove('btn-primary');
                 submitBtn.classList.add('btn-success');
             }
-            
+
             let addImgBtn = document.getElementById('btn_add_images');
-            if(addImgBtn) addImgBtn.disabled = false;
+            if (addImgBtn) addImgBtn.disabled = false;
 
             setTimeout(autoFitAllTexts, 200);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1811,7 +1961,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
             document.getElementById('form-image-previews').innerHTML = "";
             const formPreviewContainer = document.getElementById('form-image-previews');
-            
+
             if (loadedImages.length > 0) {
                 loadedImages.forEach((src, index) => {
                     let item = document.createElement('div');
@@ -1827,19 +1977,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             const fieldsToDisable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
             fieldsToDisable.forEach(id => {
                 let el = document.getElementById(id);
-                if(el) el.disabled = true;
+                if (el) el.disabled = true;
             });
-            
+
             let submitBtn = document.querySelector('button[name="submit_report"]');
-            if(submitBtn) {
+            if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fa fa-lock me-2"></i> VIEW ONLY';
                 submitBtn.classList.remove('btn-success');
                 submitBtn.classList.add('btn-primary');
             }
-            
+
             let addImgBtn = document.getElementById('btn_add_images');
-            if(addImgBtn) addImgBtn.disabled = true;
+            if (addImgBtn) addImgBtn.disabled = true;
 
             setTimeout(autoFitAllTexts, 200);
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1849,19 +1999,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             const fieldsToDisable = ['in_title', 'in_loc', 'in_date', 'in_time', 'in_desc'];
             fieldsToDisable.forEach(id => {
                 let el = document.getElementById(id);
-                if(el) el.disabled = false;
+                if (el) el.disabled = false;
             });
-            
+
             let submitBtn = document.querySelector('button[name="submit_report"]');
-            if(submitBtn) {
+            if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE';
                 submitBtn.classList.remove('btn-success');
                 submitBtn.classList.add('btn-primary');
             }
-            
+
             let addImgBtn = document.getElementById('btn_add_images');
-            if(addImgBtn) addImgBtn.disabled = false;
+            if (addImgBtn) addImgBtn.disabled = false;
 
             document.getElementById('reportForm').reset();
             document.getElementById('edit_id').value = "";
@@ -1880,26 +2030,26 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
         function autoFitAllTexts() {
             const containers = document.querySelectorAll('.desc-box');
-            
+
             containers.forEach(container => {
                 const textEl = container.querySelector('.desc-text');
                 const imgEl = container.querySelector('.image-section');
-                
+
                 if (!textEl) return;
-                
+
                 textEl.style.fontSize = '11pt';
-                
+
                 const availableHeight = container.clientHeight;
                 if (availableHeight === 0) return;
-                
+
                 let imgHeight = 0;
                 if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
                     imgHeight = imgEl.offsetHeight;
                 }
-                
+
                 let currentSize = 11;
                 const minSize = 7;
-                
+
                 while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
                     currentSize -= 0.5;
                     textEl.style.fontSize = currentSize + 'pt';
@@ -1922,7 +2072,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             let imgHtml = '';
             if (data.images && data.images.length > 0) {
                 let sizeArray = [];
-                try { sizeArray = JSON.parse(data.image_size); } catch(e) { sizeArray = [48]; }
+                try { sizeArray = JSON.parse(data.image_size); } catch (e) { sizeArray = [48]; }
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
 
                 imgHtml = '<div class="image-section" style="display:flex!important;">';
@@ -2003,7 +2153,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             document.body.classList.remove('print-blank');
             document.body.classList.add('print-single-mode');
             window.print();
-            setTimeout(function() { document.body.classList.remove('print-single-mode'); }, 500);
+            setTimeout(function () { document.body.classList.remove('print-single-mode'); }, 500);
         }
 
         function toggleTheme() {
@@ -2013,7 +2163,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
             localStorage.setItem('appTheme', isLight ? 'light' : 'dark');
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             if (!livePreview.title) {
                 livePreview = {
                     title: document.getElementById('out_title'),
@@ -2029,7 +2179,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
 
             let fileInput = document.getElementById('in_images');
             if (fileInput) {
-                fileInput.addEventListener('change', function() {
+                fileInput.addEventListener('change', function () {
                     if (isLoadedMode) {
                         loadedImages = [];
                         isLoadedMode = false;
@@ -2039,18 +2189,18 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
                         dt.items.add(file);
                     }
                     this.files = dt.files;
-                    
+
                     let currentSizes = [];
-                    try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-                    
+                    try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch (e) { }
+
                     let keptCount = 0;
-                    try { keptCount = JSON.parse(document.getElementById('kept_images').value).length; } catch(e){}
-                    
-                    while(currentSizes.length < (keptCount + this.files.length)) currentSizes.push(48);
+                    try { keptCount = JSON.parse(document.getElementById('kept_images').value).length; } catch (e) { }
+
+                    while (currentSizes.length < (keptCount + this.files.length)) currentSizes.push(48);
                     document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
                     renderFormPreviews();
-                    updateImagePreview(); 
+                    updateImagePreview();
                 });
             }
 
@@ -2063,4 +2213,5 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM facility_inspections"
         });
     </script>
 </body>
+
 </html>

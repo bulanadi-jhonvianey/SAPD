@@ -273,10 +273,10 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             font-family: "Old English Text MT";
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot");
             src: url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.eot?#iefix") format("embedded-opentype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
-                 url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff2") format("woff2"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.woff") format("woff"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.ttf") format("truetype"),
+                url("https://db.onlinewebfonts.com/t/f3258385782c4c96aa24fe8b5d5f9782.svg#Old English Text MT") format("svg");
             font-weight: normal;
             font-style: normal;
         }
@@ -449,9 +449,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             color: var(--text-main);
             opacity: 1;
         }
+
         .form-control:-ms-input-placeholder {
             color: var(--text-main);
         }
+
         .form-control::-ms-input-placeholder {
             color: var(--text-main);
         }
@@ -540,7 +542,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             margin-right: -0.25in;
             margin-top: -0.25in;
             height: 1.5in;
-            margin-bottom: 0px; 
+            margin-bottom: 0px;
         }
 
         .fading-bar {
@@ -548,8 +550,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             bottom: 20px;
             left: 0;
             width: 100%;
-            height: 40px; 
-            background: 
+            height: 40px;
+            background:
                 linear-gradient(to right, #c99800 0%, #c99800 95%, #ffffff 100%) left bottom / 100% 5px no-repeat,
                 linear-gradient(to right, #fbc600 0%, #fbc600 30%, #ffffff 55%) left top / 100% calc(100% - 5px) no-repeat;
             z-index: 1;
@@ -559,17 +561,17 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
         .header-content {
             position: relative;
-            z-index: 2; 
+            z-index: 2;
             display: flex;
             align-items: center;
             height: 100%;
-            padding: 0 0.25in; 
+            padding: 0 0.25in;
         }
 
         .new-header-logo {
             width: 140px;
             height: auto;
-            margin-right: 5px; 
+            margin-right: 5px;
             flex-shrink: 0;
             object-fit: contain;
         }
@@ -578,8 +580,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            justify-content: flex-end; 
-            height: 100px; 
+            justify-content: flex-end;
+            height: 100px;
             padding-bottom: 5px;
         }
 
@@ -594,14 +596,13 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
         .divider-line {
             height: 2px;
-            background: linear-gradient(to right, 
-                #002b7f 0%, 
-                #002b7f 18%, 
-                rgba(0, 43, 127, 0.25) 24%, 
-                rgba(0, 43, 127, 0.25) 75%, 
-                #002b7f 80%, 
-                #002b7f 100%
-            );
+            background: linear-gradient(to right,
+                    #002b7f 0%,
+                    #002b7f 18%,
+                    rgba(0, 43, 127, 0.25) 24%,
+                    rgba(0, 43, 127, 0.25) 75%,
+                    #002b7f 80%,
+                    #002b7f 100%);
             width: 100%;
             margin-top: 2px;
             margin-bottom: 4px;
@@ -642,7 +643,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             align-items: center;
             justify-content: center;
             gap: 15px;
-            margin-top: -5px; 
+            margin-top: -5px;
             margin-bottom: 5px;
             position: relative;
             z-index: 60;
@@ -716,19 +717,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             border-right: 2px solid black;
             border-top: 1px solid black;
             border-bottom: 1px solid black;
-            padding: 0; 
+            padding: 0;
             vertical-align: top;
-            height: 500px; 
-            position: relative; 
+            height: 500px;
+            position: relative;
         }
 
         .desc-content {
-            position: absolute; 
-            top: 0; bottom: 0; left: 0; right: 0;
-            padding: 6px 8px; 
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 6px 8px;
             font-size: 10pt;
             color: black;
-            overflow: hidden; 
+            overflow: hidden;
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
@@ -752,7 +756,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         .image-section {
             display: none;
             width: 100%;
-            margin-top: auto; 
+            margin-top: auto;
             padding: 5px 0;
             box-sizing: border-box;
             justify-content: center;
@@ -771,11 +775,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             margin: 0;
             padding: 0;
             transition: border-color 0.2s;
-            user-select: none; 
+            user-select: none;
             box-sizing: border-box;
         }
-        
-        .resize-wrapper:hover, .resize-wrapper:active {
+
+        .resize-wrapper:hover,
+        .resize-wrapper:active {
             border-color: rgba(0, 123, 255, 0.7);
         }
 
@@ -798,19 +803,62 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             height: 16px;
         }
 
-        .resize-wrapper:hover .resize-handle, 
+        .resize-wrapper:hover .resize-handle,
         .resize-wrapper:active .resize-handle {
             opacity: 1;
         }
 
-        .resizer-nw { top: -8px; left: -8px; cursor: nwse-resize; }
-        .resizer-ne { top: -8px; right: -8px; cursor: nesw-resize; }
-        .resizer-sw { bottom: -8px; left: -8px; cursor: nesw-resize; }
-        .resizer-se { bottom: -8px; right: -8px; cursor: nwse-resize; }
-        .resizer-n { top: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
-        .resizer-s { bottom: -8px; left: 50%; transform: translateX(-50%); cursor: ns-resize; }
-        .resizer-e { top: 50%; right: -8px; transform: translateY(-50%); cursor: ew-resize; }
-        .resizer-w { top: 50%; left: -8px; transform: translateY(-50%); cursor: ew-resize; }
+        .resizer-nw {
+            top: -8px;
+            left: -8px;
+            cursor: nwse-resize;
+        }
+
+        .resizer-ne {
+            top: -8px;
+            right: -8px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-sw {
+            bottom: -8px;
+            left: -8px;
+            cursor: nesw-resize;
+        }
+
+        .resizer-se {
+            bottom: -8px;
+            right: -8px;
+            cursor: nwse-resize;
+        }
+
+        .resizer-n {
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .resizer-s {
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: ns-resize;
+        }
+
+        .resizer-e {
+            top: 50%;
+            right: -8px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
+
+        .resizer-w {
+            top: 50%;
+            left: -8px;
+            transform: translateY(-50%);
+            cursor: ew-resize;
+        }
 
         .signatures-table {
             width: 100%;
@@ -985,7 +1033,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 padding-top: 0 !important;
             }
 
-            .fading-bar, .divider-line {
+            .fading-bar,
+            .divider-line {
                 print-color-adjust: exact !important;
                 -webkit-print-color-adjust: exact !important;
             }
@@ -997,6 +1046,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             .resize-wrapper {
                 border: none !important;
             }
+
             .resize-handle {
                 display: none !important;
             }
@@ -1090,7 +1140,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
             <form method="POST" enctype="multipart/form-data" id="reportForm">
                 <input type="hidden" name="edit_id" id="edit_id" value="">
-                
+
                 <input type="text" name="case_title" id="in_case" class="form-control"
                     placeholder="Case (e.g., Possession of Vape)" required oninput="updatePreview()">
                 <input type="text" name="location" id="in_loc" class="form-control" placeholder="Location" required
@@ -1125,7 +1175,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     <label class="small text-secondary mb-2 d-block">
                         <i class="fa fa-images me-1"></i> Attach Images (Optional, JPG/PNG/GIF)
                         <br>
-                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip: Drag any edge or corner of the image in the Preview Panel to resize it.</span>
+                        <span class="text-primary fw-bold" style="font-size: 11px;"><i class="fa fa-lightbulb"></i> Tip:
+                            Drag any edge or corner of the image in the Preview Panel to resize it.</span>
                     </label>
 
                     <input type="file" name="incident_images[]" id="in_images" class="d-none"
@@ -1140,10 +1191,12 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 </div>
 
                 <div class="d-flex gap-2">
-                    <button type="submit" name="submit_report" id="submit_btn" class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
+                    <button type="submit" name="submit_report" id="submit_btn"
+                        class="btn btn-primary flex-grow-1 fw-bold py-3 mt-2">
                         <i class="fa fa-plus-circle me-2"></i> ADD TO QUEUE
                     </button>
-                    <button type="button" id="cancel_edit_btn" onclick="cancelEdit()" class="btn btn-danger fw-bold py-3 mt-2 d-none" title="Cancel Edit">
+                    <button type="button" id="cancel_edit_btn" onclick="cancelEdit()"
+                        class="btn btn-danger fw-bold py-3 mt-2 d-none" title="Cancel Edit">
                         <i class="fa fa-times"></i>
                     </button>
                     <button type="button" onclick="resetForm()" class="btn btn-warning fw-bold py-3 mt-2"
@@ -1227,9 +1280,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     <tr>
                         <td>
                             <div class="desc-content">
-                                <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                                <div
+                                    style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
                                     <strong>DESCRIPTION OF INCIDENT:</strong>
-                                    <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                                    <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened,
+                                        person involved, specific dates/events)</span>
                                 </div>
                                 <div class="desc-box"><span id="out_desc"></span></div>
                                 <div class="image-section" id="out_images_container"></div>
@@ -1319,7 +1374,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     if (is_array($decoded_sizes)) {
                         $print_sizes = $decoded_sizes;
                     } else {
-                        $print_sizes = array_fill(0, max(1, count((array)$p['image_paths'])), intval($p['image_size']));
+                        $print_sizes = array_fill(0, max(1, count((array) $p['image_paths'])), intval($p['image_size']));
                     }
                 }
                 ?>
@@ -1370,19 +1425,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                         <tr>
                             <td>
                                 <div class="desc-content">
-                                    <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                                    <div
+                                        style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
                                         <strong>DESCRIPTION OF INCIDENT:</strong>
-                                        <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                                        <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened,
+                                            person involved, specific dates/events)</span>
                                     </div>
                                     <div class="desc-box"><?php echo nl2br($p['desc']); ?></div>
                                     <?php if (!empty($p['image_paths']) && is_array($p['image_paths'])): ?>
                                         <div class="image-section" style="display:flex!important;">
                                             <?php foreach ($p['image_paths'] as $idx => $path): ?>
-                                                <?php 
+                                                <?php
                                                 $current_size = isset($print_sizes[$idx]) ? $print_sizes[$idx] : 48;
-                                                if (file_exists($path)): 
-                                                ?>
-                                                    <div class="resize-wrapper" style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
+                                                if (file_exists($path)):
+                                                    ?>
+                                                    <div class="resize-wrapper"
+                                                        style="width: <?php echo $current_size; ?>%; border: none; resize: none;">
                                                         <img src="<?php echo $path; ?>" class="paper-preview-img" alt="Evidence">
                                                     </div>
                                                 <?php endif; ?>
@@ -1511,9 +1569,11 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 <tr>
                     <td>
                         <div class="desc-content">
-                            <div style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
+                            <div
+                                style="border-bottom: 1px solid black; padding-bottom: 4px; margin-bottom: 5px; width: 100%;">
                                 <strong>DESCRIPTION OF INCIDENT:</strong>
-                                <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened, person involved, specific dates/events)</span>
+                                <span style="font-size: 8pt; font-style: italic; margin-left: 5px;">(What happened,
+                                    person involved, specific dates/events)</span>
                             </div>
                             <div class="desc-box"></div>
                         </div>
@@ -1658,8 +1718,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                                 <td class="text-center">
                                     <div class="d-flex gap-1 justify-content-center">
                                         <button type="button" class="btn btn-sm btn-info text-white"
-                                            onclick='viewOnly(<?php echo $preview_json; ?>)'
-                                            title="View Record Only">
+                                            onclick='viewOnly(<?php echo $preview_json; ?>)' title="View Record Only">
                                             <i class="fa fa-eye"></i>
                                         </button>
                                         <button type="button" class="btn btn-sm btn-primary"
@@ -1667,7 +1726,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                                             title="Edit Record">
                                             <i class="fa fa-pen"></i>
                                         </button>
-                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-secondary" title="Reprint">
+                                        <a href="?reprint_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-secondary"
+                                            title="Reprint">
                                             <i class="fa fa-print"></i>
                                         </a>
                                         <a href="?delete_id=<?php echo $row['id']; ?>" class="btn btn-sm btn-danger"
@@ -1716,27 +1776,27 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
         // --- TEXT AUTO-SHRINK FUNCTION ---
         function autoFitAllTexts() {
             const containers = document.querySelectorAll('.desc-content');
-            
+
             containers.forEach(container => {
                 const textEl = container.querySelector('.desc-box');
                 const imgEl = container.querySelector('.image-section');
-                
+
                 if (!textEl) return;
-                
+
                 // Reset to default font size to measure accurately
                 textEl.style.fontSize = '10pt';
-                
-                const availableHeight = container.clientHeight; 
+
+                const availableHeight = container.clientHeight;
                 if (availableHeight === 0) return;
-                
+
                 let imgHeight = 0;
                 if (imgEl && window.getComputedStyle(imgEl).display !== 'none') {
                     imgHeight = imgEl.offsetHeight;
                 }
-                
+
                 let currentSize = 10;
                 const minSize = 7;
-                
+
                 while ((textEl.offsetHeight + imgHeight + 10) > availableHeight && currentSize > minSize) {
                     currentSize -= 0.5;
                     textEl.style.fontSize = currentSize + 'pt';
@@ -1784,15 +1844,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 dt.items.add(file);
             }
             this.files = dt.files;
-            
+
             // Re-sync size array to match newly added items (default 48)
             let currentSizes = [];
-            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch(e){}
-            while(currentSizes.length < this.files.length) currentSizes.push(48);
+            try { currentSizes = JSON.parse(document.getElementById('in_img_size').value); } catch (e) { }
+            while (currentSizes.length < this.files.length) currentSizes.push(48);
             document.getElementById('in_img_size').value = JSON.stringify(currentSizes);
 
             renderFormPreviews();
-            updateImagePreview(); 
+            updateImagePreview();
         });
 
         function updateImagePreview() {
@@ -1804,22 +1864,22 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             try {
                 sizeArray = JSON.parse(savedSizesVal);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
-            } catch(e) {
+            } catch (e) {
                 sizeArray = [parseInt(savedSizesVal) || 48];
             }
 
             function appendImage(src, index) {
                 let wrapper = document.createElement('div');
                 wrapper.className = 'resize-wrapper';
-                
+
                 let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
                 wrapper.style.width = initialSize + '%';
-                
+
                 let img = document.createElement('img');
                 img.src = src;
                 img.className = 'paper-preview-img';
-                img.onload = function() { autoFitAllTexts(); };
-                
+                img.onload = function () { autoFitAllTexts(); };
+
                 wrapper.appendChild(img);
 
                 // Inject 8 interaction handles
@@ -1839,15 +1899,15 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                 let original_mouse_x = 0;
                 let original_mouse_y = 0;
 
-                resizers.forEach(function(resizer) {
-                    resizer.addEventListener('mousedown', function(e) {
+                resizers.forEach(function (resizer) {
+                    resizer.addEventListener('mousedown', function (e) {
                         e.preventDefault();
                         e.stopPropagation();
                         original_width = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('width').replace('px', ''));
                         original_height = parseFloat(getComputedStyle(wrapper, null).getPropertyValue('height').replace('px', ''));
                         original_mouse_x = e.pageX;
                         original_mouse_y = e.pageY;
-                        
+
                         function resize(e) {
                             let width = original_width;
                             let height = original_height;
@@ -1875,30 +1935,30 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
                             let percentWidth = (width / paperImageContainer.clientWidth) * 100;
 
-                            if(percentWidth > 100) percentWidth = 100;
-                            if(percentWidth < 10) percentWidth = 10;
+                            if (percentWidth > 100) percentWidth = 100;
+                            if (percentWidth < 10) percentWidth = 10;
 
                             wrapper.style.width = percentWidth + '%';
                         }
-                        
+
                         function stopResize() {
                             window.removeEventListener('mousemove', resize);
                             window.removeEventListener('mouseup', stopResize);
-                            
+
                             let percent = Math.round((wrapper.offsetWidth / paperImageContainer.clientWidth) * 100);
-                            if(percent > 100) percent = 100;
-                            if(percent < 10) percent = 10;
+                            if (percent > 100) percent = 100;
+                            if (percent < 10) percent = 10;
                             wrapper.style.width = percent + '%';
-                            
+
                             let updatedSizes = [];
                             document.querySelectorAll('#out_images_container .resize-wrapper').forEach(w => {
                                 updatedSizes.push(parseFloat(w.style.width) || 48);
                             });
                             document.getElementById('in_img_size').value = JSON.stringify(updatedSizes);
-                            
+
                             autoFitAllTexts();
                         }
-                        
+
                         window.addEventListener('mousemove', resize);
                         window.addEventListener('mouseup', stopResize);
                     });
@@ -1948,7 +2008,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     sizeArray.splice(index, 1);
                     document.getElementById('in_img_size').value = JSON.stringify(sizeArray);
                 }
-            } catch(e) {}
+            } catch (e) { }
 
             renderFormPreviews();
             updateImagePreview();
@@ -1959,7 +2019,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             document.getElementById('out_case').innerText = data.case.toUpperCase();
             document.getElementById('out_loc').innerText = data.loc.toUpperCase();
             document.getElementById('out_date').innerText = data.date;
-            
+
             let timeVal = data.time;
             if (timeVal) {
                 let [h, m] = timeVal.split(':');
@@ -1973,16 +2033,16 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
             const paperImageContainer = document.getElementById('out_images_container');
             paperImageContainer.innerHTML = '';
-            
+
             let savedSize = data.image_size || '[]';
             let sizeArray = [];
             try {
                 sizeArray = JSON.parse(savedSize);
                 if (!Array.isArray(sizeArray)) sizeArray = [sizeArray];
-            } catch(e) {
+            } catch (e) {
                 sizeArray = [parseInt(savedSize) || 48];
             }
-            
+
             let images = data.images || [];
             if (images.length > 0) {
                 paperImageContainer.style.display = 'flex';
@@ -1992,19 +2052,19 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
                     wrapper.style.border = 'none'; // No resize outlines in View Only mode
                     let initialSize = sizeArray[index] !== undefined ? sizeArray[index] : 48;
                     wrapper.style.width = initialSize + '%';
-                    
+
                     let img = document.createElement('img');
                     img.src = src;
                     img.className = 'paper-preview-img';
-                    img.onload = function() { autoFitAllTexts(); };
-                    
+                    img.onload = function () { autoFitAllTexts(); };
+
                     wrapper.appendChild(img);
                     paperImageContainer.appendChild(wrapper);
                 });
             } else {
                 paperImageContainer.style.display = 'none';
             }
-            
+
             autoFitAllTexts();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -2015,8 +2075,8 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
             document.getElementById('submit_btn').innerHTML = '<i class="fa fa-save me-2"></i> UPDATE RECORD';
             document.getElementById('submit_btn').classList.replace('btn-primary', 'btn-success');
             document.getElementById('cancel_edit_btn').classList.remove('d-none');
-            
-            loadToPreview(data); 
+
+            loadToPreview(data);
         }
 
         function cancelEdit() {
@@ -2080,7 +2140,7 @@ $total_count = $conn->query("SELECT COUNT(*) as total FROM vaping_reports")->fet
 
         // Auto print logic based on PHP session flag triggered by reprint button
         <?php if (isset($_SESSION['auto_print']) && $_SESSION['auto_print'] === true): ?>
-            window.addEventListener('load', function() {
+            window.addEventListener('load', function () {
                 printQueue();
             });
             <?php unset($_SESSION['auto_print']); ?>
